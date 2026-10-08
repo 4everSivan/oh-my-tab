@@ -110,7 +110,7 @@
     },
     "T06": {
       "title": "首版核心效率组件交付（待办、便签、专注）",
-      "status": "pending",
+      "status": "completed",
       "branch": "feat/T06-core-widgets",
       "milestone": "M1-v0.1.0-首发里程碑",
       "depends_on": [
