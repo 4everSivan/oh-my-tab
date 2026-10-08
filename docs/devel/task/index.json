@@ -79,7 +79,7 @@
     },
     "T03": {
       "title": "组件契约系统、注册中心与通用卡片外壳实现",
-      "status": "pending",
+      "status": "completed",
       "branch": "feat/T03-widget-contract",
       "milestone": "M1-v0.1.0-首发里程碑",
       "depends_on": [
