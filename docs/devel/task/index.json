@@ -70,7 +70,7 @@
     },
     "T02": {
       "title": "原生存储适配层与持久化服务实现",
-      "status": "pending",
+      "status": "completed",
       "branch": "feat/T02-storage-adapter",
       "milestone": "M1-v0.1.0-首发里程碑",
       "depends_on": [
