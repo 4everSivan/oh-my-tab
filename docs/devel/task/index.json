@@ -120,7 +120,7 @@
     },
     "T07": {
       "title": "Chrome 扩展端到端集成验证与部署实况报告",
-      "status": "pending",
+      "status": "completed",
       "branch": "feat/T07-extension-integration",
       "milestone": "M1-v0.1.0-首发里程碑",
       "depends_on": [

@@ -6,6 +6,18 @@
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-08
+
+### Added
+
+- **工程脚手架与构建隔离 (T01)**：初始化 React 18 + TypeScript + Vite + Tailwind CSS 技术栈，配置 `outDir: local/dist/`，实现产物绝对物理隔离与零根目录污染。
+- **原生存储适配与壁纸持久化 (T02)**：实现 `chrome.storage.local` / `sync` 双通道适配器与原生 IndexedDB 壁纸大文件存储，支持模块独立重置与默认值防御注入。
+- **组件契约系统与通用卡片外壳 (T03)**：实现 `WidgetContract`、`WidgetRegistry` 注册中心与 `CardShell`，标准化 7 类统一卡片状态及未知组件占位容错机制。
+- **工作台页面壳与桌面式导航 (T04)**：实现页面壳与点击时间收起联动；实现多引擎搜索栏 (`SearchBar`) 与平滑圆角桌面式快捷方式 (`Shortcuts`)，支持首字符回退、右键菜单、450ms 长按排序与操作撤销。
+- **12 列流式栅格与外观设置面板 (T05)**：实现 12 列响应式栅格布局 (`GridContainer`)、抽屉式外观设置面板 (`AppearanceDrawer`) 与添加组件弹窗 (`AddWidgetModal`)。
+- **核心效率组件交付 (T06)**：首发交付今日待办 (`core.todo`)、随手便签 (`core.notes`)、专注计时 (`core.focus`) 三款内置组件，实现跨刷新状态恢复与“移除卡片保留内容”(`INV_RETAIN_CONTENT_ON_REMOVE`) 物理隔离。
+- **Chrome 扩展端到端集成与实况报告 (T07)**：完成 Manifest V3 生产打包与 Chrome 扩展解压加载验证，产出 `local/deploy_report.md` 实况报告，64 项自动化测试全绿通过。
+
 ### Added
 
 - 整理导航、效率、视觉氛围、自由布局、深度扩展和可选 Chrome 同步的产品目标。
