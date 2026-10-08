@@ -1,0 +1,76 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T04",
+  "title": "工作台页面壳、时间收起交互与导航搜索系统实现",
+  "milestone": "M1-v0.1.0-首发里程碑",
+  "status": "pending",
+  "branch": "feat/T04-navigation-shell",
+  "depends_on": [
+    "T01",
+    "T02"
+  ],
+  "target": {
+    "module": "页面入口与导航",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "goal": "实现工作台页面外壳、时间日期收起极简切换、网页搜索框（多引擎支持）以及桌面式常用网站列表（连续圆角图标、图标回退、右键菜单与 450ms 长按拖动排序）。",
+  "precheck": {
+    "description": "检测页面壳与导航组件源码是否存在",
+    "command": "test -f src/components/clock/Clock.tsx && test -f src/components/shortcuts/Shortcuts.tsx",
+    "expected": "0",
+    "is_completed": false,
+    "evidence": ""
+  },
+  "callback": {
+    "before": [],
+    "after": []
+  },
+  "tasks": [
+    {
+      "id": "T04-1",
+      "title": "时间与日期组件及点击收起交互",
+      "capability": "实现纯净无框时间与日期展示，支持点击进入收起极简模式，再次点击恢复工作台",
+      "done": false
+    },
+    {
+      "id": "T04-2",
+      "title": "网页搜索栏组件实现",
+      "capability": "实现默认 Google 并可切换 Bing/百度/DuckDuckGo 的搜索框，支持新标签页打开与透明/模糊外观",
+      "done": false
+    },
+    {
+      "id": "T04-3",
+      "title": "桌面式常用网站图标网格实现",
+      "capability": "实现连续圆角方形网站卡片、favicon/apple-touch-icon 抓取与首字符优雅回退",
+      "done": false
+    },
+    {
+      "id": "T04-4",
+      "title": "右键桌面级菜单与长按拖拽排序",
+      "capability": "实现右键快捷菜单（编辑/新标签打开/删除），以及 450ms 长按触发的拖动排序逻辑",
+      "done": false
+    }
+  ],
+  "acceptance": {
+    "result": null,
+    "run_id": "",
+    "checks": [
+      {
+        "item": "时间收起与还原不丢内容",
+        "true_if": "收起模式仅保留时间与搜索，再次点击完整还原所有网站与组件",
+        "false_if": "收起或还原导致组件或网站数据重置",
+        "evidence": "",
+        "result": null
+      },
+      {
+        "item": "网站排序与右键操作",
+        "true_if": "长按 450ms 拖拽排序生效且刷新持久化保留，短按正常打开链接",
+        "false_if": "长按排序误触发打开链接或顺序未持久化",
+        "evidence": "",
+        "result": null
+      }
+    ]
+  },
+  "version": "v0.1.0"
+}

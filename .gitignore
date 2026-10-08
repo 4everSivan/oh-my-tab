@@ -1,0 +1,19 @@
+# Build outputs, runtime data and evidence
+/local/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies and tool caches
+node_modules/
+.pnpm-store/
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+*.tsbuildinfo
+coverage/
+.nyc_output/
+.DS_Store

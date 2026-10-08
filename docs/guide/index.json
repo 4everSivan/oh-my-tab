@@ -1,0 +1,20 @@
+{
+  "$schema": "adflow-guide-index-v1",
+  "project": "oh-my-tab",
+  "created": "2026-10-07",
+  "last_change": "2026-10-07",
+  "status": "active",
+  "description": "系统使用与部署指南机器索引，记录施工标准与目标产物",
+  "guides": [
+    {
+      "id": "GUIDE-DEPLOY",
+      "title": "本地部署指南",
+      "file": "01-本地部署指南.md",
+      "category": "deployment",
+      "target_env": "local",
+      "output_artifact": "local/deploy_report.md",
+      "description": "实现前的只读检查、后续扩展加载约定及真实浏览器报告要求；当前不可部署",
+      "status": "draft"
+    }
+  ]
+}

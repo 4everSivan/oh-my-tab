@@ -1,0 +1,117 @@
+{
+  "$schema": "adflow-devel-index-v1",
+  "project": "oh-my-tab",
+  "created": "2026-10-07",
+  "last_change": "2026-10-08",
+  "status": "active",
+  "description": "研发内场核心工作区总账路由，聚合现行设计基线与执行卡池",
+  "subsystems": [
+    {
+      "name": "design",
+      "path": "docs/devel/design",
+      "type": "living_baseline",
+      "description": "现行系统设计基线真理源（以 @topic 锚点保持全文自洽）",
+      "readme": "docs/devel/design/README.md",
+      "documents": [
+        {
+          "id": "DESIGN-SYS",
+          "topic": "SystemOverview",
+          "doc": "docs/devel/design/00-系统总体设计.md",
+          "status": "draft",
+          "description": "首页设计确认来源、产品边界、模块职责与证据状态",
+          "last_change": "2026-10-08",
+          "confirmed_on": "2026-10-08",
+          "confirmed_scope": "当前首页交互外观、技术栈选型(React 18+TS+Vite+Tailwind)、构建隔离(local/dist)、首版组件范围(Todo/Notes/Timer)与原生存储方案"
+        },
+        {
+          "id": "DESIGN-NAV",
+          "topic": "EntryNavigation",
+          "doc": "docs/devel/design/01-页面入口与导航.md",
+          "status": "draft",
+          "description": "网页搜索、网站图标与右键/排序；页面入口及分组方案",
+          "last_change": "2026-10-08",
+          "confirmed_on": "2026-10-08",
+          "confirmed_scope": "Google 默认与引擎切换、网站配置/图标回退/右键管理/长按排序"
+        },
+        {
+          "id": "DESIGN-LAYOUT",
+          "topic": "WorkspaceAppearance",
+          "doc": "docs/devel/design/02-工作台布局与外观.md",
+          "status": "draft",
+          "description": "首页布局、时间/搜索参数、背景与恢复；组件布局/CSS 方案",
+          "last_change": "2026-10-08",
+          "confirmed_on": "2026-10-08",
+          "confirmed_scope": "默认布局、时间收起、无框无白边时间、可调时间/搜索外观、自定义背景、组件区 12 列栅格流式布局定调"
+        },
+        {
+          "id": "DESIGN-WIDGETS",
+          "topic": "ProductivityWidgets",
+          "doc": "docs/devel/design/03-效率组件.md",
+          "status": "draft",
+          "description": "按需添加、移除保留内容；组件完整功能范围",
+          "last_change": "2026-10-08",
+          "confirmed_on": "2026-10-08",
+          "confirmed_scope": "首版组件范围(今日待办/随手便签/专注计时)、自行添加、移除保留内容及多实例模型"
+        },
+        {
+          "id": "DESIGN-DATA",
+          "topic": "DataPersistenceSync",
+          "doc": "docs/devel/design/04-数据保存与同步.md",
+          "status": "draft",
+          "description": "首页保存/恢复与原型迁移；正式存储和可选同步方案",
+          "last_change": "2026-10-08",
+          "confirmed_on": "2026-10-08",
+          "confirmed_scope": "自动本地保存、原生Chrome Storage(local/sync)+原生IndexedDB双层持久化、组件独立恢复与内容保留"
+        },
+        {
+          "id": "DESIGN-EXT",
+          "topic": "ExtensionDataSources",
+          "doc": "docs/devel/design/05-深度扩展与外部数据.md",
+          "status": "draft",
+          "description": "外部数据源接入、权限与请求降级；组件契约见 06",
+          "last_change": "2026-10-08"
+        },
+        {
+          "id": "DESIGN-WIDGET-CONTRACT",
+          "topic": "WidgetContract",
+          "doc": "docs/devel/design/06-组件契约与注册.md",
+          "status": "draft",
+          "description": "组件契约、注册表、实例模型与宿主服务的单一来源",
+          "last_change": "2026-10-08",
+          "confirmed_on": "2026-10-08",
+          "confirmed_scope": "组件可扩展架构方向：多实例数据模型、单实例交互政策、栅格流式布局与契约单一来源；契约字段未冻结"
+        }
+      ]
+    },
+    {
+      "name": "change",
+      "path": "docs/devel/change",
+      "type": "bugfix_and_change_pool",
+      "description": "变更核验卡池与变更中枢总账（日常 Bug 修复与回调流）",
+      "readme": "docs/devel/change/README.md",
+      "index": "docs/devel/change/index.json"
+    },
+    {
+      "name": "task",
+      "path": "docs/devel/task",
+      "type": "milestone_task_pool",
+      "description": "阶段研发任务卡池与 DAG 依赖总账（Phase/Milestone 拆解流）",
+      "readme": "docs/devel/task/README.md",
+      "index": "docs/devel/task/index.json"
+    },
+    {
+      "name": "todo",
+      "path": "docs/devel/todo",
+      "type": "buffer_pool",
+      "description": "未入轨缺陷与需求缓冲池（now.md / future.md，建卡即移出）",
+      "readme": "docs/devel/todo/README.md"
+    },
+    {
+      "name": "env",
+      "path": "docs/devel/env",
+      "type": "environment_governance",
+      "description": "开发环境配置、依赖管理、磁盘缓存盘点与环境安全清理规范",
+      "readme": "docs/devel/env/README.md"
+    }
+  ]
+}

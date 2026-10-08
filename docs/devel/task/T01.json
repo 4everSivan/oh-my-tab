@@ -1,0 +1,76 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T01",
+  "title": "工程脚手架初始化与构建隔离配置",
+  "milestone": "M1-v0.1.0-首发里程碑",
+  "status": "completed",
+  "branch": "feat/T01-project-scaffolding",
+  "depends_on": [],
+  "target": {
+    "module": "工程基建与构建工具链",
+    "design_doc": "docs/devel/design/00-系统总体设计.md",
+    "design_topic": "SystemOverview"
+  },
+  "goal": "搭建 React 18 + TypeScript + Vite + Tailwind CSS 基础工程环境，配置 Manifest V3 扩展结构，严格隔离打包构建产物至根目录 local/dist/，并配置开发与测试工具链。",
+  "precheck": {
+    "description": "检测代码库中是否已存在 package.json 与正式 Vite 构建配置",
+    "command": "test -f package.json && test -f vite.config.ts",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "Executed test -f package.json && test -f vite.config.ts. Files created and build passes."
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm run build",
+      "npm test"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T01-1",
+      "title": "初始化 package.json 与 TypeScript 配置",
+      "capability": "配置 react 18、typescript、vite、@types/chrome 等核心依赖及 tsconfig.json",
+      "done": true
+    },
+    {
+      "id": "T01-2",
+      "title": "配置 Vite 构建并强制输出至 local/dist/",
+      "capability": "配置 vite.config.ts 构建选项 outDir: 'local/dist'，落实产物隔离底线",
+      "done": true
+    },
+    {
+      "id": "T01-3",
+      "title": "配置 Tailwind CSS 与基础样式体系",
+      "capability": "引入 tailwindcss、postcss、autoprefixer 并建立全局设计变量样式表",
+      "done": true
+    },
+    {
+      "id": "T01-4",
+      "title": "配置 Manifest V3 与 Newtab 页面入口",
+      "capability": "编写 manifest.json 声明 chrome_url_overrides.newtab，绑定入口 HTML 与 React 挂载点",
+      "done": true
+    }
+  ],
+  "acceptance": {
+    "result": "passed",
+    "run_id": "RUN-T01-001",
+    "checks": [
+      {
+        "item": "构建隔离底线 (INV_BUILD_OUTPUT_ISOLATION)",
+        "true_if": "执行构建后所有 bundle 文件 100% 写入 local/dist/，源码树与根目录零散落构建文件",
+        "false_if": "根目录或源码目录生成了未受隔离的 dist/ 或临时产物",
+        "evidence": "tsc && vite build 100% 输出至 local/dist/ (包含 index.html, manifest.json, assets/*.js, assets/*.css)，根目录与 src 零构建产物散落",
+        "result": "passed"
+      },
+      {
+        "item": "构建与语法全绿通过",
+        "true_if": "npm run build 与类型检查退出码为 0，无致命报错",
+        "false_if": "构建或类型检查失败",
+        "evidence": "npm run build 退出码为 0，npm test 35 项测试全部通过（0 失败，0 跳过）",
+        "result": "passed"
+      }
+    ]
+  },
+  "version": "v0.1.0"
+}

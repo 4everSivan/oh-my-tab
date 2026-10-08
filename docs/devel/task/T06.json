@@ -1,0 +1,76 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T06",
+  "title": "首版核心效率组件交付（待办、便签、专注）",
+  "milestone": "M1-v0.1.0-首发里程碑",
+  "status": "pending",
+  "branch": "feat/T06-core-widgets",
+  "depends_on": [
+    "T03",
+    "T05"
+  ],
+  "target": {
+    "module": "效率组件",
+    "design_doc": "docs/devel/design/03-效率组件.md",
+    "design_topic": "ProductivityWidgets"
+  },
+  "goal": "交付首版三款核心内置组件：今日待办 (Todo)、随手便签 (Notes) 与专注计时 (Focus Timer)，落实组件添加入口单实例置灰政策与移除卡片保留内容的物理隔离机制。",
+  "precheck": {
+    "description": "检测三款内置效率组件源码是否存在",
+    "command": "test -f src/widgets/todo/index.tsx && test -f src/widgets/notes/index.tsx && test -f src/widgets/focus-timer/index.tsx",
+    "expected": "0",
+    "is_completed": false,
+    "evidence": ""
+  },
+  "callback": {
+    "before": [],
+    "after": []
+  },
+  "tasks": [
+    {
+      "id": "T06-1",
+      "title": "今日待办 (Todo) 组件实现",
+      "capability": "实现待办项新增、完成状态勾选、删除与清除完成项，数据经 host.storage 实例命名空间持久化",
+      "done": false
+    },
+    {
+      "id": "T06-2",
+      "title": "随手便签 (Notes) 组件实现",
+      "capability": "实现便签文字输入、多行排版与实时防抖本地自动保存",
+      "done": false
+    },
+    {
+      "id": "T06-3",
+      "title": "专注计时 (Focus Timer) 组件实现",
+      "capability": "实现 15/25/45 分钟倒计时与番茄钟、状态后台恢复（截止时间戳重算）与计时结束系统通知",
+      "done": false
+    },
+    {
+      "id": "T06-4",
+      "title": "按需添加与移除保留内容机制验证",
+      "capability": "验证添加入口对已添加组件类型的置灰逻辑，以及移除卡片后再次添加仍完整还原数据的核心机制",
+      "done": false
+    }
+  ],
+  "acceptance": {
+    "result": null,
+    "run_id": "",
+    "checks": [
+      {
+        "item": "移除保留内容验证 (INV_RETAIN_CONTENT_ON_REMOVE)",
+        "true_if": "在便签/待办中输入数据，移除组件，再次添加该组件时，先前输入的内容 100% 完整恢复",
+        "false_if": "移除组件导致便签或待办数据被物理清空",
+        "evidence": "",
+        "result": null
+      },
+      {
+        "item": "单实例交互政策",
+        "true_if": "已在工作台展示的组件类型在添加面板中正确置灰禁用",
+        "false_if": "允许重复添加同一个组件类型造成未预期的交互冲突",
+        "evidence": "",
+        "result": null
+      }
+    ]
+  },
+  "version": "v0.1.0"
+}

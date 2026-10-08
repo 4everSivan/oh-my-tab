@@ -1,0 +1,36 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-index.v1.json",
+  "version": "1.0",
+  "updated_at": "2026-10-07",
+  "topics": {
+    "SystemOverview": {
+      "design_doc": "docs/devel/design/00-系统总体设计.md",
+      "changes": []
+    },
+    "EntryNavigation": {
+      "design_doc": "docs/devel/design/01-页面入口与导航.md",
+      "changes": []
+    },
+    "WorkspaceAppearance": {
+      "design_doc": "docs/devel/design/02-工作台布局与外观.md",
+      "changes": []
+    },
+    "ProductivityWidgets": {
+      "design_doc": "docs/devel/design/03-效率组件.md",
+      "changes": []
+    },
+    "DataPersistenceSync": {
+      "design_doc": "docs/devel/design/04-数据保存与同步.md",
+      "changes": []
+    },
+    "ExtensionDataSources": {
+      "design_doc": "docs/devel/design/05-深度扩展与外部数据.md",
+      "changes": []
+    },
+    "WidgetContract": {
+      "design_doc": "docs/devel/design/06-组件契约与注册.md",
+      "changes": []
+    }
+  },
+  "cards": {}
+}

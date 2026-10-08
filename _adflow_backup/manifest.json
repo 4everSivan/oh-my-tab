@@ -1,0 +1,17 @@
+{
+  "created": "2026-10-07",
+  "adflow_version": "1.1.0",
+  "local_preexisting": false,
+  "assets": {
+    "README.md": {
+      "backup": "original_docs/root_markdowns/README.md",
+      "sha256": "5c7ea875cec1db4dbf63743dcbab21a51e8c185436974450bf9567f970e0233a",
+      "bytes": 5818
+    },
+    "LICENSE": {
+      "backup": "original_assets/LICENSE",
+      "sha256": "bde1b1c6de8836c9151bbc0bb73af649d71814115c75732c2730892725c4c0d4",
+      "bytes": 1068
+    }
+  }
+}

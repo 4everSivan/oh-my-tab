@@ -1,0 +1,75 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T02",
+  "title": "原生存储适配层与持久化服务实现",
+  "milestone": "M1-v0.1.0-首发里程碑",
+  "status": "pending",
+  "branch": "feat/T02-storage-adapter",
+  "depends_on": [
+    "T01"
+  ],
+  "target": {
+    "module": "数据保存与同步",
+    "design_doc": "docs/devel/design/04-数据保存与同步.md",
+    "design_topic": "DataPersistenceSync"
+  },
+  "goal": "实现分层持久化适配器 StorageAdapter，封装 chrome.storage.local/sync 与原生 IndexedDB，提供命名空间隔离、壁纸 Blob 存储与数据配额防御能力。",
+  "precheck": {
+    "description": "检测存储适配层源码是否存在",
+    "command": "test -f src/services/storage/index.ts",
+    "expected": "0",
+    "is_completed": false,
+    "evidence": ""
+  },
+  "callback": {
+    "before": [],
+    "after": []
+  },
+  "tasks": [
+    {
+      "id": "T02-1",
+      "title": "IndexedDB 壁纸大资源仓储实现",
+      "capability": "实现原生 IndexedDB 包装类，负责图片 Blob 的安全持久化与读取，彻底规避 Chrome sync 配额风险",
+      "done": false
+    },
+    {
+      "id": "T02-2",
+      "title": "Chrome Storage 轻量配置与命名空间隔离",
+      "capability": "实现对 chrome.storage.local 与 sync 的封装，支持 widgets/<instanceId>/content 与 settings 命名空间隔离存取",
+      "done": false
+    },
+    {
+      "id": "T02-3",
+      "title": "独立恢复默认与数据隔离逻辑",
+      "capability": "实现时间、搜索外观独立恢复逻辑，保证恢复某一组配置绝不误清空另一组配置或组件业务数据",
+      "done": false
+    },
+    {
+      "id": "T02-4",
+      "title": "存储适配层自动化测试套件",
+      "capability": "在 tests/ 补充存储读写、异常降级与独立恢复单元测试，全绿通过",
+      "done": false
+    }
+  ],
+  "acceptance": {
+    "result": null,
+    "run_id": "",
+    "checks": [
+      {
+        "item": "存储分层与隔离边界",
+        "true_if": "壁纸 Blob 100% 走 IndexedDB，轻量配置走 Chrome Storage，命名空间隔离生效",
+        "false_if": "壁纸数据尝试写入 chrome.storage.sync 导致超限溢出",
+        "evidence": "",
+        "result": null
+      },
+      {
+        "item": "测试全绿通过",
+        "true_if": "存储回归测试全部通过",
+        "false_if": "存在失败用例",
+        "evidence": "",
+        "result": null
+      }
+    ]
+  },
+  "version": "v0.1.0"
+}

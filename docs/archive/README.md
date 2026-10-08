@@ -1,0 +1,21 @@
+# 版本与阶段归档库 (archive/)
+
+> **created**: 2026-10-07 ｜ **last-change**: 2026-10-07 ｜ **status**: active
+
+## 1. 简介
+
+保存实际发版后已闭环的任务与变更快照。当前尚未发布产品版本，归档库为空。
+
+## 2. 索引
+
+- [任务总账](../devel/task/index.json)
+- [变更总账](../devel/change/index.json)
+- [根变更日志](../../CHANGELOG.md)
+
+## 3. 规范
+
+按实际产品 SemVer 建立目录，归档文件只读。索引记录真实 file 路径，不能提前建立不存在的发版记录或 Git Tag。
+
+## 4. 发版归档步骤
+
+确认发版与卡片收口 → 建立该版本 change/task 目录 → 迁移 closed/completed 卡片并保存索引 → 更新总账路径 → 在授权范围内执行 Git 发布操作。设计正文通过 Topic 总账追溯。

@@ -1,0 +1,76 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T03",
+  "title": "组件契约系统、注册中心与通用卡片外壳实现",
+  "milestone": "M1-v0.1.0-首发里程碑",
+  "status": "pending",
+  "branch": "feat/T03-widget-contract",
+  "depends_on": [
+    "T01",
+    "T02"
+  ],
+  "target": {
+    "module": "组件契约与注册",
+    "design_doc": "docs/devel/design/06-组件契约与注册.md",
+    "design_topic": "WidgetContract"
+  },
+  "goal": "实现组件契约 TypeScript 接口定义、宿主服务注入上下文 HostContext、全局组件注册表 WidgetRegistry，以及统一承载 7 类状态渲染的通用卡片外壳 CardShell。",
+  "precheck": {
+    "description": "检测组件契约与注册中心源码是否存在",
+    "command": "test -f src/contract/widget.ts && test -f src/contract/registry.ts",
+    "expected": "0",
+    "is_completed": false,
+    "evidence": ""
+  },
+  "callback": {
+    "before": [],
+    "after": []
+  },
+  "tasks": [
+    {
+      "id": "T03-1",
+      "title": "TypeScript 契约类型接口定义",
+      "capability": "定义 WidgetManifest、WidgetInstance、HostContext、SettingField 等严格类型契约",
+      "done": false
+    },
+    {
+      "id": "T03-2",
+      "title": "WidgetRegistry 注册中心实现",
+      "capability": "实现组件注册表单例，提供元数据只读查询、实例化与宿主服务注入",
+      "done": false
+    },
+    {
+      "id": "T03-3",
+      "title": "通用卡片外壳 CardShell 与 7 类状态渲染",
+      "capability": "实现通用卡片头部、操作菜单及 loading, empty, error, offline, unauthorized, quota_exceeded, unknown_type 统一状态外壳",
+      "done": false
+    },
+    {
+      "id": "T03-4",
+      "title": "契约一致性测试 Harness",
+      "capability": "编写契约测试 Harness，验证 Mock 宿主服务下的组件生命周期与未知类型占位回退",
+      "done": false
+    }
+  ],
+  "acceptance": {
+    "result": null,
+    "run_id": "",
+    "checks": [
+      {
+        "item": "布局与组件绝对解耦",
+        "true_if": "布局系统只读取 Registry 导出的元数据，零直接依赖具体业务组件实现",
+        "false_if": "布局模块直接 import 业务组件具体代码",
+        "evidence": "",
+        "result": null
+      },
+      {
+        "item": "契约 Harness 测试全绿",
+        "true_if": "契约测试套件全部通过",
+        "false_if": "存在生命周期异常或类型错误",
+        "evidence": "",
+        "result": null
+      }
+    ]
+  },
+  "version": "v0.1.0"
+}

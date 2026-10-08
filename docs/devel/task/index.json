@@ -1,0 +1,136 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-index.v1.json",
+  "phase": "Phase 1 - Chrome 扩展核心工程与首版功能交付 (v0.1.0)",
+  "updated_at": "2026-10-08",
+  "milestones": {
+    "M1": {
+      "title": "M1-v0.1.0-首发里程碑",
+      "description": "完成工程脚手架、存储适配、组件契约、导航搜索、栅格布局与首版三款核心组件（待办、便签、专注）交付及 Chrome 扩展端到端验证",
+      "tasks": [
+        "T01",
+        "T02",
+        "T03",
+        "T04",
+        "T05",
+        "T06",
+        "T07"
+      ]
+    }
+  },
+  "topics": {
+    "SystemOverview": {
+      "design_doc": "docs/devel/design/00-系统总体设计.md",
+      "tasks": [
+        "T01",
+        "T07"
+      ]
+    },
+    "EntryNavigation": {
+      "design_doc": "docs/devel/design/01-页面入口与导航.md",
+      "tasks": [
+        "T04"
+      ]
+    },
+    "WorkspaceAppearance": {
+      "design_doc": "docs/devel/design/02-工作台布局与外观.md",
+      "tasks": [
+        "T05"
+      ]
+    },
+    "ProductivityWidgets": {
+      "design_doc": "docs/devel/design/03-效率组件.md",
+      "tasks": [
+        "T06"
+      ]
+    },
+    "DataPersistenceSync": {
+      "design_doc": "docs/devel/design/04-数据保存与同步.md",
+      "tasks": [
+        "T02"
+      ]
+    },
+    "ExtensionDataSources": {
+      "design_doc": "docs/devel/design/05-深度扩展与外部数据.md",
+      "tasks": []
+    },
+    "WidgetContract": {
+      "design_doc": "docs/devel/design/06-组件契约与注册.md",
+      "tasks": [
+        "T03"
+      ]
+    }
+  },
+  "tasks": {
+    "T01": {
+      "title": "工程脚手架初始化与构建隔离配置",
+      "status": "completed",
+      "branch": "feat/T01-project-scaffolding",
+      "milestone": "M1-v0.1.0-首发里程碑",
+      "depends_on": []
+    },
+    "T02": {
+      "title": "原生存储适配层与持久化服务实现",
+      "status": "pending",
+      "branch": "feat/T02-storage-adapter",
+      "milestone": "M1-v0.1.0-首发里程碑",
+      "depends_on": [
+        "T01"
+      ]
+    },
+    "T03": {
+      "title": "组件契约系统、注册中心与通用卡片外壳实现",
+      "status": "pending",
+      "branch": "feat/T03-widget-contract",
+      "milestone": "M1-v0.1.0-首发里程碑",
+      "depends_on": [
+        "T01",
+        "T02"
+      ]
+    },
+    "T04": {
+      "title": "工作台页面壳、时间收起交互与导航搜索系统实现",
+      "status": "pending",
+      "branch": "feat/T04-navigation-shell",
+      "milestone": "M1-v0.1.0-首发里程碑",
+      "depends_on": [
+        "T01",
+        "T02"
+      ]
+    },
+    "T05": {
+      "title": "12列流式栅格系统与侧边外观设置面板实现",
+      "status": "pending",
+      "branch": "feat/T05-layout-appearance",
+      "milestone": "M1-v0.1.0-首发里程碑",
+      "depends_on": [
+        "T02",
+        "T03",
+        "T04"
+      ]
+    },
+    "T06": {
+      "title": "首版核心效率组件交付（待办、便签、专注）",
+      "status": "pending",
+      "branch": "feat/T06-core-widgets",
+      "milestone": "M1-v0.1.0-首发里程碑",
+      "depends_on": [
+        "T03",
+        "T05"
+      ]
+    },
+    "T07": {
+      "title": "Chrome 扩展端到端集成验证与部署实况报告",
+      "status": "pending",
+      "branch": "feat/T07-extension-integration",
+      "milestone": "M1-v0.1.0-首发里程碑",
+      "depends_on": [
+        "T01",
+        "T02",
+        "T03",
+        "T04",
+        "T05",
+        "T06"
+      ]
+    }
+  }
+}
