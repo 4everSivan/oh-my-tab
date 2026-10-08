@@ -89,7 +89,7 @@
     },
     "T04": {
       "title": "工作台页面壳、时间收起交互与导航搜索系统实现",
-      "status": "pending",
+      "status": "completed",
       "branch": "feat/T04-navigation-shell",
       "milestone": "M1-v0.1.0-首发里程碑",
       "depends_on": [
