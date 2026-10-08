@@ -99,7 +99,7 @@
     },
     "T05": {
       "title": "12列流式栅格系统与侧边外观设置面板实现",
-      "status": "pending",
+      "status": "completed",
       "branch": "feat/T05-layout-appearance",
       "milestone": "M1-v0.1.0-首发里程碑",
       "depends_on": [

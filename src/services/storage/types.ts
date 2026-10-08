@@ -43,6 +43,7 @@ export interface Shortcut {
 export interface LayoutItem {
   instanceId: string;
   typeId: string;
+  settings?: Record<string, any>;
   span: number;
   order: number;
   visible: boolean;
