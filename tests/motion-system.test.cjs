@@ -146,11 +146,12 @@ test('computeCardStagger 公式：40ms 步进、360ms 封顶、非法入参抛�
   assert.ok(utilsSrc.includes('RangeError'), '非法入参必须前置抛错');
 });
 
-test('useDelayedUnmount 双帧进入 + 定时卸载语义', () => {
+test('useDelayedUnmount 强制回流进入 + 定时卸载语义', () => {
   assert.ok(hookSrc.includes('closeDurationMs'), 'Hook 应接收关闭时长');
-  assert.ok(/requestAnimationFrame\(\(\) => \{[\s\S]*requestAnimationFrame/.test(hookSrc), '进入态须跨双帧翻转以触发过渡');
+  assert.ok(hookSrc.includes('offsetHeight'), '进入态须经强制同步回流确保关闭态样式提交后再翻转（不依赖 rAF，遮挡环境可靠）');
   assert.ok(hookSrc.includes('setTimeout(() => setMounted(false), closeDurationMs)'), '关闭须延迟卸载');
-  assert.ok(hookSrc.includes('cancelAnimationFrame') && hookSrc.includes('clearTimeout'), '卸载时必须清理定时器与帧回调');
+  assert.ok(hookSrc.includes('clearTimeout'), '卸载时必须清理定时器');
+  assert.ok(!/requestAnimationFrame\s*\(/.test(hookSrc), '不应调用 rAF（被遮挡标签页会节流失效；注释提及不算）');
 });
 
 // 6. 纯 CSS 路线与依赖克制
