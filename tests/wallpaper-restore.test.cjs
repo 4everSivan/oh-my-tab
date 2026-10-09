@@ -67,17 +67,33 @@ test('壁纸走 IndexedDB 的分层边界未被破坏（MOT/T02 既有契约）'
   assert.ok(read('src/services/storage/index.ts').includes("'settings.background'"), '背景配置键不应迁移到 IndexedDB');
 });
 
-// ── 6. C002 拖拽上传通道 ───────────────────────────────────────
-test('拖拽上传接线完整：dragover 阻止默认、drop 取文件、与选择器共用保存链路', () => {
+// ── 6. C002 拖拽/粘贴上传通道 ──────────────────────────────────
+test('拖拽与粘贴上传接线完整：dragover 阻止默认、drop/paste 取文件、三通道共用保存链路', () => {
   assert.ok(drawerSrc.includes('onDrop={handleWallpaperDrop}'), '上传区未接 onDrop');
   assert.ok(/onDragOver=\{[^}]*preventDefault/.test(drawerSrc), 'onDragOver 未 preventDefault（drop 不会被允许）');
   assert.ok(drawerSrc.includes('onDragLeave'), '缺少 dragleave 取消高亮');
   assert.ok(drawerSrc.includes('e.dataTransfer.files'), 'drop 未从 dataTransfer 取文件');
-  const sharedCalls = drawerSrc.match(/await applyWallpaperFile\(file\)/g) || [];
-  assert.equal(sharedCalls.length, 2, '选择器与拖拽两条通道都必须走 applyWallpaperFile 唯一链路');
+  assert.ok(drawerSrc.includes("addEventListener('paste'"), '未监听全局 paste 通道');
+  assert.ok(drawerSrc.includes('clipboardData'), 'paste 未取剪贴板文件');
+  const sharedCalls = drawerSrc.match(/applyWallpaperFile\(file\)/g) || [];
+  assert.ok(sharedCalls.length >= 3, '选择器/拖拽/粘贴三条通道都必须走 applyWallpaperFile 唯一链路');
 });
 
-test('拖拽通道有图片类型校验，非图片文件给出可见提示', () => {
-  assert.ok(/applyWallpaperFile[\s\S]{0,260}startsWith\('image\/'\)/.test(drawerSrc), '共用链路缺少 image/* 类型校验');
-  assert.ok(drawerSrc.includes('仅支持图片文件'), '非图片文件缺少可见错误提示');
+test('上传有格式白名单与解码验证：HEIC 等不可解码图片被明确拦截且不落库', () => {
+  assert.ok(drawerSrc.includes('ACCEPTED_IMAGE_TYPES'), '缺少格式白名单（image/* 通配会放行无法解码的 HEIC）');
+  assert.ok(!/startsWith\('image\/'\)/.test(drawerSrc), '不得以 image/* 通配代替白名单');
+  assert.ok(/new Image\(\)[\s\S]{0,300}img\.onerror/.test(drawerSrc), '缺少解码验证（onerror 分支）');
+  assert.ok(/decodable[\s\S]{0,200}revokeObjectURL/.test(drawerSrc), '解码失败必须回收 objectURL 且不落库');
+  assert.ok(drawerSrc.includes('HEIC'), 'HEIC 场景应有明确转换提示');
+});
+
+test('React 钩子纪律：全部 hooks 位于 mounted 早退之前（条件钩子会致白屏崩溃）', () => {
+  const earlyReturnIdx = drawerSrc.indexOf('if (!mounted) return null;');
+  assert.ok(earlyReturnIdx > 0, '未找到早退语句');
+  const beforeEarlyReturn = drawerSrc.slice(0, earlyReturnIdx);
+  const afterEarlyReturn = drawerSrc.slice(earlyReturnIdx);
+  for (const hook of ['useState(', 'useCallback(', 'useEffect(', 'useDelayedUnmount(']) {
+    assert.ok(beforeEarlyReturn.includes(hook), `${hook} 必须在早退之前调用`);
+  }
+  assert.ok(!/use(State|Effect|Callback|Memo|Ref|Memo)\(/.test(afterEarlyReturn.replace(/\/\/[^\n]*/g, '')), '早退之后不得再出现任何 React 钩子调用');
 });

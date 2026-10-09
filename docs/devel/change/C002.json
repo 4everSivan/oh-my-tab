@@ -33,6 +33,18 @@
       "before": "壁纸仅能经 input[type=file] 原生选择器上传，webview 环境不可用且失败无痕",
       "after": "上传区支持 drag & drop：拖入悬停高亮，松手校验 image/* 后走与选择器完全相同的 applyWallpaperFile 链路（含 C001 错误反馈）；非图片文件给出可见提示",
       "impact": "AppearanceDrawer.tsx 壁纸 tab；不改动存储与恢复层"
+    },
+    {
+      "scope": "交互通道（追加）",
+      "before": "选择器与拖拽均不可用的 webview 环境无第三通道",
+      "after": "壁纸 tab 激活期间监听全局 paste（⌘V），剪贴板图片文件走同一保存链路",
+      "impact": "AppearanceDrawer.tsx；三通道共用 useCallback 化的 applyWallpaperFile"
+    },
+    {
+      "scope": "格式守卫（追加）",
+      "before": "image/* 通配放行 HEIC 等 Chromium 无法解码的格式：能落库但渲染不出，重现静默失效",
+      "after": "MIME 白名单（png/jpeg/webp/gif/bmp/avif）+ Image 解码验证（4s 超时），不可解码文件在落库前拦截并给出转换提示，objectURL 即时回收",
+      "impact": "applyWallpaperFile 全链路；防止『存了却显示不出来』"
     }
   ],
   "design": {
@@ -61,7 +73,7 @@
         "item": "行为实测",
         "true_if": "预览环境合成 drop 事件实测：拖入图片→渲染+落盘+IndexedDB 记录；拖入非图片→可见提示且不写入",
         "false_if": "drop 不生效或类型校验缺失",
-        "evidence": "ZCode 内置浏览器（webview，无文件选择器的受限环境）实测：①合成 dragover+drop 注入 PNG → settings.background 落盘(image/dnd-wallpaper.png)、IndexedDB 1 条 Blob 记录、背景层立即渲染 url(blob:…)；②拖入 text/plain 文件 → role=alert 显示「仅支持图片文件…」且原壁纸未被覆盖；③刷新页面 → 壁纸经 C001 恢复路径自动重建派生地址（新 blob URL，非死链）",
+        "evidence": "ZCode 内置浏览器（webview，无文件选择器的受限环境）实测四场景：①合成 dragover+drop 注入 PNG → 落盘+渲染；②拖入 text/plain → 提示且不覆盖；③拖入 HEIC → 白名单拦截并提示转换；④伪装 PNG（损坏字节）→ 解码验证拦截、不落库；⑤合成 paste 注入 PNG → ⌘V 通道生效；⑥刷新 → 壁纸经 C001 恢复路径自动重建派生地址。追加通道开发中曾引入条件钩子违规（useEffect 位于 mounted 早退之后）致白屏，已修复并加钩子纪律回归测试钉死",
         "result": "passed"
       }
     ]

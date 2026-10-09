@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ClockAppearance,
   SearchAppearance,
@@ -49,19 +49,36 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
   // 350ms 与 motion.css 的 --panel-close-dur 保持一致，退出动画播完再卸载
   const { mounted, open } = useDelayedUnmount(isOpen, 350);
 
-  if (!mounted) return null;
-
   // 点击选择与拖拽文件共用的唯一保存链路（C001 恢复/反馈语义在此收口）
-  const applyWallpaperFile = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      setUploadError('仅支持图片文件（PNG/JPEG/WebP 等），请重新选择或拖入');
+  // 白名单而非 image/* 通配：HEIC 等 MIME 以 image/ 开头但 Chromium 无法解码，
+  // 放行会重现"存了却显示不出来"的静默失效
+  const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp', 'image/avif'];
+
+  // 注意：以下 useCallback/useEffect 必须位于早退之前——React 钩子不得条件调用，
+  // 否则抽屉开合切换钩子数量会触发崩溃（白屏卸载整树）
+  const applyWallpaperFile = useCallback(async (file: File) => {
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      setUploadError('仅支持 PNG/JPEG/WebP/GIF/BMP/AVIF 图片；HEIC 等格式请先转换为 PNG/JPEG');
+      return;
+    }
+    // 解码验证：MIME 正确也可能无法解码（损坏文件/伪装扩展名），失败不落库
+    const objectUrl = URL.createObjectURL(file);
+    const decodable = await new Promise<boolean>((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = objectUrl;
+      window.setTimeout(() => resolve(false), 4000);
+    });
+    if (!decodable) {
+      URL.revokeObjectURL(objectUrl);
+      setUploadError('该图片无法解码显示，请换一张或重新导出为 PNG/JPEG');
       return;
     }
     setUploadError(null);
     const id = `wallpaper-${Date.now()}`;
     try {
       await wallpaperStorage.saveWallpaper(id, file, file.name, file.type);
-      const objectUrl = URL.createObjectURL(file);
       // 回收上一张壁纸的派生地址，防止会话内 Blob 泄漏
       if (background.imageBlobUrl?.startsWith('blob:')) {
         URL.revokeObjectURL(background.imageBlobUrl);
@@ -73,9 +90,28 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
         name: file.name,
       });
     } catch {
+      URL.revokeObjectURL(objectUrl);
       setUploadError('壁纸保存失败，请重试；若持续失败请检查浏览器存储权限');
     }
-  };
+    // 依赖 background（回收旧地址）与 onUpdateBackground；白名单为模块级常量语义
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [background.imageBlobUrl, onUpdateBackground]);
+
+  // 粘贴通道（webview 无选择器且 OS 拖拽不送达时的第三通道）：
+  // 壁纸 tab 激活期间监听全局 paste，复用同一保存链路
+  useEffect(() => {
+    if (activeTab !== 'background') return;
+    const onPaste = (e: ClipboardEvent) => {
+      const file = e.clipboardData?.files?.[0];
+      if (!file) return;
+      e.preventDefault();
+      void applyWallpaperFile(file);
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [activeTab, applyWallpaperFile]);
+
+  if (!mounted) return null;
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -501,7 +537,7 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
                           ? '松开以设置壁纸'
                           : background.name
                             ? background.name
-                            : '点击选择或拖拽图片到此处 (PNG/JPEG/WebP)'}
+                            : '点击选择 / 拖拽 / ⌘V 粘贴图片 (PNG/JPEG/WebP)'}
                       </span>
                       <input
                         type="file"
