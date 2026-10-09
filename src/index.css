@@ -9,10 +9,21 @@
   --color-text: #141c20;
 }
 
-html, body {
+/*
+ * 绘制契约 (C004)：背景层为 App 内 -z-20 固定层。依 CSS 绘制序，负 z-index
+ * 子层绘制于 body 背景之前——body 一旦有不透明底色就会遮蔽背景层（壁纸/材质
+ * 像素永不显示）。body 必须保持透明；html 底色仅作应用未挂载时的画布兜底。
+ */
+html {
   margin: 0;
   padding: 0;
   min-height: 100vh;
   background-color: var(--color-bg);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
   color: var(--color-text);
 }

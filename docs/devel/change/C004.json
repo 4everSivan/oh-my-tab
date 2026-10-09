@@ -1,0 +1,77 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C004",
+  "title": "修复背景渲染层从未可见：body 不透明底色覆盖 -z-20 固定层",
+  "type": "BugFix",
+  "status": "in_progress",
+  "branch": "fix/C004-bg-layer-visible",
+  "is_hotfix": false,
+  "target": {
+    "module": "工作台布局与外观",
+    "component": "背景层绘制序（index.css / App.tsx）",
+    "design_doc": "docs/devel/design/02-工作台布局与外观.md",
+    "design_topic": "WorkspaceAppearance"
+  },
+  "why": "用户实测切换材质壁纸均无像素变化。层叠栈取证（elementsFromPoint）：工作台任意点的绘制自上而下为 抽屉遮罩→内容→body(不透明米白 #f5f4ef)→背景层(-z-20, 正确色值)→html。依 CSS 2.1 绘制序，负 z-index 子层绘制于 body 背景之前，body 的不透明底色完整遮蔽背景层——背景层自 T05 起从未在屏幕上显示过，壁纸与材质切换的 DOM 样式虽正确更新但像素恒为 body 米白。此缺陷同时解释 C001/C002/C003 验证中的全部『不生效』观感；亦暴露既有验证盲区：仅断言 DOM 样式值而从未截图核对像素。",
+  "precheck": {
+    "description": "嗅探 body 是否声明不透明背景色（有则背景层被遮蔽）",
+    "command": "grep -qE 'body[^{]*\\{[^}]*background-color' src/index.css",
+    "expected": "0",
+    "is_completed": false,
+    "evidence": "2026-10-09 执行退出码 0（body 声明了 background-color），缺陷确认在；层叠栈取证：elementsFromPoint 显示 body(不透明米白) 绘制于 -z-20 背景层之上"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "渲染契约",
+      "before": "index.css 对 html,body 同时声明 background-color: var(--color-bg)，body 不透明层绘制在 -z-20 背景层之上",
+      "after": "仅 html 保留底色（画布兜底），body 不设背景；-z-20 背景层成为可见的画面基座，html 底色仅在应用未挂载时可见",
+      "impact": "index.css 全局样式；壁纸/材质/纯色全部背景能力首次真实可见"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/02-工作台布局与外观.md",
+    "topic": "WorkspaceAppearance",
+    "modified": true,
+    "rule_diff": {
+      "before": "背景层以负 z-index 固定层承载（隐含依赖 body 透明，未成文）",
+      "after": "背景层绘制契约：body 必须保持透明背景，负 z-index 背景层为画面最底座；html 底色仅作挂载失败兜底；背景类修复必须截图核对像素，不得以 DOM 样式值代替视觉验收"
+    }
+  },
+  "verification": {
+    "result": null,
+    "run_id": "RUN-C004-001",
+    "user_quote": "",
+    "signoff": "",
+    "checks": [
+      {
+        "item": "自动化测试",
+        "true_if": "全量单测全绿，含 body 透明绘制契约回归",
+        "false_if": "存在失败用例",
+        "evidence": "2026-10-09 实跑 npm test：89/89 全绿（0 失败，退出码 0；首版断言正则被 CSS 注释文字误匹配，剥离注释后复跑通过）；npm run build 退出码 0",
+        "result": "passed"
+      },
+      {
+        "item": "像素级实测",
+        "true_if": "修复后截图显示材质色（雾蓝 #e6edf5）取代米白；elementsFromPoint 栈中背景层位于 body 之上",
+        "false_if": "截图仍为米白",
+        "evidence": "修复后刷新截图：工作台底色由米白变为雾蓝（body computed=rgba(0,0,0,0)，背景层上屏 rgb(200,216,232)），与修复前同机位截图对比差异肉眼可辨；绘制契约回归测试钉死 body 透明约束",
+        "result": "passed"
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": false,
+    "changelog": true,
+    "commit": "",
+    "tag": ""
+  },
+  "version": "v0.1.0"
+}

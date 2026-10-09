@@ -65,6 +65,14 @@
       "branch": "fix/C003-material-preset",
       "topic": "WorkspaceAppearance",
       "created": "2026-10-09"
+    },
+    "C004": {
+      "title": "修复背景渲染层从未可见：body 不透明底色覆盖 -z-20 固定层",
+      "type": "BugFix",
+      "status": "in_progress",
+      "branch": "fix/C004-bg-layer-visible",
+      "topic": "WorkspaceAppearance",
+      "created": "2026-10-09"
     }
   }
 }

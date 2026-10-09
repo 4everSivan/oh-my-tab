@@ -94,3 +94,18 @@ test('材质预设必须写回 type=material：图片模式下点击预设立即
   assert.equal(getBgStyle({ type: 'material', name: 'mist', color: '#e6edf5' }), 'color');
   assert.equal(getBgStyle({ type: 'image', imageBlobUrl: 'blob:x' }), 'image');
 });
+
+// ── C004 背景层可见性绘制契约回归 ──────────────────────────────
+test('body 必须透明：不透明 body 底色会在绘制序上遮蔽 -z-20 背景层 (C004)', () => {
+  const indexCss = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.css'), 'utf8')
+    // 剥离 CSS 注释后再匹配，避免说明文字干扰
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+  // body 声明 background-color 会让不透明 body 层绘制在负 z-index 背景层之上，完全遮蔽壁纸/材质
+  assert.ok(
+    !/body\s*\{[^}]*background-color/.test(indexCss),
+    'body 不得声明 background-color（负 z-index 背景层绘制于 body 背景之下，会被完全遮蔽）'
+  );
+  assert.ok(/html\s*\{[^}]*background-color/.test(indexCss), 'html 底色须保留作画布兜底');
+  const appSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'App.tsx'), 'utf8');
+  assert.ok(appSrc.includes('-z-20'), 'App 背景层应保持 -z-20 固定层');
+});
