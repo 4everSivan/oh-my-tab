@@ -109,3 +109,82 @@ test('body 必须透明：不透明 body 底色会在绘制序上遮蔽 -z-20 �
   const appSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'App.tsx'), 'utf8');
   assert.ok(appSrc.includes('-z-20'), 'App 背景层应保持 -z-20 固定层');
 });
+
+// ── T10 时钟手动时区设置与搜索框圆角调节契约 ──────────────────
+test('时钟组件支持目标 IANA 时区并能准确换算时间与日期 (T10)', () => {
+  const clockSrc = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'components', 'clock', 'Clock.tsx'),
+    'utf8'
+  );
+  assert.ok(
+    clockSrc.includes('appearance.timezone') && clockSrc.includes("appearance.timezone !== 'auto'"),
+    'Clock.tsx 须检测 appearance.timezone 是否为自定义时区'
+  );
+  assert.ok(
+    clockSrc.includes('timeZone: targetTimezone') && clockSrc.includes("hourCycle: 'h23'"),
+    'Clock.tsx 须使用 Intl.DateTimeFormat 配合 targetTimezone 与 h23 小时制换算'
+  );
+
+  // 算法校验：验证 UTC、Asia/Tokyo 与 America/New_York 时区转换在确定性时间戳下的正确性
+  const testDate = new Date('2026-10-09T04:30:15Z'); // 04:30:15 UTC
+
+  const formatTestTime = (tz) => {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: tz,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      hourCycle: 'h23',
+    }).formatToParts(testDate);
+    return `${parts.find(p => p.type === 'hour').value}:${parts.find(p => p.type === 'minute').value}:${parts.find(p => p.type === 'second').value}`;
+  };
+
+  assert.equal(formatTestTime('UTC'), '04:30:15');
+  assert.equal(formatTestTime('Asia/Shanghai'), '12:30:15'); // UTC+8
+  assert.equal(formatTestTime('Asia/Tokyo'), '13:30:15');    // UTC+9
+  assert.equal(formatTestTime('America/New_York'), '00:30:15'); // EDT (UTC-4)
+});
+
+test('搜索框组件应用动态 borderRadius 样式且移除硬编码 rounded-full (T10)', () => {
+  const searchBarSrc = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'components', 'search', 'SearchBar.tsx'),
+    'utf8'
+  );
+  // form 容器不得再包含硬编码 rounded-full
+  assert.ok(
+    !searchBarSrc.includes('rounded-full border border-black/10'),
+    'SearchBar.tsx 的 form 容器不得硬编码 rounded-full'
+  );
+  // form 容器须应用 appearance.radius 样式
+  assert.ok(
+    searchBarSrc.includes('borderRadius: `${appearance.radius ?? 24}px`'),
+    'SearchBar.tsx 须通过 borderRadius 绑定 appearance.radius'
+  );
+});
+
+test('AppearanceDrawer 提供时区选择下拉框与搜索框圆角滑块控件 (T10)', () => {
+  const drawerSrc = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'components', 'settings', 'AppearanceDrawer.tsx'),
+    'utf8'
+  );
+  // 1. 时钟面板包含时区选择器
+  assert.ok(
+    drawerSrc.includes('时区设置') && drawerSrc.includes('onUpdateClock({ timezone: e.target.value })'),
+    'AppearanceDrawer 时钟面板须有时区设置下拉框与更新回调'
+  );
+  assert.ok(
+    drawerSrc.includes('Asia/Shanghai') && drawerSrc.includes('America/New_York') && drawerSrc.includes('UTC'),
+    '时区下拉框须包含主要代表性时区选项'
+  );
+  // 2. 搜索框面板包含圆角大小滑块
+  assert.ok(
+    drawerSrc.includes('圆角大小') && drawerSrc.includes('onUpdateSearch({ radius: Number(e.target.value) })'),
+    'AppearanceDrawer 搜索框面板须有圆角大小滑块与更新回调'
+  );
+  assert.ok(
+    drawerSrc.includes('search.radius ?? 24'),
+    '圆角滑块须以 24px 作为默认降级展示'
+  );
+});
+

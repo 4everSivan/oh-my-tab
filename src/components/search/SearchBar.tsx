@@ -61,13 +61,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     >
       <form
         onSubmit={handleSubmit}
-        className="relative flex items-center transition-all duration-200 rounded-full border border-black/10 dark:border-white/15 shadow-sm hover:shadow-md focus-within:shadow-md"
+        className="relative flex items-center transition-all duration-200 border border-black/10 dark:border-white/15 shadow-sm hover:shadow-md focus-within:shadow-md"
         style={{
           width: '100%',
           maxWidth: `${appearance.width}px`,
           backgroundColor: `rgba(255, 255, 255, ${opacity})`,
           backdropFilter: `blur(${blurPx}px)`,
           WebkitBackdropFilter: `blur(${blurPx}px)`,
+          borderRadius: `${appearance.radius ?? 24}px`,
         }}
       >
         {/* Engine switcher toggle */}

@@ -15,7 +15,8 @@
         "T06",
         "T07",
         "T08",
-        "T09"
+        "T09",
+        "T10"
       ]
     }
   },
@@ -37,7 +38,8 @@
       "design_doc": "docs/devel/design/02-工作台布局与外观.md",
       "tasks": [
         "T05",
-        "T09"
+        "T09",
+        "T10"
       ]
     },
     "ProductivityWidgets": {
@@ -160,6 +162,15 @@
       "depends_on": [
         "T05",
         "T08"
+      ]
+    },
+    "T10": {
+      "title": "实现时钟手动时区设置与搜索框圆角调节功能",
+      "status": "in_progress",
+      "branch": "feat/T10-timezone-and-search-radius",
+      "milestone": "M1-v0.1.0-首发里程碑",
+      "depends_on": [
+        "T05"
       ]
     }
   }

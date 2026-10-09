@@ -24,18 +24,48 @@ export const Clock: React.FC<ClockProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  const hours = String(time.getHours()).padStart(2, '0');
-  const minutes = String(time.getMinutes()).padStart(2, '0');
-  const seconds = String(time.getSeconds()).padStart(2, '0');
+  const targetTimezone =
+    appearance.timezone && appearance.timezone !== 'auto'
+      ? appearance.timezone
+      : undefined;
+
+  let hours: string;
+  let minutes: string;
+  let seconds: string;
+  let dateString: string;
+
+  try {
+    const timeParts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: targetTimezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      hourCycle: 'h23',
+    }).formatToParts(time);
+
+    hours = timeParts.find((p) => p.type === 'hour')?.value.padStart(2, '0') || '00';
+    minutes = timeParts.find((p) => p.type === 'minute')?.value.padStart(2, '0') || '00';
+    seconds = timeParts.find((p) => p.type === 'second')?.value.padStart(2, '0') || '00';
+
+    dateString = new Intl.DateTimeFormat('zh-CN', {
+      timeZone: targetTimezone,
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long',
+    }).format(time);
+  } catch {
+    hours = String(time.getHours()).padStart(2, '0');
+    minutes = String(time.getMinutes()).padStart(2, '0');
+    seconds = String(time.getSeconds()).padStart(2, '0');
+    dateString = time.toLocaleDateString('zh-CN', {
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long',
+    });
+  }
 
   const timeString = appearance.showSeconds ? `${hours}:${minutes}:${seconds}` : `${hours}:${minutes}`;
-
-  // Date formatting (Chinese locale with fallback)
-  const dateString = time.toLocaleDateString('zh-CN', {
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long',
-  });
 
   const fontClass =
     appearance.font === 'mono'

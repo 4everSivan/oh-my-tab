@@ -32,6 +32,7 @@ class TestStorageService {
       shadow: 'none',
       showDate: true,
       showSeconds: false,
+      timezone: 'auto',
     };
     this.DEFAULT_SEARCH = {
       align: 'center',
@@ -39,6 +40,7 @@ class TestStorageService {
       gap: 30,
       transparency: 15,
       blur: 12,
+      radius: 24,
     };
     this.DEFAULT_BACKGROUND = {
       type: 'material',
@@ -173,3 +175,30 @@ test('Widget contents are strictly namespaced under widgets/<instanceId>/content
   assert.equal(await service.getWidgetContent('todo-1', null), null);
   assert.equal((await service.getWidgetContent('notes-1', null)).text, 'My draft notes');
 });
+
+test('Clock timezone and search radius survive updates and resets independently (T10)', async () => {
+  const service = new TestStorageService();
+  const initClock = await service.getClock();
+  const initSearch = await service.getSearch();
+  assert.equal(initClock.timezone, 'auto');
+  assert.equal(initSearch.radius, 24);
+
+  // Update both
+  await service.setClock({ timezone: 'Asia/Tokyo' });
+  await service.setSearch({ radius: 12 });
+
+  const updatedClock = await service.getClock();
+  const updatedSearch = await service.getSearch();
+  assert.equal(updatedClock.timezone, 'Asia/Tokyo');
+  assert.equal(updatedSearch.radius, 12);
+
+  // Reset clock preserves custom search radius
+  await service.resetClock();
+  assert.equal((await service.getClock()).timezone, 'auto');
+  assert.equal((await service.getSearch()).radius, 12);
+
+  // Reset search preserves default clock
+  await service.resetSearch();
+  assert.equal((await service.getSearch()).radius, 24);
+});
+

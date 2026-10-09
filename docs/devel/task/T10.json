@@ -1,0 +1,80 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T10",
+  "title": "实现时钟手动时区设置与搜索框圆角调节功能",
+  "milestone": "M1-v0.1.0-首发里程碑",
+  "status": "in_progress",
+  "branch": "feat/T10-timezone-and-search-radius",
+  "depends_on": [
+    "T05"
+  ],
+  "target": {
+    "module": "工作台布局与外观",
+    "design_doc": "docs/devel/design/02-工作台布局与外观.md",
+    "design_topic": "WorkspaceAppearance"
+  },
+  "goal": "支持时钟独立配置 IANA 时区（默认 auto 跟随本地系统），时分秒与日期根据目标时区精准转换；支持搜索框圆角调节（0-28px，默认 24px），满足从直角到胶囊形状的个性化定制。",
+  "precheck": {
+    "description": "检测 ClockAppearance 是否包含 timezone 字段且 SearchAppearance 包含 radius 字段",
+    "command": "grep -q 'timezone?: string;' src/services/storage/types.ts && grep -q 'radius?: number;' src/services/storage/types.ts",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "ClockAppearance 成功引入 timezone，SearchAppearance 成功引入 radius，存储层默认值与重置方法均已就绪，precheck 退出码 0"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b feat/T10-timezone-and-search-radius"
+    ],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T10-1",
+      "title": "存储层类型定义与默认值扩展",
+      "capability": "在 ClockAppearance 补充 timezone（默认 auto），在 SearchAppearance 补充 radius（默认 24），在 StorageService 默认配置与重置配置中正确初始化",
+      "done": true
+    },
+    {
+      "id": "T10-2",
+      "title": "时钟多时区计算与渲染适配",
+      "capability": "在 Clock.tsx 中支持根据 timezone 进行时分秒与日期转换，每秒定时驱动重绘，兼容 auto 本地时区",
+      "done": true
+    },
+    {
+      "id": "T10-3",
+      "title": "搜索框动态圆角样式适配",
+      "capability": "在 SearchBar.tsx 中支持动态 borderRadius 样式注入，移除固定的 rounded-full",
+      "done": true
+    },
+    {
+      "id": "T10-4",
+      "title": "外观侧边抽屉控件补充与回归测试",
+      "capability": "在 AppearanceDrawer.tsx 的时钟设置面板增加常用时区选择下拉框，在搜索框面板增加圆角滑块；补齐回归测试用例",
+      "done": true
+    }
+  ],
+  "acceptance": {
+    "result": true,
+    "run_id": "npm-test-105pass",
+    "checks": [
+      {
+        "item": "架构纯度与存储契约",
+        "true_if": "时钟与搜索框参数严格收拢在 ClockAppearance 与 SearchAppearance 中，零跨层脏数据",
+        "false_if": "检测到未类型化字段或参数污染",
+        "evidence": "types.ts 严格定义 timezone 与 radius，StorageService 正确实现读取、写入与独立重置逻辑，通过 storage.test.cjs 校验",
+        "result": true
+      },
+      {
+        "item": "功能实现与测试覆盖",
+        "true_if": "时钟能根据手动选择的 IANA 时区（如 UTC、Asia/Tokyo、America/New_York）精准显示时间与日期；搜索框圆角滑块支持 0-28px 连续调节且即时生效；全量测试 100% 通过",
+        "false_if": "时区转换偏差、搜索框圆角失效或存在测试报错",
+        "evidence": "layout-appearance.test.cjs 补充时区转换与圆角样式断言全部通过；node --test 105/105 测试全绿，npm run build 退出码 0",
+        "result": true
+      }
+    ]
+  },
+  "version": null
+}

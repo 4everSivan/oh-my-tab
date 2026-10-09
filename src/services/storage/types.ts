@@ -13,6 +13,7 @@ export interface ClockAppearance {
   shadow: ShadowStyle;
   showDate: boolean;
   showSeconds: boolean;
+  timezone?: string; // 'auto' (跟随系统) 或 IANA 时区标识如 'Asia/Shanghai'
 }
 
 export interface SearchAppearance {
@@ -21,6 +22,7 @@ export interface SearchAppearance {
   gap: number;
   transparency: number; // 0 - 100
   blur: number; // 0 - 24
+  radius?: number; // 0 - 28, 默认 24
 }
 
 export interface BackgroundConfig {
@@ -67,6 +69,7 @@ export const DEFAULT_CLOCK_APPEARANCE: ClockAppearance = {
   shadow: 'none',
   showDate: true,
   showSeconds: false,
+  timezone: 'auto',
 };
 
 export const DEFAULT_SEARCH_APPEARANCE: SearchAppearance = {
@@ -75,6 +78,7 @@ export const DEFAULT_SEARCH_APPEARANCE: SearchAppearance = {
   gap: 30,
   transparency: 15,
   blur: 12,
+  radius: 24,
 };
 
 export const DEFAULT_BACKGROUND_CONFIG: BackgroundConfig = {

@@ -297,6 +297,38 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
                 </div>
               </div>
 
+              {/* Timezone (T10) */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-stone-600 dark:text-stone-400">
+                  <span>时区设置</span>
+                  <span>{clock.timezone && clock.timezone !== 'auto' ? clock.timezone : '本地系统'}</span>
+                </div>
+                <select
+                  value={clock.timezone || 'auto'}
+                  onChange={(e) => onUpdateClock({ timezone: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 outline-hidden transition-all focus:border-stone-400 dark:focus:border-stone-600 cursor-pointer"
+                >
+                  <option value="auto">自动 (跟随系统本地时区)</option>
+                  <option value="Asia/Shanghai">中国标准时间 (北京/上海 - UTC+8)</option>
+                  <option value="Asia/Hong_Kong">香港时间 (UTC+8)</option>
+                  <option value="Asia/Taipei">台北时间 (UTC+8)</option>
+                  <option value="Asia/Tokyo">日本标准时间 (东京 - UTC+9)</option>
+                  <option value="Asia/Seoul">首尔时间 (UTC+9)</option>
+                  <option value="Asia/Singapore">新加坡时间 (UTC+8)</option>
+                  <option value="Asia/Dubai">迪拜时间 (UTC+4)</option>
+                  <option value="UTC">世界协调时 (UTC)</option>
+                  <option value="Europe/London">伦敦时间 (UTC+0/+1)</option>
+                  <option value="Europe/Paris">巴黎/柏林时间 (UTC+1/+2)</option>
+                  <option value="Europe/Moscow">莫斯科时间 (UTC+3)</option>
+                  <option value="America/New_York">美东时间 (纽约 - UTC-5/-4)</option>
+                  <option value="America/Chicago">美中部时间 (芝加哥 - UTC-6/-5)</option>
+                  <option value="America/Denver">美山地时间 (丹佛 - UTC-7/-6)</option>
+                  <option value="America/Los_Angeles">美西时间 (洛杉矶 - UTC-8/-7)</option>
+                  <option value="Pacific/Auckland">新西兰时间 (奥克兰 - UTC+12/+13)</option>
+                  <option value="Australia/Sydney">悉尼时间 (UTC+10/+11)</option>
+                </select>
+              </div>
+
               {/* Shadow & Toggles */}
               <div className="space-y-3 pt-2 border-t border-black/5 dark:border-white/5">
                 <div className="flex items-center justify-between">
@@ -410,6 +442,23 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
                   step="1"
                   value={search.blur}
                   onChange={(e) => onUpdateSearch({ blur: Number(e.target.value) })}
+                  className="w-full accent-stone-800 dark:accent-white"
+                />
+              </div>
+
+              {/* Border Radius (T10) */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-stone-600 dark:text-stone-400">
+                  <span>圆角大小</span>
+                  <span>{search.radius ?? 24} px</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="28"
+                  step="2"
+                  value={search.radius ?? 24}
+                  onChange={(e) => onUpdateSearch({ radius: Number(e.target.value) })}
                   className="w-full accent-stone-800 dark:accent-white"
                 />
               </div>
