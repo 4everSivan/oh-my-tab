@@ -13,7 +13,9 @@
     },
     "WorkspaceAppearance": {
       "design_doc": "docs/devel/design/02-工作台布局与外观.md",
-      "changes": []
+      "changes": [
+        "C002"
+      ]
     },
     "ProductivityWidgets": {
       "design_doc": "docs/devel/design/03-效率组件.md",
@@ -45,6 +47,14 @@
       "status": "in_progress",
       "branch": "fix/C001-wallpaper-restore",
       "topic": "DataPersistenceSync",
+      "created": "2026-10-09"
+    },
+    "C002": {
+      "title": "壁纸上传增加拖拽通道：绕过 webview 文件选择器限制",
+      "type": "Enhancement",
+      "status": "in_progress",
+      "branch": "fix/C002-wallpaper-dnd",
+      "topic": "WorkspaceAppearance",
       "created": "2026-10-09"
     }
   }
