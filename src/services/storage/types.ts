@@ -68,6 +68,7 @@ export interface AppSettings {
   shortcutGroups?: ShortcutGroup[];
   activeShortcutGroupId?: string;
   layout: LayoutItem[];
+  shortcutKeysEnabled?: boolean;
 }
 
 export const DEFAULT_CLOCK_APPEARANCE: ClockAppearance = {

@@ -63,6 +63,11 @@
 .site-link:not(.add-site) .site-surface path,.site-preview .site-surface path{fill:#fcfcfa;stroke:#deded9}.site-initial{color:#30332d}
 .site-label{font-size:11px;font-weight:400;line-height:1.4;color:var(--secondary);display:block;max-width:100%;overflow-wrap:anywhere}
 .site-link:hover .site-icon{transform:translateY(-4px);filter:drop-shadow(0 5px 6px #00000012)}.add-site .site-surface path{fill:var(--surface);stroke:var(--secondary);stroke-dasharray:2.5 3.5;stroke-opacity:.5}.add-site .site-icon{color:var(--secondary);filter:none}.add-site svg:not(.site-surface){position:relative}
+.site-key-hint{position:absolute;top:50px;left:50%;transform:translateX(-50%) translateY(4px) scale(0.82);opacity:0;pointer-events:none;display:inline-flex;align-items:center;justify-content:center;height:19px;padding:0 6px;border-radius:6px;font-size:10.5px;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',ui-monospace,monospace;letter-spacing:-0.2px;background:var(--surface);color:var(--text);border:1px solid var(--line);box-shadow:0 4px 12px rgba(0,0,0,0.14),0 1px 3px rgba(0,0,0,0.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:10;white-space:nowrap;transition:opacity .15s ease,transform .16s cubic-bezier(0.16,1,0.3,1),background-color .15s,color .15s,box-shadow .15s}
+.site-key-hint.is-visible{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+.site-key-hint.is-active{background:var(--accent);color:#fff;border-color:transparent;transform:translateX(-50%) translateY(0) scale(1.12);box-shadow:0 6px 18px rgba(0,0,0,0.25)}
+.site-link.site-key-active .site-icon{transform:scale(0.92);filter:brightness(0.92);transition:transform .12s ease}
+@media(prefers-reduced-motion:reduce){.site-key-hint{transition:none}}
 .edit-site{position:absolute;right:2px;top:-7px;width:23px;height:23px;background:var(--surface);border:1px solid var(--line);border-radius:50%;box-shadow:0 2px 6px #0001;color:var(--secondary);z-index:2}
 .site-move{display:flex;justify-content:center;gap:7px;padding-top:7px}.site-move button{width:21px;height:19px;border-radius:5px;background:var(--surface);color:var(--secondary)}
 .app .widget-grid{max-width:1060px;margin:43px auto 0;gap:22px}.app .edit-banner{max-width:1060px;margin:36px auto 0}.app .edit-banner+.widget-grid{margin-top:18px}
@@ -110,14 +115,54 @@
 .app .homepage-search :is(input,select,button){color:inherit;opacity:1}
 .app .homepage-search.search-box input::placeholder{color:var(--wallpaper-ink,var(--text));opacity:.65}
 .app .homepage-search select option{background:var(--surface);color:var(--text)}
-.appearance-backdrop{position:fixed;inset:0;z-index:70;pointer-events:none}
-.settings-dialog.appearance-drawer{position:absolute;top:16px;right:16px;bottom:16px;width:360px;max-width:calc(100vw - 24px);max-height:none;border-radius:20px;padding:23px;display:flex;flex-direction:column;pointer-events:auto;overflow:hidden;box-shadow:0 16px 60px #0002,0 2px 8px #0001}
+/* Topbar Action Buttons */
+.home-actions{display:flex;align-items:center;gap:10px}
+.home-actions .hub-circle-button{width:40px;height:40px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;position:relative;background:var(--surface);color:var(--secondary);border:1px solid var(--line);box-shadow:var(--shadow);transition:all .2s cubic-bezier(0.16,1,0.3,1);cursor:pointer}
+.home-actions .hub-circle-button:hover{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);transform:scale(1.06)}
+.home-actions .hub-circle-button:active{transform:scale(0.96)}
+.home-actions .hub-circle-button.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.hub-badge{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e14d4d;color:#fff;font-size:10px;font-weight:600;font-family:ui-monospace,monospace;display:flex;align-items:center;justify-content:center;border:2px solid var(--surface);box-shadow:0 2px 6px rgba(225,77,77,0.45);animation:hub-pulse 2.4s infinite}
+@keyframes hub-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12);box-shadow:0 2px 10px rgba(225,77,77,0.7)}}
+
+/* 1. 订阅消息侧边栏 (Feed Sidebar Drawer) - 统一右侧贴靠 */
+.feed-backdrop{position:fixed;inset:0;z-index:70;pointer-events:auto;background:rgba(0,0,0,0.16);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);animation:hub-fade .2s ease-out}
+@keyframes hub-fade{from{opacity:0}to{opacity:1}}
+.feed-sidebar-drawer{position:fixed;top:16px;right:16px;bottom:16px;width:420px;max-width:calc(100vw - 32px);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:22px;display:flex;flex-direction:column;pointer-events:auto;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.22),0 4px 16px rgba(0,0,0,0.08);animation:hub-slide-r .26s cubic-bezier(0.16,1,0.3,1);z-index:75}
+@keyframes hub-slide-r{from{transform:translateX(35px);opacity:0}to{transform:none;opacity:1}}
+
+.feed-header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.feed-header-left{display:flex;align-items:center;gap:8px}
+.feed-header-title{font:500 18px/1.3 -apple-system,'PingFang SC',sans-serif;color:var(--text);margin:0}
+.feed-unread-pill{font-size:10px;background:#e14d4d;color:#fff;padding:2px 7px;border-radius:10px;font-weight:600;font-family:ui-monospace,monospace}
+.feed-content{overflow-y:auto;scrollbar-width:thin;scrollbar-gutter:stable;flex:1;min-height:0;padding:14px 4px 10px 0}
+.hub-feed-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.hub-feed-filters{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none}
+.hub-feed-filters button{font-size:10px;padding:4px 8px;border-radius:6px;background:var(--surface-alt);color:var(--secondary);border:1px solid var(--line);white-space:nowrap}
+.hub-feed-filters button.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);font-weight:500}
+.hub-mark-all-btn{font-size:10px;color:var(--accent);padding:4px 8px;border-radius:6px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;background:var(--surface-alt);border:1px solid var(--line)}
+.hub-mark-all-btn:hover{background:var(--accent-soft)}
+.hub-feed-list{display:flex;flex-direction:column;gap:10px}
+.hub-feed-card{padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;transition:all .18s ease;cursor:pointer;display:flex;flex-direction:column;gap:6px;position:relative;text-align:left}
+.hub-feed-card:hover{background:var(--surface-alt);transform:translateY(-1px);box-shadow:0 3px 10px #00000008}
+.hub-feed-card.is-unread{border-color:color-mix(in srgb,var(--accent) 35%,var(--line));background:color-mix(in srgb,var(--accent-soft) 22%,var(--surface))}
+.hub-feed-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px}
+.hub-tag{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:500;display:inline-flex;align-items:center;gap:4px}
+.hub-tag.github{background:#eeeee8;color:#333}.hub-tag.news{background:#fcebe6;color:#b24831}.hub-tag.blog{background:#e6f0e6;color:#406c40}.hub-tag.todo{background:#fbf2d8;color:#7f6424}
+.app[data-theme=ink] .hub-tag.github{background:#2f3830;color:#b0c29b}.app[data-theme=ink] .hub-tag.news{background:#3b2824;color:#e58775}.app[data-theme=ink] .hub-tag.blog{background:#26382b;color:#8dd09a}.app[data-theme=ink] .hub-tag.todo{background:#3d3420;color:#ded078}
+.hub-feed-time{font-size:9px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.hub-unread-dot{width:6px;height:6px;border-radius:50%;background:#e14d4d;display:inline-block}
+.hub-feed-title{font-size:12px;font-weight:500;line-height:1.45;color:var(--text);margin:0}
+.hub-feed-desc{font-size:10px;line-height:1.5;color:var(--secondary);margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* 2. 独立外观与桌面设置抽屉 (Appearance Drawer) */
+.appearance-backdrop{position:fixed;inset:0;z-index:70;pointer-events:auto;background:rgba(0,0,0,0.16);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);animation:hub-fade .2s ease-out}
+.settings-dialog.appearance-drawer{position:fixed;top:16px;right:16px;bottom:16px;width:380px;max-width:calc(100vw - 32px);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:24px;display:flex;flex-direction:column;pointer-events:auto;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.2),0 4px 16px rgba(0,0,0,0.08);animation:hub-slide-r .26s cubic-bezier(0.16,1,0.3,1);z-index:75}
 .appearance-drawer .dialog-heading{flex-shrink:0}.appearance-drawer .dialog-heading h2{font:500 20px/1.4 -apple-system,'PingFang SC',sans-serif;letter-spacing:0}
-.appearance-drawer .appearance-intro{margin:10px 0 18px;font-size:10px;color:var(--secondary)}
+.appearance-drawer .appearance-intro{margin:6px 0 16px;font-size:10px;color:var(--secondary)}
 .appearance-tabs{display:flex;gap:4px;border:1px solid var(--line);border-radius:10px;padding:4px;background:var(--surface-alt);flex-shrink:0}
-.appearance-tabs button{flex:1;min-height:31px;font-size:10px;border-radius:7px;color:var(--secondary);white-space:nowrap}
-.appearance-tabs [aria-selected=true]{background:var(--surface);color:var(--text);box-shadow:0 1px 5px #0001}
-.appearance-content{overflow:auto;scrollbar-width:thin;scrollbar-gutter:stable;min-height:0;flex:1;padding:22px 16px 20px 2px}
+.appearance-tabs button{flex:1;min-height:32px;font-size:11px;border-radius:7px;color:var(--secondary);white-space:nowrap;display:inline-flex;align-items:center;justify-content:center}
+.appearance-tabs [aria-selected=true]{background:var(--surface);color:var(--text);box-shadow:0 1px 5px #0001;font-weight:500}
+.appearance-content{overflow:auto;scrollbar-width:thin;scrollbar-gutter:stable;min-height:0;flex:1;padding:18px 12px 18px 2px}
 .appearance-section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:20px}
 .appearance-section-heading h3{font-size:13px;font-weight:500;margin:0}.appearance-section-heading button{font-size:9px;color:var(--accent);padding:5px 0}
 .clock-sample{font:var(--clock-weight) 50px/1.2 var(--clock-font-stack);font-variant-numeric:tabular-nums;letter-spacing:-.045em;text-align:center;margin:0 0 22px;color:var(--text)}
@@ -132,9 +177,17 @@
 .appearance-bottom .dialog-edit{margin-top:9px;font-size:10px;padding:7px}.appearance-done{width:100%;margin-top:12px;height:34px;font-size:11px}
 .appearance-bottom .dialog-plan{font-size:9px;padding:0;margin-top:10px}
 .appearance-drawer .background-settings{margin-top:20px}.appearance-drawer .background-upload{flex-wrap:wrap}.appearance-drawer .background-upload>span{flex-basis:180px}
+.hub-control-section{display:flex;flex-direction:column;gap:16px}
+.hub-control-card{padding:14px;background:var(--surface-alt);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;gap:8px}
+.hub-control-card h3{font-size:12px;font-weight:500;margin:0;display:flex;align-items:center;justify-content:space-between}
+.hub-control-card p{font-size:10px;color:var(--muted);margin:0;line-height:1.6}
 @media(max-width:850px){.appearance-tabs button,.appearance-done,.appearance-drawer .icon-button{min-height:44px}.appearance-drawer .icon-button{width:44px}.appearance-select select{min-height:44px}.appearance-switch{min-height:44px}.appearance-range input{height:28px}}
-@media(min-width:851px){.app[data-settings-open=on] .workspace{padding-right:408px}.app[data-settings-open=on] .review-dock{left:calc(50% - 184px);max-width:calc(100% - 448px)}}
-@media(max-width:850px){.settings-dialog.appearance-drawer{top:auto;left:10px;right:10px;bottom:10px;width:auto;max-width:none;height:52vh;min-height:310px;border-radius:20px;padding:18px}.appearance-drawer .appearance-intro{margin:6px 0 12px}.appearance-content{padding-top:15px}.appearance-bottom .dialog-plan,.appearance-bottom .settings-switch{display:none}.appearance-bottom .dialog-edit{display:none}.appearance-done{margin-top:0}.appearance-tabs button{min-height:44px}}
+@media(min-width:851px){
+  .app[data-feed-open=on][data-feed-pos=right] .workspace{padding-right:456px}
+  .app[data-feed-open=on][data-feed-pos=left] .workspace{padding-left:456px}
+  .app[data-settings-open=on] .workspace{padding-right:416px}
+}
+@media(max-width:850px){.settings-dialog.appearance-drawer,.feed-sidebar-drawer{top:auto!important;left:10px!important;right:10px!important;bottom:10px!important;width:auto!important;height:65vh!important;min-height:350px!important;border-radius:20px;padding:18px}.appearance-drawer .appearance-intro{margin:6px 0 12px}.appearance-content{padding-top:15px}.appearance-bottom .dialog-plan,.appearance-bottom .settings-switch{display:none}.appearance-bottom .dialog-edit{display:none}.appearance-done{margin-top:0}.appearance-tabs button{min-height:44px}}
 </style></head><body><div id="root"></div><noscript>请启用 JavaScript 体验交互样稿。</noscript><script>/**
  * @license React
  * react.production.min.js
@@ -544,7 +597,7 @@ const HomepageModel=(()=>{
   }
   /** @returns {object} A fresh configuration, with no optional widgets installed. */
   function defaults(){return {
-    version:2,theme:'paper',motion:true,engine:'google',appearance:defaultAppearance(),order:[],spans:{...SPANS},shortcuts:SITES.map(site=>({...site})),
+    version:2,theme:'paper',motion:true,shortcutKeysEnabled:true,engine:'google',appearance:defaultAppearance(),order:[],spans:{...SPANS},shortcuts:SITES.map(site=>({...site})),
     tasks:[{id:'t1',text:'把今天最重要的一件事写下来',done:false},{id:'t2',text:'整理这一周收集的灵感',done:false},{id:'t3',text:'给自己留一点休息时间',done:true}],
     note:'好的想法，也需要一点空白。\n\n先做好一件小事，\n再开始下一件。',minutes:25,
     background:{type:'material',color:'#dce4d6',image:'',name:'',shade:35,blur:0,position:'center'},
@@ -601,6 +654,7 @@ const HomepageModel=(()=>{
     return {...base,
       theme:['paper','mist','ink'].includes(saved.theme)?saved.theme:base.theme,
       motion:typeof saved.motion==='boolean'?saved.motion:true,
+      shortcutKeysEnabled:typeof saved.shortcutKeysEnabled==='boolean'?saved.shortcutKeysEnabled:true,
       appearance:normalizeAppearance(saved.appearance),
       engine:ENGINES.some(e=>e.id===saved.engine)?saved.engine:'google',
       order:validOrder?[...saved.order]:[],
@@ -681,7 +735,10 @@ function SiteSection({
   onMove,
   onClick,
   dragged,
-  target
+  target,
+  isCmdPressed,
+  activeKeySiteId,
+  shortcutKeysEnabled
 }) {
   return /*#__PURE__*/React.createElement("section", {
     className: "site-section",
@@ -694,17 +751,17 @@ function SiteSection({
     "data-wallpaper-text": "sites-heading"
   }, "\u5E38\u7528\u7F51\u7AD9")), /*#__PURE__*/React.createElement("div", {
     className: "site-grid"
-  }, sites.map(site => /*#__PURE__*/React.createElement("div", {
+  }, sites.map((site, index) => /*#__PURE__*/React.createElement("div", {
     className: `site-tile ${dragged === site.id ? 'site-dragging' : ''} ${target === site.id ? 'site-drop-target' : ''}`,
     key: site.id,
     "data-site": site.id
   }, /*#__PURE__*/React.createElement("a", {
-    className: "site-link",
+    className: `site-link ${activeKeySiteId === site.id ? 'site-key-active' : ''}`,
     href: site.url,
     target: "_blank",
     rel: "noopener noreferrer",
-    "aria-label": `打开 ${site.name}`,
-    title: "\u53F3\u952E\u7F16\u8F91 \xB7 \u957F\u6309\u62D6\u52A8\u6392\u5E8F",
+    "aria-label": `打开 ${site.name}${shortcutKeysEnabled && index < 6 ? ` (快捷键 ⌘${index + 1})` : ''}`,
+    title: shortcutKeysEnabled && index < 6 ? `⌘${index + 1} 快捷直达 \u00B7 \u53F3\u952E\u7F16\u8F91 \u00B7 \u957F\u6309\u62D6\u52A8\u6392\u5E8F` : "\u53F3\u952E\u7F16\u8F91 \u00B7 \u957F\u6309\u62D6\u52A8\u6392\u5E8F",
     draggable: false,
     onContextMenu: e => {
       e.preventDefault();
@@ -726,7 +783,10 @@ function SiteSection({
   }, /*#__PURE__*/React.createElement(SiteIcon, {
     key: `${site.id}:${site.url}`,
     site: site
-  }), /*#__PURE__*/React.createElement("strong", {
+  }), shortcutKeysEnabled && index < 6 && /*#__PURE__*/React.createElement("span", {
+    className: `site-key-hint ${isCmdPressed ? 'is-visible' : ''} ${activeKeySiteId === site.id ? 'is-active' : ''}`,
+    "aria-hidden": "true"
+  }, `⌘${index + 1}`), /*#__PURE__*/React.createElement("strong", {
     className: "site-label",
     "data-wallpaper-text": `site-${site.id}`
   }, site.name)))), /*#__PURE__*/React.createElement("button", {
@@ -788,6 +848,7 @@ function SiteContextMenu({
   }, []);
   const key = e => {
     if (e.key === 'Escape') {
+        setFeedSidebarOpen(false);
       e.preventDefault();
       e.stopPropagation();
       onClose();
@@ -1434,7 +1495,12 @@ function Icon({
     })),
     moon: /*#__PURE__*/React.createElement("path", {
       d: "M21 14a9 9 0 0 1-11-11A9 9 0 1 0 21 14Z"
-    })
+    }),
+    bell: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
+      d: "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M13.73 21a2 2 0 0 1-3.46 0"
+    }))
   };
   return /*#__PURE__*/React.createElement("svg", _extends({
     width: size,
@@ -1644,6 +1710,75 @@ function App() {
     [saved, setSaved] = useState(true),
     [message, setMessage] = useState('');
   const [settingsTab, setSettingsTab] = useState('clock');
+  const [feedSidebarOpen, setFeedSidebarOpen] = useState(false);
+  const [isCmdPressed, setIsCmdPressed] = useState(false);
+  const [activeKeySiteId, setActiveKeySiteId] = useState(null);
+  const [feedCategory, setFeedCategory] = useState('all');
+  const [feeds, setFeeds] = useState([
+    {
+      id: 'f1',
+      category: 'github',
+      categoryName: 'GitHub 趋势',
+      tagClass: 'github',
+      title: 'facebook/react 发布 React 19 正式版规范与 Server Components 指南',
+      time: '12 分钟前',
+      summary: '全量引入 Actions、useActionState、useOptimistic，原生支持资产预加载与水合优化。',
+      url: 'https://github.com/facebook/react',
+      read: false
+    },
+    {
+      id: 'f2',
+      category: 'tech',
+      categoryName: '科技资讯',
+      tagClass: 'news',
+      title: 'Anthropic 发布 Claude 3.5 计算机直接使用能力预览',
+      time: '35 分钟前',
+      summary: '突破性允许模型直接控制鼠标移动、按键输入与多步骤桌面应用操作，迈出自主交互新里程碑。',
+      url: 'https://anthropic.com',
+      read: false
+    },
+    {
+      id: 'f3',
+      category: 'github',
+      categoryName: 'GitHub 趋势',
+      tagClass: 'github',
+      title: 'tailwindlabs/tailwindcss v4.0 氧化物版本全面开源测试',
+      time: '1 小时前',
+      summary: '由 Rust 驱动的高性能 CSS 编译器全新架构，零配置加载，编译构建速度提升达 10 倍以上。',
+      url: 'https://github.com/tailwindlabs/tailwindcss',
+      read: false
+    },
+    {
+      id: 'f4',
+      category: 'blog',
+      categoryName: '精选博客',
+      tagClass: 'blog',
+      title: '留白的秩序：打造具备呼吸感与纸张温度的现代桌面起始页',
+      time: '2 小时前',
+      summary: '平衡快捷方式、订阅信息与专注时钟之间的张力，追求极致简约与微交互美学。',
+      url: 'https://blog.example.com',
+      read: false
+    },
+    {
+      id: 'f5',
+      category: 'todo',
+      categoryName: '待办提醒',
+      tagClass: 'todo',
+      title: '今日待办提醒：你有 2 项日常目标尚未勾选完成',
+      time: '今天',
+      summary: '点击任务卡片可直接勾选今日事项，或开启专注番茄钟进入高能工作流。',
+      url: '#',
+      read: false
+    }
+  ]);
+  const unreadCount = feeds.filter(f => !f.read).length;
+  const markAllFeedsRead = () => {
+    setFeeds(list => list.map(f => ({ ...f, read: true })));
+    announce('全部订阅消息已标为已读');
+  };
+  const toggleFeedRead = id => {
+    setFeeds(list => list.map(f => f.id === id ? { ...f, read: true } : f));
+  };
   const [osReduced, setOsReduced] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [picker, setPicker] = useState(false),
     [siteDraft, setSiteDraft] = useState(null),
@@ -1704,22 +1839,57 @@ function App() {
     return () => m.removeEventListener('change', change);
   }, []);
   useEffect(() => {
-    const key = e => {
+    const onKeyDown = e => {
+      const isCmd = e.key === 'Meta' || e.metaKey || (e.ctrlKey && !e.altKey);
+      if (isCmd && state.shortcutKeysEnabled !== false) {
+        setIsCmdPressed(true);
+      }
+      const isInput = ['input', 'textarea', 'select'].includes(document.activeElement?.tagName?.toLowerCase()) || document.activeElement?.isContentEditable;
+      if (!isInput && (e.metaKey || e.ctrlKey) && state.shortcutKeysEnabled !== false && !settings && !picker && !siteDraft) {
+        if (/^[1-6]$/.test(e.key)) {
+          const num = parseInt(e.key, 10) - 1;
+          const targetSite = state.shortcuts[num];
+          if (targetSite) {
+            e.preventDefault();
+            setActiveKeySiteId(targetSite.id);
+            setTimeout(() => setActiveKeySiteId(null), 350);
+            window.location.href = targetSite.url;
+            announce('已通过快捷键 ⌘' + e.key + ' 打开 ' + targetSite.name);
+            return;
+          }
+        }
+      }
       if (!settings && !picker && !siteDraft && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         searchRef.current?.focus();
       }
       if (e.key === 'Escape') {
         setSettings(false);
+        setFeedSidebarOpen(false);
         setPicker(false);
         setSiteDraft(null);
         setContextMenu(null);
         setEditing(false);
+        setIsCmdPressed(false);
       }
     };
-    document.addEventListener('keydown', key);
-    return () => document.removeEventListener('keydown', key);
-  }, [settings, picker, siteDraft]);
+    const onKeyUp = e => {
+      if (e.key === 'Meta' || !e.metaKey) {
+        setIsCmdPressed(false);
+      }
+    };
+    const onBlur = () => {
+      setIsCmdPressed(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, [settings, picker, siteDraft, state.shortcuts, state.shortcutKeysEnabled]);
   useEffect(() => {
     if (!running) return;
     const tick = () => {
@@ -2307,6 +2477,7 @@ function App() {
     className: "app",
     ref: appRef,
     "data-settings-open": settings ? 'on' : 'off',
+    "data-feed-open": feedSidebarOpen ? 'on' : 'off',
     "data-focus": compact ? 'on' : 'off',
     "data-clock-font": state.appearance.clock.font,
     "data-clock-align": state.appearance.clock.align,
@@ -2359,26 +2530,37 @@ function App() {
   }, "oh, my tab", /*#__PURE__*/React.createElement("span", null, ".")), /*#__PURE__*/React.createElement("div", {
     className: "home-actions"
   }, /*#__PURE__*/React.createElement("button", {
-    className: "add-component-button",
-    onClick: () => setPicker(true)
+    className: `hub-circle-button ${feedSidebarOpen ? 'active' : ''} ${unreadCount > 0 ? 'has-unread' : ''}`,
+    "aria-label": "\u8BA2\u9605\u6D88\u606F\u680F",
+    title: `订阅消息 (${unreadCount} 条未读)`,
+    onClick: () => {
+      setFeedSidebarOpen(!feedSidebarOpen);
+      setSettings(false);
+    }
   }, /*#__PURE__*/React.createElement(Icon, {
-    name: "plus",
-    size: 15
-  }), "\u6DFB\u52A0\u7EC4\u4EF6"), /*#__PURE__*/React.createElement("button", {
-    className: `edit-shortcut ${editing ? 'active' : ''}`,
-    onClick: () => setEditing(!editing)
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: editing ? 'check' : 'grid',
-    size: 15
-  }), editing ? '完成编辑' : '编辑首页'), /*#__PURE__*/React.createElement("button", {
+    name: "bell",
+    size: 19
+  }), unreadCount > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "hub-badge"
+  }, unreadCount)), /*#__PURE__*/React.createElement("button", {
     ref: settingsRef,
-    className: "appearance-button",
+    className: `hub-circle-button ${settings ? 'active' : ''}`,
     "aria-label": "\u5916\u89C2\u8BBE\u7F6E",
     title: "\u5916\u89C2\u8BBE\u7F6E",
-    onClick: () => setSettings(true)
+    onClick: () => {
+      setSettings(!settings);
+      setFeedSidebarOpen(false);
+    }
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "settings",
     size: 18
+  })), editing && /*#__PURE__*/React.createElement("button", {
+    className: "hub-circle-button active",
+    title: "\u5B8C\u6210\u7F16\u8F91",
+    onClick: () => setEditing(false)
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "check",
+    size: 16
   })))), /*#__PURE__*/React.createElement("div", {
     className: "home-stack"
   }, /*#__PURE__*/React.createElement("section", {
@@ -2431,7 +2613,10 @@ function App() {
       if (suppressSiteClick.current && e.detail !== 0) e.preventDefault();
     },
     dragged: draggedSite,
-    target: siteTarget
+    target: siteTarget,
+    isCmdPressed: isCmdPressed,
+    activeKeySiteId: activeKeySiteId,
+    shortcutKeysEnabled: state.shortcutKeysEnabled !== false
   })), editing && state.order.length > 0 && /*#__PURE__*/React.createElement("div", {
     className: "edit-banner",
     role: "status"
@@ -2599,8 +2784,113 @@ function App() {
     order: state.order,
     onAdd: addWidget,
     onClose: () => setPicker(false)
-  }), settings && /*#__PURE__*/React.createElement("div", {
-    className: "appearance-backdrop"
+  }), feedSidebarOpen && /*#__PURE__*/React.createElement("div", {
+    className: "feed-backdrop",
+    onClick: e => {
+      if (e.target === e.currentTarget) setFeedSidebarOpen(false);
+    }
+  }, /*#__PURE__*/React.createElement("aside", {
+    className: "feed-sidebar-drawer"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "feed-header"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "feed-header-left"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "bell",
+    size: 18
+  }), /*#__PURE__*/React.createElement("h3", {
+    className: "feed-header-title"
+  }, "\u8BA2\u9605\u6D88\u606F"), unreadCount > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "feed-unread-pill"
+  }, unreadCount)), /*#__PURE__*/React.createElement("button", {
+    className: "icon-button",
+    "aria-label": "\u5173\u95ED\u8BA2\u9605\u680F",
+    onClick: () => setFeedSidebarOpen(false)
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "close"
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "feed-content"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "hub-feed-toolbar"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "hub-feed-filters"
+  }, [{
+    id: 'all',
+    name: `全部 (${feeds.length})`
+  }, {
+    id: 'github',
+    name: 'GitHub'
+  }, {
+    id: 'tech',
+    name: '科技'
+  }, {
+    id: 'blog',
+    name: '博客'
+  }, {
+    id: 'todo',
+    name: '待办'
+  }].map(item => /*#__PURE__*/React.createElement("button", {
+    key: item.id,
+    className: feedCategory === item.id ? 'active' : '',
+    onClick: () => setFeedCategory(item.id)
+  }, item.name))), /*#__PURE__*/React.createElement("button", {
+    className: "hub-mark-all-btn",
+    onClick: markAllFeedsRead,
+    disabled: unreadCount === 0
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "check",
+    size: 13
+  }), "\u5168\u90E8\u5DF2\u8BFB")), /*#__PURE__*/React.createElement("div", {
+    className: "hub-feed-list"
+  }, feeds.filter(f => feedCategory === 'all' || f.category === feedCategory).map(feed => /*#__PURE__*/React.createElement("article", {
+    key: feed.id,
+    className: `hub-feed-card ${!feed.read ? 'is-unread' : ''}`,
+    onClick: () => toggleFeedRead(feed.id)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "hub-feed-meta"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: `hub-tag ${feed.tagClass}`
+  }, feed.categoryName), /*#__PURE__*/React.createElement("div", {
+    className: "hub-feed-time"
+  }, !feed.read && /*#__PURE__*/React.createElement("span", {
+    className: "hub-unread-dot",
+    title: "\u672A\u8BFB"
+  }), feed.time)), /*#__PURE__*/React.createElement("h4", {
+    className: "hub-feed-title"
+  }, feed.title), /*#__PURE__*/React.createElement("p", {
+    className: "hub-feed-desc"
+  }, feed.summary)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      display: 'flex',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "dialog-edit",
+    style: {
+      fontSize: 10,
+      justifyContent: 'center',
+      padding: '7px 10px'
+    },
+    onClick: () => {
+      setFeeds(list => [{
+        id: 'f-' + Date.now(),
+        category: 'tech',
+        categoryName: '即时订阅',
+        tagClass: 'news',
+        title: 'oh-my-tab 团队推送：新版订阅通知流上线',
+        time: '刚刚',
+        summary: '订阅消息与外观设置现已彻底解耦，右上角专属铃铛图标实时提示未读红标！',
+        url: '#',
+        read: false
+      }, ...list]);
+      announce('收到 1 条全新订阅推送');
+    }
+  }, "\u6A21\u62DF\u65B0\u8BA2\u9605\u6D88\u606F\u63A8\u9001 (\u4EA7\u751F\u7EA2\u6807) +"))))), settings && /*#__PURE__*/React.createElement("div", {
+    className: "appearance-backdrop",
+    onClick: e => {
+      if (e.target === e.currentTarget) setSettings(false);
+    }
   }, /*#__PURE__*/React.createElement("section", {
     className: "settings-dialog appearance-drawer",
     role: "dialog",
@@ -2611,9 +2901,9 @@ function App() {
     className: "dialog-heading"
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
     className: "eyebrow"
-  }, "MAKE IT YOURS"), /*#__PURE__*/React.createElement("h2", {
+  }, "WORKSPACE SETTINGS"), /*#__PURE__*/React.createElement("h2", {
     id: "settings-title"
-  }, "\u5916\u89C2\u8BBE\u7F6E")), /*#__PURE__*/React.createElement("button", {
+  }, "\u5916\u89C2\u4E0E\u684C\u9762\u8BBE\u7F6E")), /*#__PURE__*/React.createElement("button", {
     className: "icon-button",
     "aria-label": "\u5173\u95ED\u5916\u89C2\u8BBE\u7F6E",
     onClick: () => setSettings(false)
@@ -2624,17 +2914,7 @@ function App() {
   }, "\u8C03\u6574\u7ACB\u5373\u9884\u89C8\uFF0C\u81EA\u52A8\u4FDD\u5B58\u5728\u6B64\u6D4F\u89C8\u5668\u3002"), /*#__PURE__*/React.createElement("div", {
     className: "appearance-tabs",
     role: "tablist",
-    "aria-label": "\u5916\u89C2\u8BBE\u7F6E\u5206\u7C7B",
-    onKeyDown: e => {
-      if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
-        e.preventDefault();
-        const tabs = ['clock', 'search', 'background'],
-          index = tabs.indexOf(settingsTab),
-          next = e.key === 'Home' ? 0 : e.key === 'End' ? 2 : (index + (e.key === 'ArrowRight' ? 1 : -1) + 3) % 3;
-        setSettingsTab(tabs[next]);
-        e.currentTarget.querySelectorAll('[role="tab"]')[next]?.focus();
-      }
-    }
+    "aria-label": "\u5916\u89C2\u8BBE\u7F6E\u5206\u7C7B"
   }, [{
     id: 'clock',
     name: '时间'
@@ -2644,36 +2924,32 @@ function App() {
   }, {
     id: 'background',
     name: '背景与风格'
+  }, {
+    id: 'components',
+    name: '组件管理'
   }].map(tab => /*#__PURE__*/React.createElement("button", {
     key: tab.id,
     role: "tab",
     id: `appearance-${tab.id}-tab`,
     "aria-selected": settingsTab === tab.id,
-    "aria-controls": `appearance-${tab.id}-panel`,
-    tabIndex: settingsTab === tab.id ? 0 : -1,
     onClick: () => setSettingsTab(tab.id)
   }, tab.name))), /*#__PURE__*/React.createElement("div", {
     className: "appearance-content"
-  }, settingsTab !== 'background' && /*#__PURE__*/React.createElement(HomepageAppearanceControls, {
+  }, (settingsTab === 'clock' || settingsTab === 'search') && /*#__PURE__*/React.createElement(HomepageAppearanceControls, {
     tab: settingsTab,
     appearance: state.appearance,
     onChange: updateAppearance,
     clock: clock
   }), settingsTab === 'background' && /*#__PURE__*/React.createElement("div", {
     className: "appearance-panel",
-    role: "tabpanel",
-    id: "appearance-background-panel",
-    "aria-labelledby": "appearance-background-tab"
+    role: "tabpanel"
   }, themeButtons('settings-themes'), /*#__PURE__*/React.createElement("div", {
     className: "settings-current"
   }, THEMES.find(t => t.id === state.theme).note), /*#__PURE__*/React.createElement("section", {
-    className: "background-settings",
-    "aria-labelledby": "background-title"
+    className: "background-settings"
   }, /*#__PURE__*/React.createElement("div", {
     className: "background-heading"
-  }, /*#__PURE__*/React.createElement("h3", {
-    id: "background-title"
-  }, "\u81EA\u5B9A\u4E49\u80CC\u666F"), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("h3", null, "\u81EA\u5B9A\u4E49\u80CC\u666F"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       updateBackground({
         type: 'material',
@@ -2684,9 +2960,7 @@ function App() {
       setBackgroundError('');
     }
   }, "\u6062\u590D\u9ED8\u8BA4")), /*#__PURE__*/React.createElement("div", {
-    className: "background-modes",
-    role: "group",
-    "aria-label": "\u80CC\u666F\u7C7B\u578B"
+    className: "background-modes"
   }, [{
     id: 'material',
     name: '默认材质'
@@ -2704,7 +2978,6 @@ function App() {
     className: "color-controls"
   }, /*#__PURE__*/React.createElement("input", {
     type: "color",
-    "aria-label": "\u9009\u62E9\u80CC\u666F\u8272",
     value: state.background.color,
     onChange: e => {
       updateBackground({
@@ -2714,16 +2987,9 @@ function App() {
     }
   }), /*#__PURE__*/React.createElement("input", {
     type: "text",
-    "aria-label": "\u80CC\u666F\u989C\u8272\u503C",
     value: colorDraft,
     onChange: e => setColorDraft(e.target.value),
     onBlur: applyColor,
-    onKeyDown: e => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        applyColor();
-      }
-    },
     maxLength: 7
   }), /*#__PURE__*/React.createElement("button", {
     onClick: applyColor
@@ -2732,15 +2998,14 @@ function App() {
   }, state.background.image ? /*#__PURE__*/React.createElement("img", {
     className: "background-thumbnail",
     src: state.background.image,
-    alt: "\u5DF2\u9009\u80CC\u666F\u7F29\u7565\u56FE"
+    alt: "\u7F29\u7565\u56FE"
   }) : /*#__PURE__*/React.createElement(Icon, {
     name: "plus",
     size: 19
-  }), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("strong", null, state.background.name || '用你自己的照片或插画'), /*#__PURE__*/React.createElement("small", null, "PNG / JPEG / WebP \xB7 \u6837\u7A3F\u4E0A\u9650 2 MB")), /*#__PURE__*/React.createElement("button", {
+  }), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("strong", null, state.background.name || '用你自己的照片或插画'), /*#__PURE__*/React.createElement("small", null, "PNG / JPEG / WebP \xB7 \u4E0A\u9650 2 MB")), /*#__PURE__*/React.createElement("button", {
     onClick: () => uploadRef.current?.click()
   }, state.background.image ? '更换图片' : '上传图片'), state.background.image && /*#__PURE__*/React.createElement("button", {
     className: "icon-button",
-    "aria-label": "\u79FB\u9664\u80CC\u666F\u56FE\u7247",
     onClick: clearBackground
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "close",
@@ -2749,7 +3014,6 @@ function App() {
     className: "image-adjustments"
   }, /*#__PURE__*/React.createElement("label", null, /*#__PURE__*/React.createElement("span", null, "\u906E\u7F69\u5F3A\u5EA6 ", /*#__PURE__*/React.createElement("output", null, state.background.shade, "%")), /*#__PURE__*/React.createElement("input", {
     type: "range",
-    "aria-label": "\u80CC\u666F\u906E\u7F69\u5F3A\u5EA6",
     min: "0",
     max: "85",
     value: state.background.shade,
@@ -2758,7 +3022,6 @@ function App() {
     })
   })), /*#__PURE__*/React.createElement("label", null, /*#__PURE__*/React.createElement("span", null, "\u80CC\u666F\u6A21\u7CCA ", /*#__PURE__*/React.createElement("output", null, state.background.blur, " px")), /*#__PURE__*/React.createElement("input", {
     type: "range",
-    "aria-label": "\u80CC\u666F\u6A21\u7CCA",
     min: "0",
     max: "20",
     value: state.background.blur,
@@ -2768,7 +3031,6 @@ function App() {
   })), /*#__PURE__*/React.createElement("label", {
     className: "position-select"
   }, /*#__PURE__*/React.createElement("span", null, "\u753B\u9762\u4F4D\u7F6E"), /*#__PURE__*/React.createElement("select", {
-    "aria-label": "\u80CC\u666F\u753B\u9762\u4F4D\u7F6E",
     value: state.background.position,
     onChange: e => updateBackground({
       position: e.target.value
@@ -2780,29 +3042,69 @@ function App() {
   }, "\u9760\u4E0A"), /*#__PURE__*/React.createElement("option", {
     value: "bottom"
   }, "\u9760\u4E0B")))), backgroundError && /*#__PURE__*/React.createElement("p", {
-    className: "field-error",
-    role: "alert"
+    className: "field-error"
   }, backgroundError), /*#__PURE__*/React.createElement("p", {
     className: "background-tip"
-  }, "\u56FE\u7247\u4FDD\u5B58\u5728\u6B64\u6D4F\u89C8\u5668\u3002\u6587\u5B57\u4F1A\u968F\u5C40\u90E8\u660E\u6697\u81EA\u52A8\u6362\u8272\uFF0C\u590D\u6742\u533A\u57DF\u81EA\u52A8\u8865\u5BF9\u6BD4\u4FDD\u62A4\u3002")))), /*#__PURE__*/React.createElement("div", {
+  }, "\u56FE\u7247\u4FDD\u5B58\u5728\u6B64\u6D4F\u89C8\u5668\u3002\u6587\u5B57\u4F1A\u968F\u5C40\u90E8\u660E\u6697\u81EA\u52A8\u6362\u8272\u3002"))), settingsTab === 'components' && /*#__PURE__*/React.createElement("div", {
+    className: "hub-control-section"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "hub-control-card"
+  }, /*#__PURE__*/React.createElement("h3", null, "\u9996\u9875\u7EC4\u4EF6\u4E0E\u5E03\u5C40\u63A7\u5236"), /*#__PURE__*/React.createElement("p", null, "\u7BA1\u7406\u65E5\u5386\u3001\u4E13\u6CE8\u65F6\u949F\u3001\u4ECA\u65E5\u5F85\u529E\u4E0E\u4FBF\u7B7E\u7EC4\u4EF6\uFF1A"), /*#__PURE__*/React.createElement("button", {
+    className: "dialog-edit",
+    onClick: () => {
+      setCompact(!compact);
+      setSettings(false);
+    }
+  }, compact ? '展开全部首页组件' : '进入极简模式 (仅保留时间与搜索)'), /*#__PURE__*/React.createElement("button", {
+    className: "dialog-edit",
+    style: {
+      marginTop: 8
+    },
+    onClick: () => {
+      setSettings(false);
+      setPicker(true);
+    }
+  }, "\u6DFB\u52A0\u9996\u9875\u7EC4\u4EF6 ", /*#__PURE__*/React.createElement(Icon, {
+    name: "plus",
+    size: 15
+  })), state.order.length > 0 && /*#__PURE__*/React.createElement("button", {
+    className: "dialog-edit",
+    style: {
+      marginTop: 8
+    },
+    onClick: () => {
+      setSettings(false);
+      setEditing(true);
+    }
+  }, "\u8C03\u6574\u7EC4\u4EF6\u5E03\u5C40\u4E0E\u6392\u5E8F ", /*#__PURE__*/React.createElement(Icon, {
+    name: "arrow",
+    size: 15
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "hub-control-card",
+    style: {
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("h3", null, "\u7F51\u9875\u56FE\u6807\u5FEB\u6377\u952E"), /*#__PURE__*/React.createElement("p", null, "\u6309\u4F4F \u2318 (Command) \u952E\u53EF\u5728\u5E38\u7528\u56FE\u6807\u4E0B\u65B9\u663E\u793A \u23181 ~ \u23189 \u6309\u952E\u63D0\u793A\uFF0C\u6309 \u2318 + \u6570\u5B57\u952E\u77AC\u65F6\u76F4\u8FBE\u7F51\u9875\uFF1A"), /*#__PURE__*/React.createElement("label", {
+    className: "settings-switch",
+    style: {
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "\u542F\u7528 \u2318 + \u6570\u5B57\u952E\u9009\u53D6\u914D\u7F6E", /*#__PURE__*/React.createElement("small", null, "\u6309\u4F4F Command \u6D6E\u73B0\u6309\u952E\u63D0\u793A\uFF0C\u7EC4\u5408 \u23181~9 \u5FEB\u6377\u76F4\u8FBE")), /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: state.shortcutKeysEnabled !== false,
+    onChange: e => update({
+      shortcutKeysEnabled: e.target.checked
+    })
+  }))))), /*#__PURE__*/React.createElement("div", {
     className: "appearance-bottom"
   }, /*#__PURE__*/React.createElement("label", {
     className: "settings-switch"
-  }, /*#__PURE__*/React.createElement("span", null, "\u542F\u7528\u7EC6\u8282\u52A8\u6548", /*#__PURE__*/React.createElement("small", null, osReduced ? '当前系统已要求减少动态效果' : '翻页、悬停和状态切换时轻轻响应')), /*#__PURE__*/React.createElement("input", {
+  }, /*#__PURE__*/React.createElement("span", null, "\u542F\u7528\u7EC6\u8282\u52A8\u6548", /*#__PURE__*/React.createElement("small", null, osReduced ? '系统已要求减少动态效果' : '微交互与状态切换时响应')), /*#__PURE__*/React.createElement("input", {
     type: "checkbox",
     checked: state.motion,
     onChange: e => update({
       motion: e.target.checked
     })
-  })), state.order.length > 0 && /*#__PURE__*/React.createElement("button", {
-    className: "dialog-edit",
-    onClick: () => {
-      setSettings(false);
-      setEditing(true);
-    }
-  }, "\u8C03\u6574\u7EC4\u4EF6\u5E03\u5C40 ", /*#__PURE__*/React.createElement(Icon, {
-    name: "arrow",
-    size: 16
   })), /*#__PURE__*/React.createElement("button", {
     className: "primary-action appearance-done",
     onClick: () => setSettings(false)

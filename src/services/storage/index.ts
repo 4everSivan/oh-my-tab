@@ -24,6 +24,7 @@ const STORAGE_KEYS = {
   SHORTCUT_GROUPS: 'settings.shortcutGroups',
   ACTIVE_SHORTCUT_GROUP_ID: 'settings.activeShortcutGroupId',
   LAYOUT: 'settings.layout',
+  SHORTCUT_KEYS_ENABLED: 'settings.shortcutKeysEnabled',
   WIDGET_CONTENT_PREFIX: 'widgets/',
 };
 
@@ -38,6 +39,7 @@ export interface BootCache {
   shortcutGroups?: ShortcutGroup[];
   activeShortcutGroupId?: string;
   layout?: LayoutItem[];
+  shortcutKeysEnabled?: boolean;
   savedAt?: number;
 }
 
@@ -80,8 +82,9 @@ export class StorageService {
     shortcutGroups: ShortcutGroup[];
     activeShortcutGroupId: string;
     layout: LayoutItem[];
+    shortcutKeysEnabled: boolean;
   }> {
-    const [clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout] = await Promise.all([
+    const [clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout, shortcutKeysEnabled] = await Promise.all([
       this.getClock(),
       this.getSearch(),
       this.getEngine(),
@@ -90,10 +93,11 @@ export class StorageService {
       this.getShortcutGroups(),
       this.getActiveShortcutGroupId(),
       this.getLayout(),
+      this.getShortcutKeysEnabled(),
     ]);
 
-    updateBootCache({ clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout });
-    return { clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout };
+    updateBootCache({ clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout, shortcutKeysEnabled });
+    return { clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout, shortcutKeysEnabled };
   }
 
   // Clock
@@ -238,6 +242,17 @@ export class StorageService {
   async removeWidgetContent(instanceId: string): Promise<void> {
     const key = `${STORAGE_KEYS.WIDGET_CONTENT_PREFIX}${instanceId}/content`;
     await this.adapter.remove(key);
+  }
+
+  // Shortcut Keys Enabled (T16)
+  async getShortcutKeysEnabled(): Promise<boolean> {
+    return this.adapter.get<boolean>(STORAGE_KEYS.SHORTCUT_KEYS_ENABLED, true);
+  }
+
+  async setShortcutKeysEnabled(enabled: boolean): Promise<boolean> {
+    await this.adapter.set(STORAGE_KEYS.SHORTCUT_KEYS_ENABLED, enabled);
+    updateBootCache({ shortcutKeysEnabled: enabled });
+    return enabled;
   }
 }
 

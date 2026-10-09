@@ -20,6 +20,7 @@ import {
   parseShortcutsFromJSON,
   mergeShortcuts,
 } from '../../services/shortcuts/transfer';
+import { isEditableElement } from '../../hooks/useKeyboardShortcuts';
 
 export { exportShortcutsToJSON as exportShortcuts };
 
@@ -33,6 +34,7 @@ export interface ShortcutsProps {
   shadowProtection?: string;
   background?: BackgroundConfig;
   onChange?: (shortcuts: Shortcut[]) => void;
+  shortcutKeysEnabled?: boolean;
 }
 
 export function getInitial(name: string): string {
@@ -64,6 +66,7 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
   shadowProtection = 'none',
   background,
   onChange,
+  shortcutKeysEnabled = true,
 }) => {
   // 综合背景色与文本色计算明暗基准 (C020: 毛玻璃抽屉背景自适应)
   const isDark =
@@ -77,6 +80,10 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
       : propGroups && propGroups.length > 0
       ? propGroups[0].shortcuts
       : [];
+
+  // 网页图标快捷键与按键提示状态 (T16)
+  const [isCmdPressed, setIsCmdPressed] = useState(false);
+  const [activeKeySiteId, setActiveKeySiteId] = useState<string | null>(null);
 
   // 图标文件夹横向展开状态 (T15)
   const [expandedFolderId, setExpandedFolderId] = useState<string | null>(null);
@@ -127,6 +134,12 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
   const totalPages = Math.max(1, Math.ceil(totalSlots / PAGE_SIZE));
   const safePageIndex = Math.max(0, Math.min(pageIndex, totalPages - 1));
 
+  // 单排 6 图标自动切片 (T14 & C021)
+  const start = safePageIndex * PAGE_SIZE;
+  const end = start + PAGE_SIZE;
+  const pageShortcuts = shortcuts.slice(start, end);
+  const showAddInThisPage = shortcuts.length >= start && shortcuts.length < end;
+
   // 当前展开的文件夹对象
   const expandedFolder = expandedFolderId
     ? shortcuts.find((s) => s.id === expandedFolderId && s.isFolder)
@@ -176,6 +189,66 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [totalPages, expandedFolderId]);
+
+  // 网页图标 ⌘ + 数字键 1~6 快捷直达与按住 Command 提示徽标 (T16 & C021: 按当前活动页局部映射)
+  useEffect(() => {
+    if (shortcutKeysEnabled === false) {
+      setIsCmdPressed(false);
+      return;
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isCmd = e.key === 'Meta' || e.metaKey || (e.ctrlKey && !e.altKey);
+      if (isCmd && !isEditableElement(document.activeElement)) {
+        setIsCmdPressed(true);
+      }
+
+      const isInput = isEditableElement(document.activeElement);
+      if (
+        !isInput &&
+        (e.metaKey || (e.ctrlKey && !e.altKey)) &&
+        !expandedFolderId &&
+        !editingShortcut &&
+        !isAdding &&
+        !renameFolder
+      ) {
+        if (/^[1-6]$/.test(e.key)) {
+          const num = parseInt(e.key, 10) - 1;
+          const targetSite = pageShortcuts[num];
+          if (targetSite) {
+            e.preventDefault();
+            setActiveKeySiteId(targetSite.id);
+            setTimeout(() => setActiveKeySiteId(null), 350);
+            if (targetSite.isFolder) {
+              setExpandedFolderId(targetSite.id);
+            } else {
+              window.location.href = targetSite.url;
+            }
+            setToastMessage(`已通过快捷键 ⌘${e.key} 打开 ${targetSite.name}`);
+          }
+        }
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Meta' || !e.metaKey) {
+        setIsCmdPressed(false);
+      }
+    };
+
+    const handleBlur = () => {
+      setIsCmdPressed(false);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [shortcutKeysEnabled, pageShortcuts, expandedFolderId, editingShortcut, isAdding, renameFolder]);
 
   // 全局点击关闭右键菜单
   useEffect(() => {
@@ -604,12 +677,6 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
     e.target.value = '';
   };
 
-  // 单排 6 图标自动切片 (T14)
-  const start = safePageIndex * PAGE_SIZE;
-  const end = start + PAGE_SIZE;
-  const pageShortcuts = shortcuts.slice(start, end);
-  const showAddInThisPage = shortcuts.length >= start && shortcuts.length < end;
-
   // 所有既有文件夹列表（用于右键快速归类移入）
   const existingFolders = shortcuts.filter((s) => s.isFolder);
 
@@ -656,9 +723,9 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
                   }
                   setExpandedFolderId((prev) => (prev === shortcut.id ? null : shortcut.id));
                 }}
-                className={`t-stagger-item flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-16 flex-shrink-0 ${
+                className={`t-stagger-item flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-16 flex-shrink-0 relative ${
                   isExpanded ? 'scale-105' : ''
-                }`}
+                } ${activeKeySiteId === shortcut.id ? 'site-key-active' : ''}`}
                 style={{ animationDelay: `${localIndex * 35}ms` }}
                 title={`文件夹「${shortcut.name}」(${children.length} 个网站)\n点击横向展开 / 右键管理`}
               >
@@ -740,6 +807,18 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
                   )}
                 </div>
 
+                {/* 按住 Command 浮现的按键提示徽标 (T16 & C021: 按当前页 localIndex 局部映射 ⌘1~⌘6) */}
+                {shortcutKeysEnabled !== false && localIndex < PAGE_SIZE && (
+                  <span
+                    className={`site-key-hint ${isCmdPressed ? 'is-visible' : ''} ${
+                      activeKeySiteId === shortcut.id ? 'is-active' : ''
+                    }`}
+                    aria-hidden="true"
+                  >
+                    ⌘{localIndex + 1}
+                  </span>
+                )}
+
                 {/* 文件夹名称 */}
                 <span
                   className="mt-2 text-xs font-medium truncate max-w-[64px] text-center transition-colors drop-shadow-xs flex items-center gap-0.5"
@@ -772,7 +851,9 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
               onPointerCancel={handlePointerUp}
               onContextMenu={(e) => handleContextMenu(e, shortcut)}
               onClick={(e) => handleItemClick(e, shortcut.url)}
-              className="t-stagger-item flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-16 flex-shrink-0"
+              className={`t-stagger-item flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-16 flex-shrink-0 relative ${
+                activeKeySiteId === shortcut.id ? 'site-key-active' : ''
+              }`}
               style={{ animationDelay: `${localIndex * 35}ms` }}
               title={`${shortcut.name}\n右键查看菜单 / 长按可排序`}
             >
@@ -802,6 +883,18 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
                   className="w-7 h-7 object-contain z-10 transition-transform duration-200 group-hover:scale-110"
                 />
               </div>
+
+              {/* 按住 Command 浮现的按键提示徽标 (T16 & C021: 按当前页 localIndex 局部映射 ⌘1~⌘6) */}
+              {shortcutKeysEnabled !== false && localIndex < PAGE_SIZE && (
+                <span
+                  className={`site-key-hint ${isCmdPressed ? 'is-visible' : ''} ${
+                    activeKeySiteId === shortcut.id ? 'is-active' : ''
+                  }`}
+                  aria-hidden="true"
+                >
+                  ⌘{localIndex + 1}
+                </span>
+              )}
 
               {/* Title */}
               <span

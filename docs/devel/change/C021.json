@@ -1,0 +1,84 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C021",
+  "title": "常用网站快捷键与按键提示按当前活动页局部映射 (⌘1~⌘6)",
+  "type": "BugFix",
+  "status": "closed",
+  "branch": "fix/C021-shortcuts-page-local-keycaps",
+  "is_hotfix": false,
+  "target": {
+    "module": "页面入口与导航",
+    "component": "Shortcuts",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "why": "此前网页图标快捷键与提示徽标按全局列表绝对下标 (globalIndex) 线性分配，导致在单排 6 图标翻至第 2 页时，图标下方呈现 ⌘7 ~ ⌘9 且第 4~6 个图标无徽标提示；更严重的是按 ⌘1 依然触发已离开视口的第 1 页首个网站。用户心智模型是以当前屏幕所见为准，翻页后当前页可见的图标应始终稳定局部映射为 ⌘1 ~ ⌘6，按 ⌘+1~6 秒开当前活动页的对应槽位网站。",
+  "precheck": {
+    "description": "检测 Shortcuts.tsx 是否已重构为基于当前页 pageShortcuts 与 localIndex 映射",
+    "command": "grep -q '⌘{localIndex + 1}' src/components/shortcuts/Shortcuts.tsx",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "grep -q '⌘{localIndex + 1}' src/components/shortcuts/Shortcuts.tsx 退出码 0，组件已完成 localIndex 与 pageShortcuts 局部映射重构"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "业务规则 / 快捷键分发",
+      "before": "按全局 globalIndex 分配 ⌘1~⌘9 徽标，按 ⌘+1~9 打开全局 shortcuts[num]，翻页后第 2 页出现 ⌘7~⌘9 且快捷键与当前视野错位",
+      "after": "按当前活动页 localIndex 分配 ⌘1~⌘6 徽标，按 ⌘+1~6 选取并秒开当前活动页 pageShortcuts[num]，每一页均保持 ⌘1~⌘6 稳定直达",
+      "impact": "常用网站 Shortcuts 组件按键提示渲染、全局键盘快捷键触发与高保真原型 demo"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/01-页面入口与导航.md",
+    "topic": "EntryNavigation",
+    "modified": true,
+    "rule_diff": {
+      "before": "按住 Command 浮现 ⌘1~⌘9 徽标，组合 ⌘+1~9 直达全局前 9 个网站",
+      "after": "按住 Command 浮现当前活动页的 ⌘1~⌘6 徽标，组合 ⌘+1~6 始终直达当前活动页前 6 个网站"
+    }
+  },
+  "verification": {
+    "result": "passed",
+    "run_id": "npm-test-152-pass",
+    "user_quote": "先落实这两个设计 / 1 2 确认，不要3",
+    "signoff": "代签人: AI Agent (人工口头确认)",
+    "checks": [
+      {
+        "item": "当前页按键徽标始终为 ⌘1 ~ ⌘6",
+        "true_if": "在任何分页（第 1 页、第 2 页等）长按 ⌘，当前页可见图标下方均稳定呈现 ⌘1 ~ ⌘6 键帽",
+        "false_if": "翻页后显示 ⌘7~⌘9 或缺失键帽提示",
+        "evidence": "Shortcuts.tsx 中已切换为 localIndex < PAGE_SIZE 且渲染 ⌘{localIndex + 1}，单排 6 槽位翻页后每一页均稳定展示 ⌘1~⌘6",
+        "result": "passed"
+      },
+      {
+        "item": "快捷键直达当前活动页目标",
+        "true_if": "在第 2 页按下 ⌘1 时秒开第 2 页第 1 个网站，并带有触感下压反馈",
+        "false_if": "误触发打开第 1 页或其他页面的网站",
+        "evidence": "handleKeyDown 从 pageShortcuts[num] 检索目标，并在 useEffect 依赖中注入 pageShortcuts，翻至第 2 页按 ⌘1 准确触发第 2 页首项",
+        "result": "passed"
+      },
+      {
+        "item": "回归测试全绿",
+        "true_if": "自动化测试全部通过，无报错",
+        "false_if": "测试失败或语法错误",
+        "evidence": "npm test 全部 152 个测试 100% 通过（包含 C021 页面切片局部映射专项测试），tsc && vite build 成功打包至 local/dist/",
+        "result": "passed"
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "",
+    "tag": ""
+  },
+  "version": null
+}

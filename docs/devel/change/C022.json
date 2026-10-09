@@ -1,0 +1,84 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C022",
+  "title": "修改常用网站 Command+数字键跳转行为：由新标签页打开调整为当前页面跳转",
+  "type": "BugFix",
+  "status": "closed",
+  "branch": "fix/C022-shortcut-keys-current-page",
+  "is_hotfix": false,
+  "target": {
+    "module": "页面入口与导航",
+    "component": "Shortcuts",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "why": "用户使用 Command + 1~6 快捷键选取常用网站时，此前调用了 window.open(targetSite.url, '_blank') 在新标签页打开，破坏了沉浸式浏览连续性，且与直接点击常用网站图标（window.location.href）以及搜索框回车跳转（C016）在当前页面跳转的行为规范不一致。需调整为在当前页面直接跳转（window.location.href = targetSite.url）。",
+  "precheck": {
+    "description": "检测 Shortcuts.tsx 中快捷键触发分支是否存在 window.open(targetSite.url, '_blank')",
+    "command": "grep -q \"window.open(targetSite.url, '_blank')\" src/components/shortcuts/Shortcuts.tsx",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "已确认 Shortcuts.tsx 此前快捷键分支调用 window.open(targetSite.url, '_blank') 在新标签页打开，成功定位问题根因"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "业务规则 / 页面导航",
+      "before": "按 ⌘+1~6 组合键时调用 window.open(targetSite.url, '_blank') 在新标签页中打开网站",
+      "after": "按 ⌘+1~6 组合键时赋值 window.location.href = targetSite.url 在当前页面直接打开网站",
+      "impact": "常用网站 Shortcuts 快捷键直达交互"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/01-页面入口与导航.md",
+    "topic": "EntryNavigation",
+    "modified": true,
+    "rule_diff": {
+      "before": "直接定位并打开当前活动页中对应序号的常用网站（在新标签页或当前页加载）",
+      "after": "直接定位并在当前页面（window.location.href）直接打开当前活动页中对应序号的常用网站，保持沉浸式连续浏览体验，绝不在新标签页中打开"
+    }
+  },
+  "verification": {
+    "result": "passed",
+    "run_id": "npm test && npm run build",
+    "user_quote": "/commit",
+    "signoff": "代签人: AI Agent (基于用户 /commit 指令代签闭环)",
+    "checks": [
+      {
+        "item": "快捷键在当前页面直接跳转",
+        "true_if": "触发 ⌘+1~6 快捷键时通过 window.location.href 跳转至 targetSite.url",
+        "false_if": "仍然使用 window.open 打开新标签页",
+        "evidence": "Shortcuts.tsx 已更新为 window.location.href = targetSite.url，且测试用例 C022 断言通过，彻底杜绝 window.open",
+        "result": "passed"
+      },
+      {
+        "item": "文件夹展开逻辑保持正常",
+        "true_if": "若命中的目标为文件夹 (isFolder: true)，继续平滑展开文件夹抽屉托盘",
+        "false_if": "文件夹被错误当作普通 URL 跳转",
+        "evidence": "if (targetSite.isFolder) setExpandedFolderId(targetSite.id) 保持优先执行，不影响文件夹展开",
+        "result": "passed"
+      },
+      {
+        "item": "自动化测试与构建门禁全绿",
+        "true_if": "全量单测通过，npm run build 成功编译到 local/dist/",
+        "false_if": "测试失败或构建错误",
+        "evidence": "npm test 163/163 独立断言全部通过，npm run build 成功打包至 local/dist/ 且 0 报错",
+        "result": "passed"
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "",
+    "tag": ""
+  },
+  "version": null
+}

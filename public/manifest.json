@@ -12,6 +12,7 @@
     "notifications"
   ],
   "host_permissions": [
+    "<all_urls>",
     "https://api.bing.com/*",
     "https://suggestqueries.google.com/*",
     "https://suggestion.baidu.com/*",

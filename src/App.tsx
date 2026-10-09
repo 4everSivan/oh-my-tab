@@ -21,6 +21,8 @@ import { Shortcuts } from './components/shortcuts/Shortcuts';
 import { ShortcutsHelpModal } from './components/shortcuts/ShortcutsHelpModal';
 import { GridContainer } from './components/layout/GridContainer';
 import { AppearanceDrawer } from './components/settings/AppearanceDrawer';
+import { FeedSidebar } from './components/feed/FeedSidebar';
+import { feedService, FeedItem, FeedSource } from './services/feed';
 import { AddWidgetModal } from './components/widgets/AddWidgetModal';
 import { WidgetManifest } from './contract/types';
 import { createWidgetInstance } from './contract/widget';
@@ -28,7 +30,7 @@ import { planBackgroundRestore } from './utils/background';
 // useAdaptiveContrast (C015): 统合原 useWallpaperContrast 与 useSearchContrast 为单管线并清空画布释放 GPU 缓冲
 import { useAdaptiveContrast } from './hooks/useAdaptiveContrast';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { SlidersHorizontal, Plus, Keyboard } from 'lucide-react';
+import { SlidersHorizontal, Plus, Keyboard, Bell } from 'lucide-react';
 
 export const App: React.FC = () => {
   // 同步启动快照 (C015)：首帧直接读出用户缓存的真实配置，杜绝默认纯色与默认圆角在首帧闪跳
@@ -57,11 +59,22 @@ export const App: React.FC = () => {
     () => boot?.activeShortcutGroupId ?? 'group-default'
   );
   const [layout, setLayout] = useState<LayoutItem[]>(() => boot?.layout ?? DEFAULT_LAYOUT);
+  const [shortcutKeysEnabled, setShortcutKeysEnabledState] = useState<boolean>(
+    () => boot?.shortcutKeysEnabled ?? true
+  );
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isFeedSidebarOpen, setIsFeedSidebarOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+
+  // 独立真实 RSS/Atom/脚本订阅消息与源列表 (T18)
+  const [feeds, setFeeds] = useState<FeedItem[]>([]);
+  const [feedSources, setFeedSources] = useState<FeedSource[]>([]);
+  const [isFeedRefreshing, setIsFeedRefreshing] = useState(false);
+  const unreadCount = feeds.filter((f) => !f.read).length;
+
   const clockContainerRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -80,6 +93,7 @@ export const App: React.FC = () => {
         shortcutGroups: sg,
         activeShortcutGroupId: agId,
         layout: l,
+        shortcutKeysEnabled: skEnabled,
       } = await storageService.loadAllSettings();
 
       if (!isMounted) return;
@@ -114,6 +128,7 @@ export const App: React.FC = () => {
       if (sg && sg.length > 0) setShortcutGroups(sg);
       if (agId) setActiveShortcutGroupId(agId);
       setLayout(l);
+      if (skEnabled !== undefined) setShortcutKeysEnabledState(skEnabled);
     }
     loadAll();
 
@@ -125,6 +140,44 @@ export const App: React.FC = () => {
       }
     };
   }, []);
+
+  // 刷新所有订阅源 (T18)
+  const handleRefreshFeeds = useCallback(async () => {
+    setIsFeedRefreshing(true);
+    try {
+      const { feeds: updatedFeeds } = await feedService.refreshAllFeeds(true);
+      setFeeds(updatedFeeds);
+      const updatedSources = await feedService.getSources();
+      setFeedSources(updatedSources);
+    } catch (e) {
+      console.warn('[App] 刷新订阅失败', e);
+    } finally {
+      setIsFeedRefreshing(false);
+    }
+  }, []);
+
+  // 订阅源与文章缓存初次加载 (T18)
+  useEffect(() => {
+    let active = true;
+    async function initFeeds() {
+      const sources = await feedService.getSources();
+      if (!active) return;
+      setFeedSources(sources);
+
+      const cached = await feedService.getCachedFeeds();
+      if (!active) return;
+      if (cached && cached.length > 0) {
+        setFeeds(cached);
+      } else {
+        // 首次启动静默初始化刷新
+        handleRefreshFeeds();
+      }
+    }
+    initFeeds();
+    return () => {
+      active = false;
+    };
+  }, [handleRefreshFeeds]);
 
   // 统合采样引擎：时钟与搜索框合并至单离线画布管线，回收 GPU 缓冲 (C015)
   const { clock: clockContrast, search: searchContrast } = useAdaptiveContrast(
@@ -215,9 +268,74 @@ export const App: React.FC = () => {
     });
   }, []);
 
+  const handleToggleFeedRead = async (id: string) => {
+    const updated = await feedService.toggleRead(id);
+    setFeeds(updated);
+  };
+
+  const handleMarkAllFeedsRead = async () => {
+    const updated = await feedService.markAllRead();
+    setFeeds(updated);
+  };
+
+  const handleAddFeedSource = async (source: Omit<FeedSource, 'id'>) => {
+    await feedService.addSource(source);
+    const sources = await feedService.getSources();
+    setFeedSources(sources);
+    handleRefreshFeeds();
+  };
+
+  const handleToggleFeedSource = async (id: string, enabled: boolean) => {
+    await feedService.toggleSource(id, enabled);
+    const sources = await feedService.getSources();
+    setFeedSources(sources);
+    handleRefreshFeeds();
+  };
+
+  const handleDeleteFeedSource = async (id: string) => {
+    await feedService.deleteSource(id);
+    const sources = await feedService.getSources();
+    setFeedSources(sources);
+    const cached = await feedService.getCachedFeeds();
+    setFeeds(cached);
+  };
+
+  const handleResetDefaultSources = async () => {
+    const sources = await feedService.resetToDefaultSources();
+    setFeedSources(sources);
+    handleRefreshFeeds();
+  };
+
+  const handleImportOpml = async (xmlText: string) => {
+    const { added, sources } = await feedService.importOpml(xmlText);
+    setFeedSources(sources);
+    handleRefreshFeeds();
+    return added;
+  };
+
+  const handleExportOpml = async () => {
+    const opmlXml = await feedService.exportOpml();
+    const blob = new Blob([opmlXml], { type: 'text/xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `oh-my-tab-subscriptions-${new Date().toISOString().slice(0, 10)}.opml`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleUpdateShortcutKeysEnabled = async (enabled: boolean) => {
+    await storageService.setShortcutKeysEnabled(enabled);
+    setShortcutKeysEnabledState(enabled);
+  };
+
   const handleCloseTopLayer = (): boolean => {
     if (isHelpOpen) {
       setIsHelpOpen(false);
+      return true;
+    }
+    if (isFeedSidebarOpen) {
+      setIsFeedSidebarOpen(false);
       return true;
     }
     if (isDrawerOpen) {
@@ -243,7 +361,14 @@ export const App: React.FC = () => {
     onCycleEngine: handleCycleEngine,
     onCloseTopLayer: handleCloseTopLayer,
     onToggleHelp: () => setIsHelpOpen((prev) => !prev),
-    onToggleDrawer: () => setIsDrawerOpen((prev) => !prev),
+    onToggleDrawer: () => {
+      setIsDrawerOpen((prev) => !prev);
+      setIsFeedSidebarOpen(false);
+    },
+    onToggleFeedSidebar: () => {
+      setIsFeedSidebarOpen((prev) => !prev);
+      setIsDrawerOpen(false);
+    },
     onToggleAddModal: () => setIsAddModalOpen((prev) => !prev),
     onToggleCollapse: () => setIsCollapsed((prev) => !prev),
     searchInputRef,
@@ -337,21 +462,45 @@ export const App: React.FC = () => {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setIsHelpOpen(true)}
-            className="p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95"
+            className="p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer"
             title="键盘快捷键指南 (?)"
           >
             <Keyboard className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-xs font-medium text-stone-700 dark:text-stone-200 transition-all active:scale-95"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-xs font-medium text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>添加组件</span>
           </button>
+          {/* 独立订阅消息胶囊按钮 (T17) */}
           <button
-            onClick={() => setIsDrawerOpen(true)}
-            className="p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95"
+            onClick={() => {
+              setIsFeedSidebarOpen((prev) => !prev);
+              setIsDrawerOpen(false);
+            }}
+            className={`relative p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
+              isFeedSidebarOpen ? 'ring-2 ring-stone-400 dark:ring-stone-500 bg-white dark:bg-stone-800' : ''
+            }`}
+            title={`订阅消息 (${unreadCount} 条未读) (b)`}
+          >
+            <Bell className="w-3.5 h-3.5" />
+            {unreadCount > 0 && (
+              <span className="hub-badge absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-xs animate-pulse">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+          {/* 外观设置圆形胶囊按钮 */}
+          <button
+            onClick={() => {
+              setIsDrawerOpen((prev) => !prev);
+              setIsFeedSidebarOpen(false);
+            }}
+            className={`p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
+              isDrawerOpen ? 'ring-2 ring-stone-400 dark:ring-stone-500 bg-white dark:bg-stone-800' : ''
+            }`}
             title="外观设置 (e)"
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -403,6 +552,7 @@ export const App: React.FC = () => {
               shadowProtection={shadowProtection}
               background={background}
               onChange={handleShortcutsChange}
+              shortcutKeysEnabled={shortcutKeysEnabled}
             />
           </div>
 
@@ -428,12 +578,32 @@ export const App: React.FC = () => {
         clock={clock}
         search={search}
         background={background}
+        shortcutKeysEnabled={shortcutKeysEnabled}
         onUpdateClock={handleUpdateClock}
         onResetClock={handleResetClock}
         onUpdateSearch={handleUpdateSearch}
         onResetSearch={handleResetSearch}
         onUpdateBackground={handleUpdateBackground}
         onResetBackground={handleResetBackground}
+        onUpdateShortcutKeysEnabled={handleUpdateShortcutKeysEnabled}
+      />
+
+      {/* Feed Sidebar Drawer (T17 & T18) */}
+      <FeedSidebar
+        isOpen={isFeedSidebarOpen}
+        onClose={() => setIsFeedSidebarOpen(false)}
+        feeds={feeds}
+        sources={feedSources}
+        isRefreshing={isFeedRefreshing}
+        onRefresh={handleRefreshFeeds}
+        onToggleRead={handleToggleFeedRead}
+        onMarkAllRead={handleMarkAllFeedsRead}
+        onAddSource={handleAddFeedSource}
+        onToggleSource={handleToggleFeedSource}
+        onDeleteSource={handleDeleteFeedSource}
+        onResetDefaultSources={handleResetDefaultSources}
+        onImportOpml={handleImportOpml}
+        onExportOpml={handleExportOpml}
       />
 
       {/* Add Widget Modal */}

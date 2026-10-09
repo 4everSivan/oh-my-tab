@@ -115,7 +115,23 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
         .catch((error) => {
           sendResponse({ success: false, suggestions: [], error: String(error) });
         });
-      return true; // 保持异步通信信道畅通
+      return true;
+    }
+
+    if (message?.type === 'FETCH_FEED') {
+      const { url, timeoutMs } = message;
+      fetchWithTimeout(url, timeoutMs || 10000)
+        .then(async (res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          }
+          const text = await res.text();
+          sendResponse({ success: true, text });
+        })
+        .catch((error) => {
+          sendResponse({ success: false, text: '', error: String(error) });
+        });
+      return true;
     }
   });
 }

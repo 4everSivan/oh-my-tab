@@ -11,6 +11,8 @@ export interface UseKeyboardShortcutsOptions {
   onToggleHelp?: () => void;
   /** 打开/关闭外观抽屉回调 */
   onToggleDrawer?: () => void;
+  /** 打开/关闭订阅消息侧边栏回调 (T17) */
+  onToggleFeedSidebar?: () => void;
   /** 打开/关闭添加组件弹窗回调 */
   onToggleAddModal?: () => void;
   /** 切换折叠极简模式回调 */
@@ -48,6 +50,7 @@ export function useKeyboardShortcuts({
   onCloseTopLayer,
   onToggleHelp,
   onToggleDrawer,
+  onToggleFeedSidebar,
   onToggleAddModal,
   onToggleCollapse,
   searchInputRef,
@@ -126,6 +129,13 @@ export function useKeyboardShortcuts({
         return;
       }
 
+      // 7.5. 打开/关闭订阅消息侧边栏：b (T17)
+      if (e.key === 'b' && onToggleFeedSidebar) {
+        e.preventDefault();
+        onToggleFeedSidebar();
+        return;
+      }
+
       // 8. 打开/关闭添加组件弹窗：a
       if (e.key === 'a' && onToggleAddModal) {
         e.preventDefault();
@@ -146,6 +156,7 @@ export function useKeyboardShortcuts({
       onCloseTopLayer,
       onToggleHelp,
       onToggleDrawer,
+      onToggleFeedSidebar,
       onToggleAddModal,
       onToggleCollapse,
       searchInputRef,

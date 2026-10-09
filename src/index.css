@@ -27,3 +27,68 @@ body {
   min-height: 100vh;
   color: var(--color-text);
 }
+
+/*
+ * 网页图标快捷键提示徽标 (T16)
+ * 长按 Command (Meta) 键时平滑浮现 ⌘1 ~ ⌘9 徽标，按下时微缩高亮
+ */
+.site-key-hint {
+  position: absolute;
+  top: 36px;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px) scale(0.82);
+  opacity: 0;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 19px;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', ui-monospace, monospace;
+  letter-spacing: -0.2px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #141c20;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14), 0 1px 3px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 20;
+  white-space: nowrap;
+  transition: opacity 0.15s ease, transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+:root.dark .site-key-hint,
+.dark .site-key-hint {
+  background: rgba(30, 30, 36, 0.92);
+  color: #f3f4f6;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.36);
+}
+
+.site-key-hint.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.site-key-hint.is-active {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: transparent;
+  transform: translateX(-50%) translateY(0) scale(1.12);
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.4);
+}
+
+.site-key-active {
+  transform: scale(0.92);
+  filter: brightness(0.92);
+  transition: transform 0.12s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-key-hint {
+    transition: none;
+  }
+}

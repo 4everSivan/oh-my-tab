@@ -21,7 +21,9 @@
         "C017",
         "C018",
         "C019",
-        "C020"
+        "C020",
+        "C021",
+        "C022"
       ]
     },
     "WorkspaceAppearance": {
@@ -239,6 +241,22 @@
       "topic": "EntryNavigation",
       "created": "2026-10-09",
       "archive": "docs/archive/v0.1.0/change/C020.json"
+    },
+    "C021": {
+      "title": "常用网站快捷键与按键提示按当前活动页局部映射 (⌘1~⌘6)",
+      "type": "BugFix",
+      "status": "closed",
+      "branch": "fix/C021-shortcuts-page-local-keycaps",
+      "topic": "EntryNavigation",
+      "created": "2026-10-09"
+    },
+    "C022": {
+      "title": "修改常用网站 Command+数字键跳转行为：由新标签页打开调整为当前页面跳转",
+      "type": "BugFix",
+      "status": "closed",
+      "branch": "fix/C022-shortcut-keys-current-page",
+      "topic": "EntryNavigation",
+      "created": "2026-10-09"
     }
   }
 }

@@ -8,7 +8,7 @@ import {
   ShadowStyle,
   BackgroundType,
 } from '../../services/storage/types';
-import { X, RotateCcw, Clock, Search, Image as ImageIcon, Upload } from 'lucide-react';
+import { X, RotateCcw, Clock, Search, Image as ImageIcon, Upload, Keyboard } from 'lucide-react';
 import { wallpaperStorage } from '../../services/storage/wallpaper';
 import { useDelayedUnmount } from '../../hooks/useDelayedUnmount';
 
@@ -18,12 +18,14 @@ interface AppearanceDrawerProps {
   clock: ClockAppearance;
   search: SearchAppearance;
   background: BackgroundConfig;
+  shortcutKeysEnabled?: boolean;
   onUpdateClock: (clock: Partial<ClockAppearance>) => void;
   onResetClock: () => void;
   onUpdateSearch: (search: Partial<SearchAppearance>) => void;
   onResetSearch: () => void;
   onUpdateBackground: (bg: Partial<BackgroundConfig>) => void;
   onResetBackground: () => void;
+  onUpdateShortcutKeysEnabled?: (enabled: boolean) => void;
 }
 
 export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
@@ -32,14 +34,16 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
   clock,
   search,
   background,
+  shortcutKeysEnabled = true,
   onUpdateClock,
   onResetClock,
   onUpdateSearch,
   onResetSearch,
   onUpdateBackground,
   onResetBackground,
+  onUpdateShortcutKeysEnabled,
 }) => {
-  const [activeTab, setActiveTab] = useState<'clock' | 'search' | 'background'>('clock');
+  const [activeTab, setActiveTab] = useState<'clock' | 'search' | 'background' | 'shortcuts'>('clock');
   // 上传失败的可见反馈（C001：此前异常被静默吞掉，用户零感知）
   const [uploadError, setUploadError] = useState<string | null>(null);
   // 拖拽悬停高亮（C002：webview 无文件选择器，拖拽是等价上传通道）
@@ -186,6 +190,17 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
           >
             <ImageIcon className="w-3.5 h-3.5" />
             <span>壁纸与背景</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('shortcuts')}
+            className={`py-3 px-3 text-xs font-medium flex items-center space-x-1.5 border-b-2 transition-colors ${
+              activeTab === 'shortcuts'
+                ? 'border-stone-900 dark:border-white text-stone-900 dark:text-white'
+                : 'border-transparent text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
+            }`}
+          >
+            <Keyboard className="w-3.5 h-3.5" />
+            <span>快捷键与导航</span>
           </button>
         </div>
 
@@ -634,6 +649,65 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'shortcuts' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xs font-semibold text-stone-800 dark:text-stone-200">
+                  常用网站快捷键
+                </h3>
+                <p className="mt-1 text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
+                  按住 ⌘ (Command / Meta) 键时，常用网站当前页前 9 个图标下方平滑浮现 ⌘1~⌘9 按键提示徽标；按下 ⌘ + 数字键瞬时直达网页。
+                </p>
+              </div>
+
+              {/* Toggle Switch */}
+              <div className="p-4 rounded-xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="pr-4">
+                    <div className="text-xs font-medium text-stone-800 dark:text-stone-200">
+                      启用 ⌘ + 数字键选取与按键提示
+                    </div>
+                    <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
+                      按住 Command 浮现 ⌘1~⌘9 提示徽标，支持 ⌘1~9 秒开网站
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={shortcutKeysEnabled !== false}
+                    onChange={(e) => onUpdateShortcutKeysEnabled?.(e.target.checked)}
+                    className="w-4 h-4 accent-stone-900 dark:accent-white cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Shortcut Cheat Sheet */}
+              <div className="space-y-2">
+                <label className="text-xs text-stone-600 dark:text-stone-400">
+                  当前支持的网页快捷键
+                </label>
+                <div className="space-y-1.5">
+                  {[
+                    { key: '⌘ + 1~9', desc: '秒开常用网站当前页第 1~9 个网页图标' },
+                    { key: '按住 ⌘', desc: '在常用网站图标下方显现实时按键提示徽标' },
+                    { key: '← / →', desc: '在常用网站分页间切换上一页 / 下一页' },
+                  ].map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between py-2 px-3 rounded-xl border border-black/5 dark:border-white/5 bg-black/[0.015] dark:bg-white/[0.02]"
+                    >
+                      <span className="text-xs text-stone-700 dark:text-stone-300">
+                        {item.desc}
+                      </span>
+                      <kbd className="px-2 py-0.5 text-[11px] font-mono font-medium rounded-md bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 border border-black/10 dark:border-white/15 shadow-2xs">
+                        {item.key}
+                      </kbd>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>

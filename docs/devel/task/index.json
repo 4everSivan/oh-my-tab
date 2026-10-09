@@ -43,7 +43,8 @@
         "T12",
         "T13",
         "T14",
-        "T15"
+        "T15",
+        "T16"
       ]
     },
     "WorkspaceAppearance": {
@@ -51,7 +52,8 @@
       "tasks": [
         "T05",
         "T09",
-        "T10"
+        "T10",
+        "T17"
       ]
     },
     "ProductivityWidgets": {
@@ -68,7 +70,9 @@
     },
     "ExtensionDataSources": {
       "design_doc": "docs/devel/design/05-深度扩展与外部数据.md",
-      "tasks": []
+      "tasks": [
+        "T18"
+      ]
     },
     "WidgetContract": {
       "design_doc": "docs/devel/design/06-组件契约与注册.md",
@@ -249,6 +253,39 @@
         "T14"
       ],
       "archive": "docs/archive/v0.1.0/task/T15.json"
+    },
+    "T16": {
+      "title": "常用网站网页图标 Command+数字键快捷直达与实时按键提示",
+      "status": "completed",
+      "branch": "feat/T16-shortcut-key-hints",
+      "milestone": "Phase 2 - 自由布局、高频组件与全站数据 (v0.2.0)",
+      "depends_on": [
+        "T04",
+        "T14",
+        "T15"
+      ],
+      "path": "docs/devel/task/T16.json"
+    },
+    "T17": {
+      "title": "独立订阅消息侧边栏与外观设置解耦",
+      "status": "completed",
+      "branch": "feat/T17-feed-sidebar-and-settings-split",
+      "milestone": "Phase 2 - 自由布局、高频组件与全站数据 (v0.2.0)",
+      "depends_on": [
+        "T04",
+        "T05"
+      ],
+      "path": "docs/devel/task/T17.json"
+    },
+    "T18": {
+      "title": "真实 RSS/Atom 订阅解析与极客脚本数据源引擎",
+      "status": "completed",
+      "branch": "feat/T18-rss-feed-and-script-engine",
+      "milestone": "Phase 2 - 自由布局、高频组件与全站数据 (v0.2.0)",
+      "depends_on": [
+        "T17"
+      ],
+      "path": "docs/devel/task/T18.json"
     }
   }
 }

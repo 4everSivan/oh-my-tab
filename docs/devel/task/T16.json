@@ -1,0 +1,93 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T16",
+  "title": "常用网站网页图标 Command+数字键快捷直达与实时按键提示",
+  "milestone": "Phase 2 - 自由布局、高频组件与全站数据 (v0.2.0)",
+  "status": "completed",
+  "branch": "feat/T16-shortcut-key-hints",
+  "depends_on": [
+    "T04",
+    "T14",
+    "T15"
+  ],
+  "target": {
+    "module": "页面入口与导航",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "goal": "1) 在桌面长按 Command/Meta 键时，常用网站当前页前 9 个图标下方浮现 ⌘1~⌘9 按键提示徽标；2) 组合按下 ⌘+1~9 快捷直达对应网站，带有图标微缩下压与按键激活反馈，且拦截默认浏览器行为；3) 当焦点位于输入框、搜索框等文本编辑态时自动休眠避让防误触；4) 在外观设置组件管理中提供“网页图标快捷键”启用/停用配置开关并持久化。",
+  "precheck": {
+    "description": "检测 Shortcuts 组件是否已接入 site-key-hint 提示",
+    "command": "grep -q 'site-key-hint' src/components/shortcuts/Shortcuts.tsx",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "grep -q 'site-key-hint' src/components/shortcuts/Shortcuts.tsx 校验通过，Shortcuts 组件完整接入 site-key-hint 徽标渲染"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T16-1",
+      "title": "扩展设置持久化与类型声明，支持 shortcutKeysEnabled 开关",
+      "capability": "在 StorageService 与配置模型中声明 shortcutKeysEnabled 属性与默认值 true",
+      "done": true
+    },
+    {
+      "id": "T16-2",
+      "title": "Shortcuts 组件按住 Command 状态监听与 ⌘1~⌘9 浮动按键提示徽标渲染",
+      "capability": "监听 Meta/Command 按下状态，前 9 个常用网站图标下方平滑浮现 ⌘1~⌘9 按键徽标",
+      "done": true
+    },
+    {
+      "id": "T16-3",
+      "title": "全局 ⌘+1~9 按键分发调度、防误触与无障碍反馈",
+      "capability": "组合按 ⌘+1~9 触发秒开对应网站、执行图标触感动效与无障碍通知，文本输入态自动休眠避让",
+      "done": true
+    },
+    {
+      "id": "T16-4",
+      "title": "外观设置面板中提供「网页图标快捷键」配置开关组件",
+      "capability": "在 AppearanceDrawer 中提供启用/关闭快捷直达的配置项并联动更新",
+      "done": true
+    },
+    {
+      "id": "T16-5",
+      "title": "编写单元测试与回归测试用例验证 T16 契约",
+      "capability": "覆盖 Command 监听、数字选取分发、输入态隔离与配置开关持久化全链路测试",
+      "done": true
+    }
+  ],
+  "acceptance": {
+    "result": true,
+    "run_id": "test-t16-verify-01",
+    "checks": [
+      {
+        "item": "按住 Command 徽标浮现与收起",
+        "true_if": "在桌面按住 Command 键平滑浮现 ⌘1~⌘9 徽标，松开或失焦立即淡出隐去",
+        "false_if": "按住无反应或释放后徽标残留卡住",
+        "evidence": "Shortcuts.tsx 监听 Meta/Command 按下与松开，配合 window.blur 清空；通过 .site-key-hint.is-visible 与 150ms 平滑微动效展开/隐去",
+        "result": true
+      },
+      {
+        "item": "快捷键直达与输入态避让",
+        "true_if": "按下 ⌘+1~9 触发打开对应网站并伴随触感动效，输入框打字时不抢占输入",
+        "false_if": "未能打开网站或在输入框打字时误触发跳转",
+        "evidence": "按下 ⌘+1~9 阻断默认标签切换 (e.preventDefault)，激活 site-key-active 触感微缩动效并弹出 Toast；isEditableElement 在 input/textarea/contentEditable 激活时彻底休眠避让",
+        "result": true
+      },
+      {
+        "item": "配置持久化与测试全绿",
+        "true_if": "配置开关可正常切换并持久化保存，自动化测试全绿通过",
+        "false_if": "配置未保存或测试失败",
+        "evidence": "AppearanceDrawer 接入 shortcutKeysEnabled 开关；tests/shortcuts-keyboard.test.cjs 5 项契约测试全部通过，npm test 151 pass",
+        "result": true
+      }
+    ]
+  },
+  "version": "v0.2.0"
+}

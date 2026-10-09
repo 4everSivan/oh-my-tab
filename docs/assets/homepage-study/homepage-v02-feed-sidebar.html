@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>oh-my-tab - 右上角圆形图标与统一消息面板交互样稿</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* 毛玻璃高级质感 */
+    .glass-circle-btn {
+      background: rgba(18, 18, 26, 0.68);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .glass-circle-btn:hover {
+      background: rgba(28, 28, 38, 0.85);
+      border-color: rgba(255, 255, 255, 0.28);
+      transform: scale(1.08);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    }
+    .glass-circle-btn:active {
+      transform: scale(0.96);
+    }
+
+    .glass-drawer {
+      background: rgba(16, 16, 24, 0.85);
+      backdrop-filter: blur(36px) saturate(200%);
+      -webkit-backdrop-filter: blur(36px) saturate(200%);
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: -16px 0 50px rgba(0, 0, 0, 0.55);
+    }
+
+    .glass-feed-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .glass-feed-card:hover {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateY(-1px);
+    }
+    .glass-feed-card.unread {
+      background: rgba(255, 255, 255, 0.07);
+      border-left: 3px solid #f43f5e;
+    }
+
+    /* 红色角标脉冲动效 */
+    @keyframes badge-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.18); opacity: 0.9; }
+    }
+    .badge-pulse {
+      animation: badge-pulse 2.2s infinite ease-in-out;
+    }
+
+    .tabular { font-variant-numeric: tabular-nums; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* 抽屉平滑滑出 */
+    .drawer-transition {
+      transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased relative selection:bg-indigo-500 selection:text-white" id="appBody">
+
+  <!-- ================= 1. 固定全屏背景壁纸图层 ================= -->
+  <div id="bgLayer" class="fixed inset-0 z-0 bg-cover bg-center transition-all duration-700" style="background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2000&q=80');">
+    <div id="bgOverlay" class="absolute inset-0 bg-black/40 transition-colors duration-500"></div>
+  </div>
+
+  <!-- ================= 2. 极致纯净的首屏桌面 (零边栏干扰) ================= -->
+  <main class="relative z-10 w-full h-screen flex flex-col justify-center items-center px-4 select-none pointer-events-auto">
+    
+    <!-- 极简大时钟 -->
+    <div class="flex flex-col items-center">
+      <div class="text-8xl md:text-9xl font-light tracking-tight text-white drop-shadow-xl tabular">
+        <span id="clockHourMin">19:50</span><span class="text-3xl md:text-4xl font-light text-white/60 ml-2" id="clockSec">28</span>
+      </div>
+      <div class="text-sm font-medium tracking-wide text-white/85 mt-2 drop-shadow flex items-center gap-2">
+        <span>2026年10月9日 星期五</span>
+        <span class="text-white/40">·</span>
+        <span>农历八月廿九</span>
+        <span class="text-white/40">·</span>
+        <span class="text-amber-300 font-medium">寒露</span>
+      </div>
+    </div>
+
+    <!-- 搜索框 -->
+    <div class="w-full max-w-xl px-2 mt-8">
+      <div class="rounded-3xl p-1.5 flex items-center gap-3 transition-all focus-within:ring-2 focus-within:ring-indigo-400" style="background: rgba(18, 18, 26, 0.72); backdrop-filter: blur(28px); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);">
+        <div class="flex items-center gap-1.5 pl-3 text-xs text-white/80">Google</div>
+        <div class="h-4 w-px bg-white/20"></div>
+        <input type="text" placeholder="探索世界，或输入直达网址..." class="bg-transparent flex-1 text-sm text-white placeholder-white/50 outline-none">
+        <span class="text-[11px] font-mono px-2 py-1 rounded-lg bg-white/10 text-white/60 mr-1 hidden sm:inline-block">Tab 切擎</span>
+        <button class="w-9 h-9 rounded-2xl bg-white/10 flex items-center justify-center text-white/90 hover:bg-white/20 transition-colors">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 单排 6 网站图标 -->
+    <div class="flex items-center justify-center gap-7 mt-8">
+      <div class="flex flex-col items-center gap-1.5 cursor-pointer group">
+        <div class="w-12 h-12 rounded-2xl bg-black/60 border border-white/20 flex items-center justify-center text-white shadow-md group-hover:-translate-y-1 transition-transform">GH</div>
+        <span class="text-xs text-white/90 drop-shadow">GitHub</span>
+      </div>
+      <div class="flex flex-col items-center gap-1.5 cursor-pointer group">
+        <div class="w-12 h-12 rounded-2xl bg-pink-500/80 border border-white/20 flex items-center justify-center text-white shadow-md group-hover:-translate-y-1 transition-transform">B</div>
+        <span class="text-xs text-white/90 drop-shadow">Bilibili</span>
+      </div>
+      <div class="flex flex-col items-center gap-1.5 cursor-pointer group">
+        <div class="w-12 h-12 rounded-2xl bg-stone-800/80 border border-white/20 flex items-center justify-center text-white shadow-md group-hover:-translate-y-1 transition-transform">N</div>
+        <span class="text-xs text-white/90 drop-shadow">Notion</span>
+      </div>
+      <div class="flex flex-col items-center gap-1.5 cursor-pointer group">
+        <div class="w-12 h-12 rounded-2xl bg-purple-600/80 border border-white/20 flex items-center justify-center text-white shadow-md group-hover:-translate-y-1 transition-transform">F</div>
+        <span class="text-xs text-white/90 drop-shadow">Figma</span>
+      </div>
+      <div class="flex flex-col items-center gap-1.5 cursor-pointer group">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-600/80 border border-white/20 flex items-center justify-center text-white shadow-md group-hover:-translate-y-1 transition-transform">V</div>
+        <span class="text-xs text-white/90 drop-shadow">V2EX</span>
+      </div>
+      <div class="flex flex-col items-center gap-1.5 cursor-pointer group">
+        <div class="w-12 h-12 rounded-2xl border-2 border-dashed border-white/40 flex items-center justify-center text-white/70 group-hover:border-white transition-colors">+</div>
+        <span class="text-xs text-white/60">添加</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= 3. 【用户核心诉求】：右上角圆形图标 (含未读红点角标) ================= -->
+  <!-- 整个桌面仅在此处保留一颗极致克制的圆形入口，点开后统一展开所有信息 -->
+
+  <div class="fixed top-5 right-6 z-40 flex items-center gap-3 pointer-events-auto">
+    <!-- 测试用：模拟推送按钮（仅为体验红点跳出设计） -->
+    <button onclick="simulateNewPush()" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 hover:bg-black/60 text-white/70 hover:text-white border border-white/10 text-[11px] backdrop-blur-md transition-all active:scale-95 shadow-sm">
+      <span class="w-1.5 h-1.5 rounded-full bg-rose-500 badge-pulse"></span>
+      <span>模拟收到推送</span>
+    </button>
+
+    <!-- 【核心入口】右上角半透明毛玻璃圆形图标 -->
+    <button id="circleHubBtn" onclick="toggleDrawer()" class="glass-circle-btn w-11 h-11 rounded-full flex items-center justify-center text-white/90 relative cursor-pointer" title="点开展开所有订阅消息与控制中心">
+      <!-- 钟形通知图标 -->
+      <svg class="w-5 h-5 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+      </svg>
+
+      <!-- 🔴 红色未读角标 (携带微呼吸跳动动效) -->
+      <span id="unreadBadge" class="absolute -top-1 -right-1 px-1.5 py-0.2 bg-rose-500 text-white font-bold text-[10px] rounded-full ring-2 ring-slate-950 badge-pulse tabular shadow-md">
+        7
+      </span>
+    </button>
+  </div>
+
+  <!-- ================= 4. 【点开后展开所有信息】：全能控制与消息中心抽屉 ================= -->
+  <!-- 点击右上角圆形图标后从右侧顺畅滑出，收纳全部订阅消息、壁纸切换、组件库、设置等 -->
+
+  <!-- 半透明背景点击遮罩 -->
+  <div id="drawerBackdrop" onclick="closeDrawer()" class="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+  <!-- 右侧全能滑出抽屉 (430px 宽) -->
+  <aside id="mainDrawer" class="fixed right-0 top-0 bottom-0 w-full sm:w-[430px] z-50 glass-drawer flex flex-col drawer-transition translate-x-full shadow-2xl pointer-events-auto">
+    
+    <!-- 1. 抽屉头部：标题 + 未读数 + 一键已读 + 关闭 -->
+    <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-white/5">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-2xl bg-gradient-to-tr from-indigo-500 to-rose-400 flex items-center justify-center font-bold text-white text-xs shadow-md">
+          ✦
+        </div>
+        <div>
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            控制与消息中心
+            <span id="drawerBadge" class="px-2 py-0.2 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-mono font-normal">
+              7 条未读
+            </span>
+          </h2>
+          <p class="text-[10px] text-white/50">所有消息订阅、壁纸外观与设置统一汇总在此</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="markAllAsRead()" class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-xs transition-all flex items-center gap-1" title="标记全部为已读">
+          <svg class="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+          <span>已读</span>
+        </button>
+
+        <button onclick="closeDrawer()" class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all" title="收起面板 (Esc)">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. 主分类导航胶囊 (整合消息流、壁纸材质、工作台组件与设置) -->
+    <div class="px-6 py-2.5 border-b border-white/5 flex items-center gap-1.5 shrink-0 bg-black/20 text-xs">
+      <button onclick="switchTab('feeds')" id="tabBtn-feeds" class="px-3.5 py-1.5 rounded-xl font-medium bg-white/15 text-white transition-all flex items-center gap-1.5">
+        <span>✉️ 订阅消息</span>
+        <span id="tabBadgeFeeds" class="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[9px] font-mono">7</span>
+      </button>
+
+      <button onclick="switchTab('wallpaper')" id="tabBtn-wallpaper" class="px-3.5 py-1.5 rounded-xl font-medium text-white/60 hover:text-white transition-all flex items-center gap-1.5">
+        <span>🎨 壁纸外观</span>
+      </button>
+
+      <button onclick="switchTab('widgets')" id="tabBtn-widgets" class="px-3.5 py-1.5 rounded-xl font-medium text-white/60 hover:text-white transition-all flex items-center gap-1.5">
+        <span>➕ 组件库</span>
+      </button>
+
+      <button onclick="switchTab('settings')" id="tabBtn-settings" class="px-3.5 py-1.5 rounded-xl font-medium text-white/60 hover:text-white transition-all flex items-center gap-1.5">
+        <span>⚙️ 设置</span>
+      </button>
+    </div>
+
+    <!-- 3. 抽屉核心滚动区 (动态切换内容) -->
+    <div id="drawerScrollBody" class="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-3 no-scrollbar">
+      <!-- 动态通过 JS 渲染当前 Tab 对应内容 -->
+    </div>
+
+    <!-- 4. 抽屉底部状态栏 -->
+    <div class="px-6 py-3 border-t border-white/10 bg-white/5 flex items-center justify-between shrink-0 text-xs text-white/60">
+      <div class="flex items-center gap-1.5 text-[11px]">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+        <span id="footerInfo">已连接 5 个订阅频道 · 本地沙箱离线安全</span>
+      </div>
+      <button onclick="closeDrawer()" class="text-[11px] text-white/40 hover:text-white transition-colors">
+        按 Esc 收起
+      </button>
+    </div>
+
+  </aside>
+
+  <script>
+    // ════════════════════════ 1. 模拟数据状态 ════════════════════════
+    let isDrawerOpen = false;
+    let activeTab = 'feeds';       // 'feeds' | 'wallpaper' | 'widgets' | 'settings'
+    let activeFeedCategory = 'all'; // 'all' | 'github' | 'news' | 'rss' | 'todo'
+
+    const FEED_ITEMS = [
+      {
+        id: 'g1',
+        category: 'github',
+        source: 'GitHub Trending',
+        badgeColor: 'bg-stone-800 text-stone-200',
+        title: 'anthropics/anthropic-sdk-typescript 突破 10k stars',
+        summary: '全功能 TypeScript 官方 SDK 升级，内置流式多模态推理契约与工具链。',
+        time: '12 分钟前',
+        isRead: false
+      },
+      {
+        id: 'g2',
+        category: 'github',
+        source: 'GitHub Trending',
+        badgeColor: 'bg-stone-800 text-stone-200',
+        title: 'shadcn/ui 新增侧边栏 Sidebar 官方原生组件',
+        summary: '极其平滑的折叠动画与键盘无障碍导航支持，社区热度激增。',
+        time: '45 分钟前',
+        isRead: false
+      },
+      {
+        id: 'g3',
+        category: 'github',
+        source: 'GitHub Trending',
+        badgeColor: 'bg-stone-800 text-stone-200',
+        title: 'oh-my-tab 开源新标签页工作台 v0.2.0 即将发布',
+        summary: '右上角极简圆形图标方案落地，彻底净化桌面视域。',
+        time: '1 小时前',
+        isRead: false
+      },
+      {
+        id: 'n1',
+        category: 'news',
+        source: 'Hacker News',
+        badgeColor: 'bg-amber-600/30 text-amber-300 border border-amber-500/30',
+        title: 'Show HN: Local-first browser extension architecture',
+        summary: '探讨离线优先与 Manifest V3 下的存储容量设计哲学，数百条热烈讨论。',
+        time: '25 分钟前',
+        isRead: false
+      },
+      {
+        id: 'n2',
+        category: 'news',
+        source: '36氪',
+        badgeColor: 'bg-blue-600/30 text-blue-300 border border-blue-500/30',
+        title: '浏览器新标签页赛道升温：极简与生产力如何兼顾？',
+        summary: '评测多款热门新标签页插件，探讨广告流对纯粹体验的侵蚀。',
+        time: '2 小时前',
+        isRead: false
+      },
+      {
+        id: 'r1',
+        category: 'rss',
+        source: '少数派 sspai',
+        badgeColor: 'bg-rose-600/30 text-rose-300 border border-rose-500/30',
+        title: '新标签页效率革命：如何用轻量扩展替代沉重桌面',
+        summary: '拒绝广告流与卡顿，深度评测个人浏览器启动台的极致设计规范。',
+        time: '1 小时前',
+        isRead: false
+      },
+      {
+        id: 't1',
+        category: 'todo',
+        source: '今日待办提醒',
+        badgeColor: 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30',
+        title: '还有 1 项今日待办即将于今日 20:00 截止',
+        summary: '任务：确认 0.2 版本右上角圆形图标与统一展开方案。',
+        time: '2 小时前',
+        isRead: false
+      }
+    ];
+
+    let currentFeeds = [...FEED_ITEMS];
+
+    // ════════════════════════ 2. 抽屉开启与收起 ════════════════════════
+    function toggleDrawer() {
+      if (isDrawerOpen) {
+        closeDrawer();
+      } else {
+        openDrawer();
+      }
+    }
+
+    function openDrawer() {
+      isDrawerOpen = true;
+      const drawer = document.getElementById('mainDrawer');
+      const backdrop = document.getElementById('drawerBackdrop');
+      
+      backdrop.classList.remove('opacity-0', 'pointer-events-none');
+      backdrop.classList.add('opacity-100', 'pointer-events-auto');
+
+      drawer.classList.remove('translate-x-full');
+      drawer.classList.add('translate-x-0');
+
+      renderDrawerContent();
+    }
+
+    function closeDrawer() {
+      isDrawerOpen = false;
+      const drawer = document.getElementById('mainDrawer');
+      const backdrop = document.getElementById('drawerBackdrop');
+
+      backdrop.classList.remove('opacity-100', 'pointer-events-auto');
+      backdrop.classList.add('opacity-0', 'pointer-events-none');
+
+      drawer.classList.remove('translate-x-0');
+      drawer.classList.add('translate-x-full');
+    }
+
+    // 键盘 Esc 监听
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isDrawerOpen) {
+        closeDrawer();
+      }
+    });
+
+    // ════════════════════════ 3. 分类 Tab 切换 ════════════════════════
+    function switchTab(tabKey) {
+      activeTab = tabKey;
+      ['feeds', 'wallpaper', 'widgets', 'settings'].forEach(key => {
+        const btn = document.getElementById(`tabBtn-${key}`);
+        if (key === tabKey) {
+          btn.className = 'px-3.5 py-1.5 rounded-xl font-medium bg-white/15 text-white transition-all flex items-center gap-1.5';
+        } else {
+          btn.className = 'px-3.5 py-1.5 rounded-xl font-medium text-white/60 hover:text-white transition-all flex items-center gap-1.5';
+        }
+      });
+      renderDrawerContent();
+    }
+
+    // ════════════════════════ 4. 动态红点角标与抽屉渲染 ════════════════════════
+    function refreshBadges() {
+      const unreadTotal = currentFeeds.filter(i => !i.isRead).length;
+
+      // 1. 右上角圆形图标上的核心未读角标
+      const circleBadge = document.getElementById('unreadBadge');
+      if (unreadTotal > 0) {
+        circleBadge.textContent = unreadTotal;
+        circleBadge.style.display = 'block';
+      } else {
+        circleBadge.style.display = 'none';
+      }
+
+      // 2. 抽屉标题小胶囊
+      const drawerBadge = document.getElementById('drawerBadge');
+      if (unreadTotal > 0) {
+        drawerBadge.textContent = `${unreadTotal} 条未读`;
+        drawerBadge.className = 'px-2 py-0.2 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-mono font-normal';
+      } else {
+        drawerBadge.textContent = '全部已读';
+        drawerBadge.className = 'px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-normal';
+      }
+
+      // 3. Tab 按钮上的微角标
+      const tabBadgeFeeds = document.getElementById('tabBadgeFeeds');
+      if (unreadTotal > 0) {
+        tabBadgeFeeds.textContent = unreadTotal;
+        tabBadgeFeeds.style.display = 'inline-block';
+      } else {
+        tabBadgeFeeds.style.display = 'none';
+      }
+    }
+
+    function renderDrawerContent() {
+      refreshBadges();
+      const body = document.getElementById('drawerScrollBody');
+
+      // ── Tab 1：订阅消息中心 ──
+      if (activeTab === 'feeds') {
+        const filtered = activeFeedCategory === 'all'
+          ? currentFeeds
+          : currentFeeds.filter(i => i.category === activeFeedCategory);
+
+        body.innerHTML = `
+          <!-- 二级分类药丸 (全部 / GitHub / HN / 博客 / 待办) -->
+          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 text-xs">
+            <button onclick="setFeedCategory('all')" class="px-2.5 py-1 rounded-lg ${activeFeedCategory==='all'?'bg-white/20 text-white':'bg-white/5 text-white/60 hover:text-white'}">
+              全部
+            </button>
+            <button onclick="setFeedCategory('github')" class="px-2.5 py-1 rounded-lg ${activeFeedCategory==='github'?'bg-white/20 text-white':'bg-white/5 text-white/60 hover:text-white'}">
+              GH 开源
+            </button>
+            <button onclick="setFeedCategory('news')" class="px-2.5 py-1 rounded-lg ${activeFeedCategory==='news'?'bg-white/20 text-white':'bg-white/5 text-white/60 hover:text-white'}">
+              科技要闻
+            </button>
+            <button onclick="setFeedCategory('rss')" class="px-2.5 py-1 rounded-lg ${activeFeedCategory==='rss'?'bg-white/20 text-white':'bg-white/5 text-white/60 hover:text-white'}">
+              独立博客
+            </button>
+            <button onclick="setFeedCategory('todo')" class="px-2.5 py-1 rounded-lg ${activeFeedCategory==='todo'?'bg-white/20 text-white':'bg-white/5 text-white/60 hover:text-white'}">
+              待办提醒
+            </button>
+          </div>
+
+          <!-- 消息卡片流 -->
+          <div class="flex flex-col gap-2.5 mt-1">
+            ${filtered.length === 0 ? `
+              <div class="py-20 flex flex-col items-center justify-center text-center text-white/40">
+                <span class="text-3xl mb-2">🎉</span>
+                <p class="text-xs">该分类下暂无未读消息</p>
+              </div>
+            ` : filtered.map(item => `
+              <div onclick="readItem('${item.id}')" class="glass-feed-card ${!item.isRead ? 'unread' : ''} rounded-2xl p-4 cursor-pointer flex flex-col gap-2 group select-none">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-medium ${item.badgeColor}">
+                      ${item.source}
+                    </span>
+                    ${!item.isRead ? '<span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>' : ''}
+                  </div>
+                  <span class="text-[10px] text-white/40 font-mono">${item.time}</span>
+                </div>
+                
+                <h4 class="text-xs font-semibold ${!item.isRead ? 'text-white' : 'text-white/60'} leading-snug group-hover:text-indigo-200 transition-colors">
+                  ${item.title}
+                </h4>
+
+                <p class="text-[11px] text-white/50 leading-relaxed line-clamp-2">
+                  ${item.summary}
+                </p>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        return;
+      }
+
+      // ── Tab 2：壁纸与外观 ──
+      if (activeTab === 'wallpaper') {
+        body.innerHTML = `
+          <div class="flex flex-col gap-4 text-xs">
+            <span class="text-white/80 font-semibold">快速更换背景壁纸材质：</span>
+            <div class="grid grid-cols-3 gap-3">
+              <button onclick="setTheme('ocean')" class="p-3.5 rounded-2xl bg-sky-950/50 border border-sky-500/30 hover:border-white flex flex-col items-center gap-2.5 transition-all">
+                <span class="w-8 h-8 rounded-full bg-sky-600 shadow-md"></span>
+                <span class="text-white font-medium text-xs">海景深蓝</span>
+              </button>
+              <button onclick="setTheme('mountain')" class="p-3.5 rounded-2xl bg-stone-900/60 border border-white/15 hover:border-white flex flex-col items-center gap-2.5 transition-all">
+                <span class="w-8 h-8 rounded-full bg-stone-900 border border-white/40 shadow-md"></span>
+                <span class="text-white font-medium text-xs">暗夜黑曜石</span>
+              </button>
+              <button onclick="setTheme('paper')" class="p-3.5 rounded-2xl bg-amber-100/20 border border-white/15 hover:border-white flex flex-col items-center gap-2.5 transition-all">
+                <span class="w-8 h-8 rounded-full bg-amber-100 border border-stone-800 shadow-md"></span>
+                <span class="text-white font-medium text-xs">柔和纸感</span>
+              </button>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-white/5 border border-white/10 mt-3 flex flex-col gap-2 text-white/60 text-[11px]">
+              <span class="font-semibold text-white/90">💡 右上角圆形图标设计的妙处：</span>
+              <p class="leading-relaxed">将所有壁纸调节与消息收纳进右上角图标后，首屏真正实现了 0 杂乱元素，大壁纸的通透与高级感得到 100% 释放！</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // ── Tab 3：工作台效率组件库 ──
+      if (activeTab === 'widgets') {
+        body.innerHTML = `
+          <div class="flex flex-col gap-3 text-xs">
+            <span class="text-white/80 font-semibold">0.2 规划的效率组件清单：</span>
+            <div class="glass-feed-card rounded-2xl p-3.5 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="text-xl">☀️</span>
+                <div><div class="font-semibold text-white">天气预报 (core.weather)</div><div class="text-[10px] text-white/50">实时气温、趋势预报与空气质量</div></div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">就绪</span>
+            </div>
+            <div class="glass-feed-card rounded-2xl p-3.5 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="text-xl">✓</span>
+                <div><div class="font-semibold text-white">今日待办 (core.todo)</div><div class="text-[10px] text-white/50">极简打勾清单与临期通知联动</div></div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">就绪</span>
+            </div>
+            <div class="glass-feed-card rounded-2xl p-3.5 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="text-xl">📅</span>
+                <div><div class="font-semibold text-white">农历日历 (core.calendar)</div><div class="text-[10px] text-white/50">月历网格、法定节假日与待办联动</div></div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">就绪</span>
+            </div>
+            <div class="glass-feed-card rounded-2xl p-3.5 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="text-xl">⏱</span>
+                <div><div class="font-semibold text-white">番茄专注计时器 (core.focus)</div><div class="text-[10px] text-white/50">25 分钟工作与 5 分钟小憩</div></div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">就绪</span>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // ── Tab 4：偏好与系统设置 ──
+      if (activeTab === 'settings') {
+        body.innerHTML = `
+          <div class="flex flex-col gap-4 text-xs">
+            <span class="text-white/80 font-semibold">通知与交互偏好：</span>
+            
+            <div class="p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-col gap-3">
+              <label class="font-medium text-white/90">未读红色角标样式：</label>
+              <div class="flex items-center gap-4">
+                <label class="flex items-center gap-2 cursor-pointer text-white/80">
+                  <input type="radio" name="badgeStyle" checked class="text-indigo-500">
+                  <span>数字红点 (🔴 7)</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer text-white/80">
+                  <input type="radio" name="badgeStyle" class="text-indigo-500">
+                  <span>纯呼吸微红点 (🔴)</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-col gap-3">
+              <label class="font-medium text-white/90">自动拉取频率：</label>
+              <select class="bg-black/40 text-white border border-white/15 rounded-xl p-2 outline-none">
+                <option value="15">每 15 分钟静默拉取 (推荐)</option>
+                <option value="30">每 30 分钟拉取</option>
+                <option value="manual">仅手动刷新</option>
+              </select>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-col gap-3">
+              <label class="font-medium text-white/90">免打扰模式 (DND)：</label>
+              <label class="flex items-center justify-between cursor-pointer">
+                <span class="text-white/70">专注时自动隐藏红点</span>
+                <input type="checkbox" class="w-4 h-4 rounded text-indigo-500">
+              </label>
+            </div>
+          </div>
+        `;
+        return;
+      }
+    }
+
+    function setFeedCategory(cat) {
+      activeFeedCategory = cat;
+      renderDrawerContent();
+    }
+
+    function readItem(id) {
+      currentFeeds = currentFeeds.map(i => i.id === id ? { ...i, isRead: true } : i);
+      renderDrawerContent();
+    }
+
+    function markAllAsRead() {
+      currentFeeds = currentFeeds.map(i => ({ ...i, isRead: true }));
+      renderDrawerContent();
+    }
+
+    // 模拟新推送
+    function simulateNewPush() {
+      const newId = 'p-' + Date.now();
+      const categories = ['github', 'news', 'rss', 'todo'];
+      const pickCat = categories[Math.floor(Math.random() * categories.length)];
+      
+      currentFeeds.unshift({
+        id: newId,
+        category: pickCat,
+        source: '即时订阅速递',
+        badgeColor: 'bg-purple-600/30 text-purple-300 border border-purple-500/30',
+        title: `突发即时订阅 (${new Date().toLocaleTimeString()})`,
+        summary: `最新订阅源发布了全新内容，右上角圆形图标的红色角标已实时跳动。`,
+        time: '刚刚',
+        isRead: false
+      });
+
+      refreshBadges();
+      if (isDrawerOpen) {
+        renderDrawerContent();
+      }
+    }
+
+    // 时钟实时跳动
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clockHourMin').textContent = 
+        String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      document.getElementById('clockSec').textContent = 
+        String(now.getSeconds()).padStart(2, '0');
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // 壁纸切换
+    function setTheme(theme) {
+      const bg = document.getElementById('bgLayer');
+      const overlay = document.getElementById('bgOverlay');
+      if (theme === 'ocean') {
+        bg.style.backgroundImage = "url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2000&q=80')";
+        overlay.className = "absolute inset-0 bg-black/40 transition-colors duration-500";
+      } else if (theme === 'mountain') {
+        bg.style.backgroundImage = "url('https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=2000&q=80')";
+        overlay.className = "absolute inset-0 bg-black/60 transition-colors duration-500";
+      } else if (theme === 'paper') {
+        bg.style.backgroundImage = "none";
+        bg.style.backgroundColor = "#F4F1EA";
+        overlay.className = "absolute inset-0 bg-amber-900/5 transition-colors duration-500";
+      }
+    }
+
+    // 初始化运行
+    refreshBadges();
+  </script>
+</body>
+</html>

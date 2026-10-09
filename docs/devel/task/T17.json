@@ -1,0 +1,92 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T17",
+  "title": "独立订阅消息侧边栏与外观设置解耦",
+  "milestone": "Phase 2 - 自由布局、高频组件与全站数据 (v0.2.0)",
+  "status": "completed",
+  "branch": "feat/T17-feed-sidebar-and-settings-split",
+  "depends_on": [
+    "T04",
+    "T05"
+  ],
+  "target": {
+    "module": "工作台布局与外观",
+    "design_doc": "docs/devel/design/02-工作台布局与外观.md",
+    "design_topic": "WorkspaceAppearance"
+  },
+  "goal": "1) 顶栏右上角分离为 🔔 订阅消息与 ⚙️ 外观设置两个独立圆形磨砂胶囊按钮，二者点击互斥；2) 🔔 按钮配备动态呼吸红色未读角标；3) 点击 🔔 展开独立靠右固定 420px 订阅栏抽屉（FeedSidebar），提供分类筛选与“全部已读”；4) 点击 ⚙️ 展开纯粹系统外观设置，二者职责与交互彻底解耦。",
+  "precheck": {
+    "description": "检测 App.tsx 是否已接入独立的 FeedSidebar 与未读角标",
+    "command": "grep -q 'FeedSidebar' src/App.tsx",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "grep -q 'FeedSidebar' src/App.tsx 校验通过，App 完整挂载 FeedSidebar 与顶栏独立 🔔 按钮"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T17-1",
+      "title": "顶栏右上角双圆形胶囊按钮分离与未读呼吸角标",
+      "capability": "在 Header/TopBar 渲染独立 🔔 按钮与 ⚙️ 按钮，🔔 附带呼吸动效红点未读数字徽标",
+      "done": true
+    },
+    {
+      "id": "T17-2",
+      "title": "FeedSidebar 独立靠右抽屉组件实现与分类筛选",
+      "capability": "实现 FeedSidebar 靠右固定 420px 磨砂抽屉与全/GitHub/科技/博客/待办分类 Chips 筛选",
+      "done": true
+    },
+    {
+      "id": "T17-3",
+      "title": "未读消息计数、消除与“一键全部已读”状态联动",
+      "capability": "支持单条点击已读与一键全部已读消除，即时联动消除 🔔 按钮上的红色未读角标",
+      "done": true
+    },
+    {
+      "id": "T17-4",
+      "title": "外观设置面板（AppearanceDrawer）纯粹化去杂质",
+      "capability": "保持 AppearanceDrawer 系统级配置纯粹性，与订阅消息完全解耦互不干扰",
+      "done": true
+    },
+    {
+      "id": "T17-5",
+      "title": "编写单元测试与回归测试验证 T17 契约",
+      "capability": "编写 FeedSidebar、顶栏角标联动与抽屉互斥关闭的自动化测试并全绿通过",
+      "done": true
+    }
+  ],
+  "acceptance": {
+    "result": true,
+    "run_id": "test-t17-verify-01",
+    "checks": [
+      {
+        "item": "顶栏按钮与抽屉彻底解耦",
+        "true_if": "🔔 按钮与 ⚙️ 按钮视觉统一且职责解耦，分别唤出对应的抽屉面板",
+        "false_if": "两者耦合或混在一个抽屉内",
+        "evidence": "App 顶栏分离为 🔔 订阅消息与 ⚙️ 外观设置双圆形磨砂胶囊按钮，二者点击互斥；外观抽屉与订阅抽屉彻底解耦",
+        "result": true
+      },
+      {
+        "item": "靠右抽屉与已读状态联动",
+        "true_if": "订阅栏固定靠右展开，分类筛选与全部已读正常运作且角标数字即时消除",
+        "false_if": "抽屉无法正常右滑展开或已读后角标不刷新",
+        "evidence": "FeedSidebar 固定靠右 420px 展开，支持分类过滤与全部已读；点击已读后实时刷新顶栏红标",
+        "result": true
+      },
+      {
+        "item": "回归测试全绿",
+        "true_if": "自动化测试全量通过，无控制台告警或样式破损",
+        "false_if": "测试失败或语法异常",
+        "evidence": "tests/feed-sidebar.test.cjs 4 项测试全部通过，全量 npm test 151 项通过，npm run build 构建成功",
+        "result": true
+      }
+    ]
+  },
+  "version": "v0.2.0"
+}

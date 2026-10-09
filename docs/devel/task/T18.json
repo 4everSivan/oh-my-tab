@@ -1,0 +1,104 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T18",
+  "title": "真实 RSS/Atom 订阅解析与极客脚本数据源引擎",
+  "milestone": "Phase 2 - 自由布局、高频组件与全站数据 (v0.2.0)",
+  "status": "completed",
+  "branch": "feat/T18-rss-feed-and-script-engine",
+  "depends_on": [
+    "T17"
+  ],
+  "target": {
+    "module": "深度扩展与外部数据",
+    "design_doc": "docs/devel/design/05-深度扩展与外部数据.md",
+    "design_topic": "ExtensionDataSources"
+  },
+  "goal": "彻底废除订阅消息硬编码假数据，建立真正的 RSS/Atom/JSON 解析引擎、极客自定义脚本源、OPML 导入导出、MV3 Background 跨域透明代理、双视图源管理侧边栏与免打扰消息聚合系统。",
+  "precheck": {
+    "description": "检测 feedParser.ts 是否已实现并在项目中就绪",
+    "command": "grep -q 'parseFeed' src/services/feed/feedParser.ts",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "src/services/feed/feedParser.ts 存在并成功导出 parseFeed 方法 (exit code 0)"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T18-1",
+      "title": "原生零依赖 RSS 2.0 / Atom XML / JSON Feed 解析引擎",
+      "capability": "基于 DOMParser 解析 RSS/Atom，提纯 HTML 摘要与格式化相对时间",
+      "done": true
+    },
+    {
+      "id": "T18-2",
+      "title": "极客自定义 JavaScript 转换脚本数据源沙箱",
+      "capability": "支持对任意 API 响应注入 JS transform 函数映射为标准订阅流",
+      "done": true
+    },
+    {
+      "id": "T18-3",
+      "title": "标准 OPML 订阅单批量导入与导出备份服务",
+      "capability": "支持读取 .opml 文件批量录入订阅源与生成 OPML 备份",
+      "done": true
+    },
+    {
+      "id": "T18-4",
+      "title": "Chrome 扩展 Background Service Worker 跨域透明代理通道",
+      "capability": "利用 host_permissions 由后台代理 fetch，彻底解除浏览器 CORS 阻断",
+      "done": true
+    },
+    {
+      "id": "T18-5",
+      "title": "开箱即用真实精选订阅源与持久化缓存服务",
+      "capability": "提供阮一峰博客、少数派、V2EX 真实源，支持增量合并、手动刷新与未读追踪",
+      "done": true
+    },
+    {
+      "id": "T18-6",
+      "title": "FeedSidebar 双视图（消息流 ↔ 订阅源管理）交互重构",
+      "capability": "支持消息流卡片呈现、手动刷新 loading、源管理面板、添加源表单与连通性测试",
+      "done": true
+    }
+  ],
+  "acceptance": {
+    "result": "passed",
+    "run_id": "npm test && npm run build",
+    "checks": [
+      {
+        "item": "真实 RSS/Atom 解析正确性",
+        "true_if": "能正确解析 RSS 2.0 与 Atom XML，提取纯文本摘要与相对时间",
+        "false_if": "解析报错或脏 HTML 标签残留",
+        "evidence": "tests/feed-rss-engine.test.cjs 测试套件全绿通过，DOMParser/Regex 双模解析、纯文本提纯与相对时间计算均符合预期",
+        "result": "passed"
+      },
+      {
+        "item": "自定义脚本源沙箱容错",
+        "true_if": "脚本正确映射数据，脚本语法错误时沙箱隔离捕获不导致页面崩溃",
+        "false_if": "脚本异常导致应用崩溃",
+        "evidence": "executeScriptSandbox 支持提取数组，且针对 throw new Error 或异常语法具有 try-catch 沙箱防御，优雅返回空数组",
+        "result": "passed"
+      },
+      {
+        "item": "OPML 互通性",
+        "true_if": "成功解析 OPML outline 节点批量导入，导出 OPML 符合标准 XML 格式",
+        "false_if": "导入漏项或导出语法错误",
+        "evidence": "importOpml 支持解析 outline 标签生成标准 FeedSource[]；exportOpml 生成符合 OPML 2.0 XML 标准的订阅清单",
+        "result": "passed"
+      },
+      {
+        "item": "自动化测试与构建门禁全绿",
+        "true_if": "npm test 全部测试通过，npm run build 成功输出至 local/dist/",
+        "false_if": "测试失败或构建异常",
+        "evidence": "162/162 测试全部通过（含 feed-rss-engine.test.cjs 与 feed-sidebar.test.cjs），tsc && vite build 成功打包至 local/dist/ 且 0 报错",
+        "result": "passed"
+      }
+    ]
+  },
+  "version": null
+}
