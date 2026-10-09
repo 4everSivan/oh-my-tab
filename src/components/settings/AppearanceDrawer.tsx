@@ -7,7 +7,6 @@ import {
   AlignStyle,
   ShadowStyle,
   BackgroundType,
-  BackgroundPosition,
 } from '../../services/storage/types';
 import { X, RotateCcw, Clock, Search, Image as ImageIcon, Upload } from 'lucide-react';
 import { wallpaperStorage } from '../../services/storage/wallpaper';
@@ -632,26 +631,6 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
                       onChange={(e) => onUpdateBackground({ blur: Number(e.target.value) })}
                       className="w-full accent-stone-800 dark:accent-white"
                     />
-                  </div>
-
-                  {/* Position */}
-                  <div className="space-y-2">
-                    <label className="text-xs text-stone-600 dark:text-stone-400">画面位置</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(['top', 'center', 'bottom'] as BackgroundPosition[]).map((pos) => (
-                        <button
-                          key={pos}
-                          onClick={() => onUpdateBackground({ position: pos })}
-                          className={`py-2 text-xs rounded-xl border transition-all ${
-                            background.position === pos
-                              ? 'border-stone-900 dark:border-white bg-black/5 dark:bg-white/10 font-medium'
-                              : 'border-stone-200 dark:border-stone-800'
-                          }`}
-                        >
-                          {pos === 'top' ? '靠上' : pos === 'center' ? '居中' : '靠下'}
-                        </button>
-                      ))}
-                    </div>
                   </div>
                 </div>
               )}

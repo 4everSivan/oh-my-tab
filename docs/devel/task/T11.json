@@ -1,0 +1,75 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T11",
+  "title": "搜索引擎图标化、精简与毛玻璃同质化下拉浮层",
+  "milestone": "M1-v0.1.0-首发里程碑",
+  "status": "in_progress",
+  "branch": "feat/T11-search-engine-icons-and-unified-menu",
+  "depends_on": [
+    "T04",
+    "T05"
+  ],
+  "target": {
+    "module": "页面入口与导航",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "goal": "1) 搜索引擎仅保留必应、谷歌、GitHub、Bilibili；2) 搜索框左侧切换按钮全量采用各家矢量 Logo 图标替代文字，并统一直径与尺寸；3) 搜索引擎下拉选择框样式与搜索框完全同质化（共享相同的背景透明度、高斯模糊与动态圆角）。",
+  "precheck": {
+    "description": "检测 SearchBar 中是否仅保留 bing/google/github/bilibili 且左侧按钮使用图标组件代替文字",
+    "command": "grep -q 'bilibili' src/components/search/SearchBar.tsx && grep -q 'github' src/components/search/SearchBar.tsx && ! grep -q 'baidu' src/components/search/SearchBar.tsx",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "SearchBar.tsx 中 SEARCH_ENGINES 仅保留必应、谷歌、GitHub、Bilibili 四款引擎，左侧切换按钮已全量图标化，precheck 退出码 0"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b feat/T11-search-engine-icons-and-unified-menu"
+    ],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T11-1",
+      "title": "搜索引擎名单精简与查询协议适配",
+      "capability": "仅保留必应 (Bing)、谷歌 (Google)、GitHub (q)、Bilibili (keyword) 四款引擎并配置对应查询参数",
+      "done": true
+    },
+    {
+      "id": "T11-2",
+      "title": "各家品牌矢量 Logo 图标实现与统一尺寸约束",
+      "capability": "为必应、谷歌、GitHub、Bilibili 实现标准化 SVG 图标，左侧按钮全量展示图标替代文本，保证 18x18px 统一尺寸",
+      "done": true
+    },
+    {
+      "id": "T11-3",
+      "title": "下拉选择框毛玻璃同质化样式与交互完善",
+      "capability": "下拉菜单共享搜索框相同的背景透明度、高斯模糊与圆角风格，包含点击外部自动收起逻辑",
+      "done": true
+    }
+  ],
+  "acceptance": {
+    "result": true,
+    "run_id": "t11-precheck-pass",
+    "checks": [
+      {
+        "item": "搜索引擎范围与查询跳转准确性",
+        "true_if": "仅出现必应、谷歌、GitHub、Bilibili 四款引擎，输入查询关键词后均能正确拼接并跳转至对应官方搜索页",
+        "false_if": "仍包含其他冗余引擎或存在查询参数错位",
+        "evidence": "SEARCH_ENGINES 精准定义 bing/google/github/bilibili，参数分别对应 q 与 keyword",
+        "result": true
+      },
+      {
+        "item": "图标统一性与下拉框毛玻璃视觉同质化",
+        "true_if": "搜索框左侧仅显示各引擎矢量图标，尺寸严格一致；点击图标弹出的选择框应用与搜索框相同的高斯模糊、背景透明度与协调圆角",
+        "false_if": "图标大小不一、依然显示文字，或下拉菜单样式与搜索框割裂",
+        "evidence": "EngineIcon 统一规范 18x18px 矢量绘制，下拉菜单继承搜索框 opacity、blur 与 radius 计算样式",
+        "result": true
+      }
+    ]
+  },
+  "version": null
+}

@@ -11,14 +11,16 @@
       "design_doc": "docs/devel/design/01-页面入口与导航.md",
       "changes": [
         "C005",
-        "C006"
+        "C006",
+        "C009"
       ]
     },
     "WorkspaceAppearance": {
       "design_doc": "docs/devel/design/02-工作台布局与外观.md",
       "changes": [
         "C002",
-        "C003"
+        "C003",
+        "C010"
       ]
     },
     "ProductivityWidgets": {
@@ -107,9 +109,25 @@
     "C008": {
       "title": "修复点击时间展开工作台时添加图标遮罩闪动缺陷",
       "type": "BugFix",
-      "status": "in_progress",
+      "status": "verified",
       "branch": "fix/C008-add-icon-flicker",
       "topic": "MotionSystem",
+      "created": "2026-10-09"
+    },
+    "C009": {
+      "title": "修复搜索引擎选择菜单被下方网页图标遮挡缺陷",
+      "type": "BugFix",
+      "status": "in_progress",
+      "branch": "fix/C009-search-engine-menu-layer",
+      "topic": "EntryNavigation",
+      "created": "2026-10-09"
+    },
+    "C010": {
+      "title": "壁纸配置精简：移除画面位置配置并锁定为默认居中",
+      "type": "Refactoring",
+      "status": "in_progress",
+      "branch": "fix/C010-simplify-wallpaper-position",
+      "topic": "WorkspaceAppearance",
       "created": "2026-10-09"
     }
   }

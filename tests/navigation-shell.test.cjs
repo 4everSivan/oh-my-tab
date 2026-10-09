@@ -128,3 +128,91 @@ test('常用网站弹窗与浮层必须经 createPortal 挂载至 document.body�
   assert.ok(containerMatch[1].includes('filter: none'), '展开态必须为 filter: none');
 });
 
+// ── C009 搜索引擎菜单防遮挡层叠契约 ────────────────────────────
+test('SearchBar 具备 relative z-20 层叠上下文，菜单置顶 z-50 且有全屏透明关闭遮罩 (C009)', () => {
+  const searchBarSrc = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'components', 'search', 'SearchBar.tsx'),
+    'utf8'
+  );
+  // 1. SearchBar 外层容器必须建立高于 workspace-container 的层叠上下文
+  assert.ok(
+    searchBarSrc.includes('relative z-20 w-full flex'),
+    'SearchBar 外层容器必须声明 relative z-20 避免被后续兄弟容器遮挡'
+  );
+  // 2. 菜单必须置顶于 z-50
+  assert.ok(
+    searchBarSrc.includes('origin-menu') && searchBarSrc.includes('z-50'),
+    'origin-menu 下拉菜单必须拥有 z-50 绝对置顶层级'
+  );
+  // 3. 点击外部空白收起遮罩层
+  assert.ok(
+    searchBarSrc.includes('fixed inset-0 z-40 bg-transparent') &&
+      searchBarSrc.includes('setShowEngineMenu(false)'),
+    '须有 fixed inset-0 z-40 全屏透明捕获层用于点击空白收起菜单'
+  );
+});
+
+// ── T11 搜索引擎图标化、精简与毛玻璃同质化契约 ─────────────────
+test('搜索引擎仅保留必应/谷歌/GitHub/Bilibili，左侧全量图标化且下拉框同质化 (T11)', () => {
+  const searchBarSrc = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'components', 'search', 'SearchBar.tsx'),
+    'utf8'
+  );
+  // 1. 搜索引擎名单仅保留必应、谷歌、GitHub、Bilibili
+  assert.ok(searchBarSrc.includes("id: 'bing'"), '必须包含必应');
+  assert.ok(searchBarSrc.includes("id: 'google'"), '必须包含谷歌');
+  assert.ok(searchBarSrc.includes("id: 'github'"), '必须包含 GitHub');
+  assert.ok(searchBarSrc.includes("id: 'bilibili'"), '必须包含 Bilibili');
+  assert.ok(!searchBarSrc.includes("id: 'baidu'"), '不得包含百度');
+  assert.ok(!searchBarSrc.includes("id: 'duckduckgo'"), '不得包含 DuckDuckGo');
+
+  // 2. 左侧切换按钮使用 EngineIcon 代替文字
+  assert.ok(
+    searchBarSrc.includes('<EngineIcon engineId={currentEngine.id} />'),
+    '左侧切换按钮必须使用 EngineIcon 展示当前引擎图标'
+  );
+  assert.ok(
+    !searchBarSrc.includes('<span>{currentEngine.name}</span>'),
+    '左侧切换按钮不得再使用文本标签替代图标'
+  );
+
+  // 3. 图标严格统一直径
+  assert.ok(
+    searchBarSrc.includes("className = 'w-[18px] h-[18px]'"),
+    'EngineIcon 默认尺寸必须严格统一为 18x18px'
+  );
+
+  // 4. 下拉菜单与搜索框同质化样式
+  assert.ok(
+    searchBarSrc.includes('backdropFilter: `blur(${blurPx}px)`') &&
+      searchBarSrc.includes('backgroundColor: `rgba(255, 255, 255, ${opacity})`'),
+    '下拉菜单必须与搜索框共享相同的毛玻璃模糊与透明度背景'
+  );
+});
+
+// ── C010 壁纸画面位置精简与默认居中契约 ────────────────────────
+test('AppearanceDrawer 移除画面位置配置，壁纸默认锁定居中 (C010)', () => {
+  const drawerSrc = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'components', 'settings', 'AppearanceDrawer.tsx'),
+    'utf8'
+  );
+  assert.ok(
+    !drawerSrc.includes('画面位置'),
+    'AppearanceDrawer 不得再包含画面位置配置模块'
+  );
+  assert.ok(
+    !drawerSrc.includes('BackgroundPosition'),
+    'AppearanceDrawer 不应再引入 BackgroundPosition'
+  );
+
+  const storageTypesSrc = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'services', 'storage', 'types.ts'),
+    'utf8'
+  );
+  assert.ok(
+    storageTypesSrc.includes("position: 'center'"),
+    'DEFAULT_BACKGROUND_CONFIG.position 必须为 center'
+  );
+});
+
+

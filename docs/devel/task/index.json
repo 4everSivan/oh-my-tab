@@ -16,7 +16,8 @@
         "T07",
         "T08",
         "T09",
-        "T10"
+        "T10",
+        "T11"
       ]
     }
   },
@@ -31,7 +32,8 @@
     "EntryNavigation": {
       "design_doc": "docs/devel/design/01-页面入口与导航.md",
       "tasks": [
-        "T04"
+        "T04",
+        "T11"
       ]
     },
     "WorkspaceAppearance": {
@@ -166,10 +168,20 @@
     },
     "T10": {
       "title": "实现时钟手动时区设置与搜索框圆角调节功能",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "feat/T10-timezone-and-search-radius",
       "milestone": "M1-v0.1.0-首发里程碑",
       "depends_on": [
+        "T05"
+      ]
+    },
+    "T11": {
+      "title": "搜索引擎图标化、精简与毛玻璃同质化下拉浮层",
+      "status": "in_progress",
+      "branch": "feat/T11-search-engine-icons-and-unified-menu",
+      "milestone": "M1-v0.1.0-首发里程碑",
+      "depends_on": [
+        "T04",
         "T05"
       ]
     }

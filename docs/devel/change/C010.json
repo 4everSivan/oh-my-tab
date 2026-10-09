@@ -1,0 +1,79 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C010",
+  "title": "壁纸配置精简：移除画面位置配置并锁定为默认居中",
+  "type": "Refactoring",
+  "status": "in_progress",
+  "branch": "fix/C010-simplify-wallpaper-position",
+  "is_hotfix": false,
+  "target": {
+    "module": "工作台布局与外观",
+    "component": "AppearanceDrawer",
+    "design_doc": "docs/devel/design/02-工作台布局与外观.md",
+    "design_topic": "WorkspaceAppearance"
+  },
+  "why": "用户提出简化壁纸与背景配置，移除手动“画面位置”（靠上/居中/靠下）切换控件，统一锁定为默认居中（center），降低界面视觉复杂度与设置负担。",
+  "precheck": {
+    "description": "检测 AppearanceDrawer 中是否已删除画面位置调节控件",
+    "command": "! grep -q '画面位置' src/components/settings/AppearanceDrawer.tsx",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "AppearanceDrawer.tsx 中已物理删除“画面位置”调节控件，precheck 退出码 0"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b fix/C010-simplify-wallpaper-position"
+    ],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "外观抽屉壁纸设置面板",
+      "before": "包含靠上、居中、靠下三个画面位置调节按钮",
+      "after": "删除画面位置调节按钮，壁纸画面位置固定默认锁定为 center",
+      "impact": "外观设置面板的壁纸配置项"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/02-工作台布局与外观.md",
+    "topic": "WorkspaceAppearance",
+    "modified": true,
+    "rule_diff": {
+      "before": "支持居中/靠上/靠下三种画面位置切换",
+      "after": "壁纸统一默认居中（center），简化配置项"
+    }
+  },
+  "verification": {
+    "result": true,
+    "run_id": "c010-precheck-pass",
+    "user_quote": "",
+    "signoff": "",
+    "checks": [
+      {
+        "item": "画面位置控件完全移除且壁纸保持居中",
+        "true_if": "AppearanceDrawer 的壁纸与风格面板中无画面位置控件，壁纸样式始终保持 backgroundPosition: 'center'",
+        "false_if": "仍存在画面位置控件或壁纸无法居中展示",
+        "evidence": "AppearanceDrawer 已彻底移除画面位置控件，DEFAULT_BACKGROUND_CONFIG.position 固定为 'center'",
+        "result": true
+      },
+      {
+        "item": "全量自动化测试与产物隔离构建",
+        "true_if": "全量测试通过，构建产物隔离至 local/dist/",
+        "false_if": "存在测试失败或构建报错",
+        "evidence": "测试通过，构建产物隔离输出至 local/dist/",
+        "result": true
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": false,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "version": null
+}

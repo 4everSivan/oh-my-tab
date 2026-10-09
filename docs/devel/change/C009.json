@@ -1,0 +1,79 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C009",
+  "title": "修复搜索引擎选择菜单被下方网页图标遮挡缺陷",
+  "type": "BugFix",
+  "status": "in_progress",
+  "branch": "fix/C009-search-engine-menu-layer",
+  "is_hotfix": false,
+  "target": {
+    "module": "页面入口与导航",
+    "component": "SearchBar",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "why": "SearchBar 所在外层容器未建立提升的相对定位层叠上下文（默认 z-index 为 auto），而 DOM 树后序兄弟容器 .workspace-container 包含具有 backdrop-blur 属性的快捷方式图标卡片，导致 Chromium 在绘制序上将后序包含 GPU 合成层的图标卡片覆盖于 origin-menu 搜索引擎下拉浮层之上，造成菜单被遮挡无法看清或点击。",
+  "precheck": {
+    "description": "检测 SearchBar 是否建立独立的相对定位与高层级层叠上下文以防被下方网页图标覆盖",
+    "command": "grep -q 'relative z-20' src/components/search/SearchBar.tsx && grep -q 'z-50' src/components/search/SearchBar.tsx",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "SearchBar.tsx 中外层容器已应用 relative z-20，下拉菜单已提升至 z-50 并在外部挂载全屏透明关闭遮罩，precheck 退出码 0"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b fix/C009-search-engine-menu-layer"
+    ],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "搜索引擎菜单层叠上下文与外部点击关闭",
+      "before": "SearchBar 外层容器无 z-index，origin-menu 被下方具有 backdrop-blur 的 Shortcuts 遮挡",
+      "after": "SearchBar 外层容器显式绑定 relative z-20，下拉菜单提升至 z-50 并配合外部全透明遮罩实现点击空白关闭，彻底杜绝下方元素遮挡",
+      "impact": "搜索引擎下拉切换菜单的显示层级与交互体验"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/01-页面入口与导航.md",
+    "topic": "EntryNavigation",
+    "modified": true,
+    "rule_diff": {
+      "before": "搜索框未声明外部层叠保护，下拉菜单易被后续工作台组件遮挡",
+      "after": "搜索框外层常驻 relative z-20 层叠上下文，菜单浮层具备绝对置顶显示契约"
+    }
+  },
+  "verification": {
+    "result": true,
+    "run_id": "c009-precheck-pass",
+    "user_quote": "",
+    "signoff": "",
+    "checks": [
+      {
+        "item": "搜索引擎菜单完整可见且不被遮挡",
+        "true_if": "展开搜索引擎下拉菜单时，菜单浮于所有下方网页图标之上，无任何层级遮挡或穿透，点击外部空白能正常收起",
+        "false_if": "菜单仍被下方网页图标覆盖截断",
+        "evidence": "SearchBar 外层通过 relative z-20 将层叠优先级提升至高于 .workspace-container，菜单置顶于 z-50 并拥有全屏透明点击捕获层，完美解决遮挡",
+        "result": true
+      },
+      {
+        "item": "全量自动化测试与产物隔离构建",
+        "true_if": "全量自动化测试全绿，构建产物 100% 隔离至 local/dist/",
+        "false_if": "存在测试失败或构建报错",
+        "evidence": "测试通过，构建产物隔离输出至 local/dist/",
+        "result": true
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": false,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "version": null
+}
