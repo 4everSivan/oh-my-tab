@@ -1,0 +1,86 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C011",
+  "title": "调整搜索引擎下拉菜单关闭交互：展开后点击屏幕任意位置均可关闭",
+  "type": "BugFix",
+  "status": "verified",
+  "branch": "fix/C011-search-engine-menu-dismiss",
+  "is_hotfix": false,
+  "target": {
+    "module": "页面入口与导航",
+    "component": "SearchBar",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "why": "此前在 SearchBar 内放置的 fixed inset-0 透明遮罩因父级 form 具备 backdropFilter 滤镜，触发了 CSS 局部包含块限制，导致遮罩无法覆盖视口，仅能拦截搜索框自身区域；用户点击壁纸、时钟、网站图标等外部任意位置时无法收起下拉菜单。现废除局部遮罩，改为全局 capture 点击与按键监听结合 ref 边界判定，实现点击屏幕任意位置及 Escape 均可无缝关闭。",
+  "precheck": {
+    "description": "检测 SearchBar 是否已接入全局点击关闭逻辑并废除局部失效遮罩",
+    "command": "grep -q 'handleGlobalClick' src/components/search/SearchBar.tsx && ! grep -q 'fixed inset-0 z-40 bg-transparent' src/components/search/SearchBar.tsx",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "SearchBar.tsx 已成功引入全局 handleGlobalClick 与 handleKeyDown，且移除了局部的 fixed inset-0 遮罩，precheck 退出码 0"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b fix/C011-search-engine-menu-dismiss"
+    ],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "搜索引擎下拉浮层全域关闭交互",
+      "before": "依赖局部 fixed inset-0 遮罩，受 backdropFilter 包含块限制无法覆盖全屏，点击外部位置无法关闭下拉框",
+      "after": "引入全局 capture 点击监听与 ref 边界检测，废除局部失效遮罩，点击屏幕任意位置或按 Escape 键均可关闭下拉框",
+      "impact": "搜索引擎下拉菜单的展开与关闭交互响应"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/01-页面入口与导航.md",
+    "topic": "EntryNavigation",
+    "modified": true,
+    "rule_diff": {
+      "before": "具备点击空白外部快速关闭能力（局部遮罩实现）",
+      "after": "具备全域点击关闭契约：展开后点击页面任意位置（输入框、壁纸、时钟、网站图标等）或按下 Escape 键均可无缝关闭下拉框"
+    }
+  },
+  "verification": {
+    "result": true,
+    "run_id": "c011-unit-test-and-build-pass",
+    "user_quote": "确认",
+    "signoff": "确认",
+    "checks": [
+      {
+        "item": "点击屏幕任意位置关闭下拉菜单",
+        "true_if": "展开搜索引擎下拉菜单后，点击壁纸、时钟、网站图标、搜索输入框等屏幕任意位置，下拉菜单均可即时收起",
+        "false_if": "点击外部依然无法收起，或被局部包含块阻断",
+        "evidence": "全局 capture 点击监听与 ref 边界检测已在 SearchBar.tsx 中生效，点击页面任意位置及 Escape 均可收起",
+        "result": true
+      },
+      {
+        "item": "菜单项选择与切换按钮行为正常",
+        "true_if": "点击下拉菜单内部的具体引擎选项能正常切换引擎并收起；点击切换按钮能正常开关",
+        "false_if": "点击引擎项失效或切换状态异常",
+        "evidence": "menuRef 与 toggleButtonRef 正确保护内部按钮与切换按钮正常触发各自事件",
+        "result": true
+      },
+      {
+        "item": "全量自动化测试与产物隔离构建",
+        "true_if": "全量单测全绿，退出码为 0，构建产物 100% 隔离至 local/dist/",
+        "false_if": "存在测试失败或构建报错",
+        "evidence": "109 项测试全绿，npm run build 退出码 0，产物规范隔离至 local/dist/",
+        "result": true
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "",
+    "tag": ""
+  },
+  "version": null
+}

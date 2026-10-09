@@ -3,7 +3,7 @@
   "id": "C010",
   "title": "壁纸配置精简：移除画面位置配置并锁定为默认居中",
   "type": "Refactoring",
-  "status": "in_progress",
+  "status": "verified",
   "branch": "fix/C010-simplify-wallpaper-position",
   "is_hotfix": false,
   "target": {
@@ -49,8 +49,8 @@
   "verification": {
     "result": true,
     "run_id": "c010-precheck-pass",
-    "user_quote": "",
-    "signoff": "",
+    "user_quote": "确认",
+    "signoff": "确认",
     "checks": [
       {
         "item": "画面位置控件完全移除且壁纸保持居中",
@@ -70,8 +70,8 @@
   },
   "rejections": [],
   "sync": {
-    "design_pinned": false,
-    "changelog": false,
+    "design_pinned": true,
+    "changelog": true,
     "commit": "",
     "tag": ""
   },

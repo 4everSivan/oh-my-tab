@@ -17,7 +17,9 @@
         "T08",
         "T09",
         "T10",
-        "T11"
+        "T11",
+        "T12",
+        "T13"
       ]
     }
   },
@@ -33,7 +35,9 @@
       "design_doc": "docs/devel/design/01-页面入口与导航.md",
       "tasks": [
         "T04",
-        "T11"
+        "T11",
+        "T12",
+        "T13"
       ]
     },
     "WorkspaceAppearance": {
@@ -177,12 +181,33 @@
     },
     "T11": {
       "title": "搜索引擎图标化、精简与毛玻璃同质化下拉浮层",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "feat/T11-search-engine-icons-and-unified-menu",
       "milestone": "M1-v0.1.0-首发里程碑",
       "depends_on": [
         "T04",
         "T05"
+      ]
+    },
+    "T12": {
+      "title": "全局快捷键模块实现（聚焦搜索、切换引擎、Escape级联关闭与快捷键清单）",
+      "status": "completed",
+      "branch": "feat/T12-keyboard-shortcuts",
+      "milestone": "M1-v0.1.0-首发里程碑",
+      "depends_on": [
+        "T04",
+        "T11"
+      ]
+    },
+    "T13": {
+      "title": "搜索框光标字体同色、对焦占位隐去与搜索联想系统",
+      "status": "completed",
+      "branch": "feat/T13-search-suggestions-and-input-style",
+      "milestone": "M1-v0.1.0-首发里程碑",
+      "depends_on": [
+        "T04",
+        "T11",
+        "T12"
       ]
     }
   }

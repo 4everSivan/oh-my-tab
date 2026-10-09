@@ -3,7 +3,7 @@
   "id": "T11",
   "title": "搜索引擎图标化、精简与毛玻璃同质化下拉浮层",
   "milestone": "M1-v0.1.0-首发里程碑",
-  "status": "in_progress",
+  "status": "completed",
   "branch": "feat/T11-search-engine-icons-and-unified-menu",
   "depends_on": [
     "T04",

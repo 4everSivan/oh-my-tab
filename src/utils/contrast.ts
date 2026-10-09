@@ -137,3 +137,24 @@ export function chooseFloatingForeground(samples: number[][]): {
   const result = chooseFloatingForegroundWithProtection(samples);
   return { tone: result.tone, color: result.color };
 }
+
+/**
+ * 搜索框文本对比度选取算法 (C014)
+ * 搜索文字保持不透明，其所在的搜索框表面与底层壁纸样本按透明度 (transparency) 进行混合，
+ * 然后根据合成后的有效亮度自适应选取高对比度的浅色（纯白）或深色（墨黑）墨水。
+ */
+export function chooseSearchForegroundWithProtection(
+  samples: number[][],
+  surface: [number, number, number] = LIGHT_RGB,
+  transparency: number = 15
+): FloatingForegroundResult {
+  const alpha = 1 - Math.max(0, Math.min(100, transparency)) / 100;
+  if (!Array.isArray(samples) || !samples.length) {
+    return alpha >= 0.5
+      ? chooseFloatingForegroundWithProtection([surface])
+      : chooseFloatingForegroundWithProtection([]);
+  }
+  const blendedSamples = samples.map((pixel) => blend(pixel, surface, alpha));
+  return chooseFloatingForegroundWithProtection(blendedSamples);
+}
+

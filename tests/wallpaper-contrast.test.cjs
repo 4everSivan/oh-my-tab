@@ -174,3 +174,61 @@ test('Clock component renders tabular-nums on digits and accepts shadowProtectio
   assert.ok(clockTsx.includes('shadowProtection'));
   assert.ok(clockTsx.includes('tabular-nums'));
 });
+
+// 3. C014: 搜索框表面与壁纸自适应对比度计算与 Hook 契约
+function chooseSearchForegroundWithProtection(samples, surface = [255, 255, 255], transparency = 15) {
+  const alpha = 1 - Math.max(0, Math.min(100, transparency)) / 100;
+  if (!Array.isArray(samples) || !samples.length) {
+    return alpha >= 0.5
+      ? chooseFloatingForegroundWithProtection([surface])
+      : chooseFloatingForegroundWithProtection([]);
+  }
+  return chooseFloatingForegroundWithProtection(samples.map((pixel) => blend(pixel, surface, alpha)));
+}
+
+test('C014: chooseSearchForegroundWithProtection 结合搜索框表面透明度与壁纸样本自适应计算字色', () => {
+  const contrastTsSrc = fs.readFileSync(path.resolve(__dirname, '../src/utils/contrast.ts'), 'utf-8');
+  assert.ok(contrastTsSrc.includes('chooseSearchForegroundWithProtection'), 'contrast.ts 必须导出 chooseSearchForegroundWithProtection');
+
+  const darkSamples = [
+    [20, 24, 35],
+    [18, 22, 30],
+  ];
+  const lightSamples = [
+    [245, 244, 239],
+    [240, 238, 230],
+  ];
+  const surfaceWhite = [255, 255, 255];
+
+  // 1. 深色壁纸 + 15% 透明度（表面主要是 85% 白色高斯表面）：混合后为亮色，文字应为深色 #141c20
+  const opaqueOnDark = chooseSearchForegroundWithProtection(darkSamples, surfaceWhite, 15);
+  assert.equal(opaqueOnDark.tone, 'dark', '85% 白色表面叠加深色壁纸后有效表面为浅色，必须选取深色墨水');
+  assert.equal(opaqueOnDark.color, '#141c20');
+
+  // 2. 深色壁纸 + 95% 透明度（极高透明，直接透出深色底图）：混合后为暗色，文字应自适应切为纯白 #ffffff
+  const transOnDark = chooseSearchForegroundWithProtection(darkSamples, surfaceWhite, 95);
+  assert.equal(transOnDark.tone, 'light', '95% 透明表面直接露出深色壁纸，必须选取纯白墨水');
+  assert.equal(transOnDark.color, '#ffffff');
+
+  // 3. 浅色壁纸 + 任何透明度：混合后均为浅色，文字恒定选取深色墨水 #141c20
+  const onLight = chooseSearchForegroundWithProtection(lightSamples, surfaceWhite, 50);
+  assert.equal(onLight.tone, 'dark');
+  assert.equal(onLight.color, '#141c20');
+});
+
+test('C014: App.tsx 与 useSearchContrast.ts 具备完整的自适应字色与采样契约', () => {
+  const appSrc = fs.readFileSync(path.resolve(__dirname, '../src/App.tsx'), 'utf-8');
+  const hookSrc = fs.readFileSync(path.resolve(__dirname, '../src/hooks/useSearchContrast.ts'), 'utf-8');
+
+  // App.tsx 接入
+  assert.ok(appSrc.includes('useSearchContrast') || appSrc.includes('useAdaptiveContrast'), 'App 必须引入搜索对比度采样 Hook (useSearchContrast 或统合 useAdaptiveContrast)');
+  assert.ok(appSrc.includes('searchContainerRef'), 'App 必须为 SearchBar 提供采样 searchContainerRef');
+  assert.ok(appSrc.includes('textColor={searchTextColor}'), 'App 必须将 searchTextColor 传给 SearchBar');
+  assert.ok(appSrc.includes('tone={searchTone}'), 'App 必须将 searchTone 传给 SearchBar');
+
+  // useSearchContrast.ts 算法契约
+  assert.ok(hookSrc.includes('chooseSearchForegroundWithProtection'), 'Hook 必须基于混合表面算法');
+  assert.ok(hookSrc.includes('computeInitialSearchContrast'), 'Hook 必须导出即时计算函数防白屏首帧闪烁');
+  assert.ok(hookSrc.includes('search.transparency'), 'Hook 依赖项必须包含 search.transparency 动态响应');
+});
+

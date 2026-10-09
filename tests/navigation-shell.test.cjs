@@ -144,13 +144,38 @@ test('SearchBar 具备 relative z-20 层叠上下文，菜单置顶 z-50 且有�
     searchBarSrc.includes('origin-menu') && searchBarSrc.includes('z-50'),
     'origin-menu 下拉菜单必须拥有 z-50 绝对置顶层级'
   );
-  // 3. 点击外部空白收起遮罩层
+});
+
+// ── C011 搜索引擎下拉框全域点击关闭契约 ──────────────────────────
+test('搜索引擎下拉菜单支持点击页面任意位置与 Escape 键无缝关闭 (C011)', () => {
+  const searchBarSrc = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'components', 'search', 'SearchBar.tsx'),
+    'utf8'
+  );
+  // 1. 废除局部包含块失效的 fixed inset-0 遮罩
   assert.ok(
-    searchBarSrc.includes('fixed inset-0 z-40 bg-transparent') &&
-      searchBarSrc.includes('setShowEngineMenu(false)'),
-    '须有 fixed inset-0 z-40 全屏透明捕获层用于点击空白收起菜单'
+    !searchBarSrc.includes('fixed inset-0 z-40 bg-transparent'),
+    '必须彻底移除被 backdropFilter 局部包含块限制的 fixed 遮罩'
+  );
+
+  // 2. 引入 window capture 点击与按键监听
+  assert.ok(
+    searchBarSrc.includes("window.addEventListener('click', handleGlobalClick, true)"),
+    '必须注册捕获阶段的全局点击事件监听以确保点击任意位置均可捕获'
+  );
+  assert.ok(
+    searchBarSrc.includes("window.addEventListener('keydown', handleKeyDown)"),
+    '必须注册 Escape 键盘事件监听'
+  );
+
+  // 3. 边界判断保护菜单与切换按钮内部交互
+  assert.ok(
+    searchBarSrc.includes('menuRef.current.contains(event.target as Node)') &&
+      searchBarSrc.includes('toggleButtonRef.current.contains(event.target as Node)'),
+    '必须具备 menuRef 与 toggleButtonRef 边界检测以保护自身交互'
   );
 });
+
 
 // ── T11 搜索引擎图标化、精简与毛玻璃同质化契约 ─────────────────
 test('搜索引擎仅保留必应/谷歌/GitHub/Bilibili，左侧全量图标化且下拉框同质化 (T11)', () => {

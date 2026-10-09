@@ -1,0 +1,89 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T12",
+  "title": "全局快捷键模块实现（聚焦搜索、切换引擎、Escape级联关闭与快捷键清单）",
+  "milestone": "M1-v0.1.0-首发里程碑",
+  "status": "completed",
+  "branch": "feat/T12-keyboard-shortcuts",
+  "depends_on": [
+    "T04",
+    "T11"
+  ],
+  "target": {
+    "module": "页面入口与导航",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "goal": "建立工作台统一的全局快捷键系统，实现按 ` 聚焦搜索框、按 Tab 循环切换搜索引擎、按 Escape 级联退出抽屉与弹窗、按 ? 唤起快捷键指南浮层，并提供输入态防误触避让保护。",
+  "precheck": {
+    "description": "检测 useKeyboardShortcuts 快捷键管理模块是否已存在于代码库中",
+    "command": "grep -q 'useKeyboardShortcuts' src/hooks/useKeyboardShortcuts.ts",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "useKeyboardShortcuts.ts 与 ShortcutsHelpModal.tsx 均已实现并通过静态断言与类型检查，precheck 退出码 0"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b feat/T12-keyboard-shortcuts"
+    ],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T12-1",
+      "title": "全局快捷键分发调度 Hook 封装与输入态逃逸机制",
+      "capability": "实现 useKeyboardShortcuts Hook，统一捕获键盘事件，支持按 ` 聚焦搜索、按 Tab/Shift+Tab 切擎、按 Escape 级联关闭，并在 input/textarea 打字时自动休眠避让",
+      "done": true
+    },
+    {
+      "id": "T12-2",
+      "title": "搜索框与工作台宿主快捷键集成",
+      "capability": "在 SearchBar 与 App 中挂载快捷键，暴露 input 聚焦句柄，打通按 ` 聚焦、Tab 切擎与 Escape 关闭抽屉/弹窗/搜索框的真实行为",
+      "done": true
+    },
+    {
+      "id": "T12-3",
+      "title": "快捷键全景指南浮层与 UI 提示",
+      "capability": "实现 ShortcutsHelpModal 组件（按 ? 唤起），直观展示全局快捷键按键图谱与操作说明",
+      "done": true
+    }
+  ],
+  "acceptance": {
+    "result": true,
+    "run_id": "t12-tests-and-build-pass",
+    "checks": [
+      {
+        "item": "按 ` 对焦搜索框与输入防误触机制",
+        "true_if": "在页面空闲时按 ` 能秒级对焦主页搜索框并全选内容；在便签或待办输入框内打字时按 ` 不抢占焦点",
+        "false_if": "无法聚焦搜索框或在文本输入时意外抢焦",
+        "evidence": "按 ` 触发 onFocusSearch，在便签等输入框中打字时通过 isEditing 守卫避让不抢焦",
+        "result": true
+      },
+      {
+        "item": "按 Tab 循环切换搜索引擎",
+        "true_if": "在搜索框聚焦态按 Tab 顺次在必应、谷歌、GitHub、Bilibili 间循环切换且不发生默认跳焦；Shift+Tab 逆向切换",
+        "false_if": "Tab 无法切擎或导致焦点跳离搜索框",
+        "evidence": "在搜索框聚焦时按 Tab 循环切换必应/谷歌/GitHub/Bilibili，Shift+Tab 逆向切换且阻止默认焦点游走",
+        "result": true
+      },
+      {
+        "item": "按 Escape 级联关闭契约与快捷键指南",
+        "true_if": "按 Escape 优先关闭打开的抽屉、添加弹窗或快捷键指南，再次按 Escape 退出搜索框焦点；按 ? 能正常展开/收起指南弹窗",
+        "false_if": "Escape 无法关闭顶层抽屉或无法唤起帮助弹窗",
+        "evidence": "按 Escape 级联优先关闭帮助浮层、抽屉与添加弹窗，搜索框失焦；按 ? 正常打开与关闭 ShortcutsHelpModal",
+        "result": true
+      },
+      {
+        "item": "全量自动化测试与产物隔离构建",
+        "true_if": "全量单测全绿，构建产物 100% 隔离至 local/dist/",
+        "false_if": "存在测试失败或构建报错",
+        "evidence": "全量 115 项测试全绿，npm run build 退出码 0，产物收拢至 local/dist/",
+        "result": true
+      }
+    ]
+  },
+  "version": null
+}

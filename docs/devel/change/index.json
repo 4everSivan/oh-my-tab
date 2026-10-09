@@ -12,7 +12,11 @@
       "changes": [
         "C005",
         "C006",
-        "C009"
+        "C009",
+        "C011",
+        "C012",
+        "C013",
+        "C014"
       ]
     },
     "WorkspaceAppearance": {
@@ -20,7 +24,8 @@
       "changes": [
         "C002",
         "C003",
-        "C010"
+        "C010",
+        "C015"
       ]
     },
     "ProductivityWidgets": {
@@ -117,7 +122,7 @@
     "C009": {
       "title": "修复搜索引擎选择菜单被下方网页图标遮挡缺陷",
       "type": "BugFix",
-      "status": "in_progress",
+      "status": "closed",
       "branch": "fix/C009-search-engine-menu-layer",
       "topic": "EntryNavigation",
       "created": "2026-10-09"
@@ -125,8 +130,48 @@
     "C010": {
       "title": "壁纸配置精简：移除画面位置配置并锁定为默认居中",
       "type": "Refactoring",
-      "status": "in_progress",
+      "status": "closed",
       "branch": "fix/C010-simplify-wallpaper-position",
+      "topic": "WorkspaceAppearance",
+      "created": "2026-10-09"
+    },
+    "C011": {
+      "title": "调整搜索引擎下拉菜单关闭交互：展开后点击屏幕任意位置均可关闭",
+      "type": "BugFix",
+      "status": "closed",
+      "branch": "fix/C011-search-engine-menu-dismiss",
+      "topic": "EntryNavigation",
+      "created": "2026-10-09"
+    },
+    "C012": {
+      "title": "移除本地搜索历史记录并修复谷歌与必应联想请求跨域空响应缺陷",
+      "type": "BugFix",
+      "status": "closed",
+      "branch": "fix/C012-search-suggestions-cors-and-no-history",
+      "topic": "EntryNavigation",
+      "created": "2026-10-09"
+    },
+    "C013": {
+      "title": "修复 Tab 键切擎事件冒泡双重触发与异步状态滞后导致无法按序切擎缺陷",
+      "type": "BugFix",
+      "status": "closed",
+      "branch": "fix/C013-tab-cycle-engine-order",
+      "topic": "EntryNavigation",
+      "created": "2026-10-09"
+    },
+    "C014": {
+      "title": "修复搜索框文字未根据背景与表面自适应调整颜色导致辨识不清缺陷",
+      "type": "BugFix",
+      "status": "closed",
+      "branch": "fix/C014-searchbar-adaptive-text-color",
+      "topic": "EntryNavigation",
+      "created": "2026-10-09"
+    },
+    "C015": {
+      "title": "修复首页打开与刷新时的界面抖动闪烁并优化内存与采样性能开销",
+      "type": "BugFix",
+      "status": "closed",
+      "branch": "fix/C015-startup-flicker-and-memory-opt",
       "topic": "WorkspaceAppearance",
       "created": "2026-10-09"
     }

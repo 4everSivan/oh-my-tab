@@ -1,0 +1,92 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C012",
+  "title": "移除本地搜索历史记录并修复谷歌与必应联想请求跨域空响应缺陷",
+  "type": "BugFix",
+  "status": "verified",
+  "branch": "fix/C012-search-suggestions-cors-and-no-history",
+  "is_hotfix": false,
+  "target": {
+    "module": "页面入口与导航",
+    "component": "SearchBar & SuggestionService & BackgroundWorker",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "why": "用户明确要求不记录本地搜索历史；同时前序实现直接在前端页面执行 fetch 跨域请求谷歌与必应联想 API，在浏览器端被 CORS 策略阻断，且在 Chrome MV3 架构中扩展页面亦受 CORS 限制导致请求失败返回空数组。需移除全部本地历史记录逻辑，并在扩展中通过 Background Service Worker 结合 host_permissions 代理转发、在开发环境配置 Vite 代理，确保谷歌与必应实时联想正常呈现。",
+  "precheck": {
+    "description": "检查当前代码库是否仍存留 saveSearchHistory 以及 manifest 中是否缺失 background service worker",
+    "command": "grep -q 'saveSearchHistory' src/services/search/suggestionService.ts",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "确认代码库中存在 saveSearchHistory 历史记录逻辑且 manifest.json 缺失 background 配置"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b fix/C012-search-suggestions-cors-and-no-history"
+    ],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "搜索历史记录策略",
+      "before": "本地存储 15 条搜索历史并在输入框空焦或匹配时混排呈现，支持单条删除",
+      "after": "彻底废除本地搜索历史存储与呈现，空输入时不显示下拉，联想面板纯净呈现多源实时联想词",
+      "impact": "SearchBar & suggestionService"
+    },
+    {
+      "scope": "谷歌与必应联想网络跨域代理",
+      "before": "在页面直接调用 fetch 请求 Google 和 Bing 联想 API，受浏览器 CORS 拦截返回空结果",
+      "after": "Chrome 扩展端注册 Background Service Worker 通过 host_permissions 代理跨域 fetch 并通过 runtime.sendMessage 通信；本地开发端配置 Vite server proxy 转发",
+      "impact": "manifest.json, vite.config.ts, background/index.ts, suggestionService.ts"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/01-页面入口与导航.md",
+    "topic": "EntryNavigation",
+    "modified": true,
+    "rule_diff": {
+      "before": "具备优雅容灾降级：离线、跨域或网络异常时自动降级至本地搜索历史缓存（按时间逆序，单条可删除）",
+      "after": "不记录任何本地搜索历史；联想请求在 Chrome 扩展端由具有 host_permissions 的 Background Service Worker 安全代理跨域请求，开发环境由 Vite 代理支持，空输入时不展示下拉浮层"
+    }
+  },
+  "verification": {
+    "result": "passed",
+    "run_id": "test-suite-123-passed",
+    "user_quote": "/commit",
+    "signoff": "verified by user via /commit",
+    "checks": [
+      {
+        "item": "彻底移除搜索历史记录",
+        "true_if": "代码库中不再存在 saveSearchHistory 及 localStorage 历史记录存储，搜索框空聚焦时不展示历史列表",
+        "false_if": "仍向本地持久化历史记录或展示历史选项",
+        "evidence": "suggestionService.ts 与 SearchBar.tsx 彻底移除了 saveSearchHistory、getSearchHistory 及 localStorage 读写；SearchBar 仅在 query 非空且有联想结果时渲染面板",
+        "result": "passed"
+      },
+      {
+        "item": "谷歌与必应联想 Service Worker 代理通道就绪",
+        "true_if": "manifest.json 注册 background service worker，background/index.ts 监听 FETCH_SUGGESTIONS 并成功请求 Google/Bing 接口",
+        "false_if": "manifest 缺失 background 或 Service Worker 无法返回联想结果",
+        "evidence": "manifest.json 注册 background.js，src/background/index.ts 具备 FETCH_SUGGESTIONS 监听并利用 host_permissions 安全转发；vite.config.ts 配置了本地开发代理",
+        "result": "passed"
+      },
+      {
+        "item": "全量自动化测试与构建隔离",
+        "true_if": "单测全绿通过，npm run build 构建成功输出至 local/dist/",
+        "false_if": "测试失败或构建报错",
+        "evidence": "123/123 自动化单测全绿，tsc && vite build 成功打包出 local/dist/background.js (1.95 kB) 与 local/dist/assets/",
+        "result": "passed"
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": false,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "version": null
+}

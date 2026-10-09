@@ -1,0 +1,86 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C014",
+  "title": "修复搜索框文字未根据背景与表面自适应调整颜色导致辨识不清缺陷",
+  "type": "BugFix",
+  "status": "verified",
+  "branch": "fix/C014-searchbar-adaptive-text-color",
+  "is_hotfix": false,
+  "target": {
+    "module": "页面入口与导航",
+    "component": "SearchBar & App & contrast",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "why": "搜索框输入文字、光标与占位文字此前硬编码采用静态 stone-400 色阶，未随背景壁纸与搜索框表面透明度合成色阶动态调整。在深色壁纸高透明度或高亮纯白表面等场景下，文字对比度严重不足导致看不清。需引入搜索框表面与壁纸采样合成对比度算法（chooseSearchForegroundWithProtection），将计算出的自适应文字色、光标色与占位色动态注入 SearchBar，实现任何背景下清晰可见。",
+  "precheck": {
+    "description": "检测 SearchBar 是否仍在使用写死的 text-stone-400",
+    "command": "grep -q 'text-stone-400' src/components/search/SearchBar.tsx",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "预检确认修复前 SearchBar.tsx 中 input 样式硬编码 text-stone-400；修复后已接入 textColor 与 tone 动态自适应"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b fix/C014-searchbar-adaptive-text-color"
+    ],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "搜索框自适应对比度与动态字色",
+      "before": "SearchBar 内部 input 输入字色、光标色与占位色硬编码静态 text-stone-400",
+      "after": "App 与 SearchBar 联动采样，计算壁纸与搜索框表面透明度混合后的有效背景亮度，动态选取高对比度墨黑（#141c20）/ 纯白（#ffffff）自适应字色并应用至输入文字、光标、占位符及辅助图标",
+      "impact": "SearchBar.tsx & App.tsx & src/utils/contrast.ts & src/hooks/useWallpaperContrast.ts"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/01-页面入口与导航.md",
+    "topic": "EntryNavigation",
+    "modified": true,
+    "rule_diff": {
+      "before": "搜索框输入文字颜色、光标指示符与占位文本在浅色与深色模式下均保持统一的协调色阶（stone-400 / dark:stone-400）",
+      "after": "搜索框输入文字颜色、光标指示符与占位文本根据搜索框表面透明度与底层壁纸采样合成后的有效亮度自适应选取高对比度字色（深色有效表面选纯白 #ffffff，浅色有效表面选墨黑 #141c20），光标与输入字体颜色严格同色一致，占位文本保持同色调半透明，对焦后占位文本立即消失"
+    }
+  },
+  "verification": {
+    "result": "passed",
+    "run_id": "test-c014-run-01",
+    "user_quote": "/commit",
+    "signoff": "verified by user via /commit",
+    "checks": [
+      {
+        "item": "深浅背景与表面透明度下自适应选取高对比度字色",
+        "true_if": "在浅色表面下选取 #141c20 深色文字与光标，在深色半透明表面下选取 #ffffff 浅色文字与光标，对比度满足 WCAG 安全阈值",
+        "false_if": "字色固定不变或在深浅极端背景下辨识不清",
+        "evidence": "node:test wallpaper-contrast.test.cjs 验证通过：深色壁纸+15%透明度选取 #141c20，深色壁纸+95%透明度选取 #ffffff，浅色壁纸选取 #141c20",
+        "result": "passed"
+      },
+      {
+        "item": "光标、输入文字与占位提示同色一致且对焦即隐",
+        "true_if": "光标与输入字色严格一致，占位提示为同色系协调色，聚焦后占位提示立即消失",
+        "false_if": "光标与文字色调割裂或聚焦时占位残留",
+        "evidence": "node:test search-suggestions.test.cjs 验证通过：input 与 caret 严格绑定 textColor，占位根据 tone 协调半透明且 isFocused 置空",
+        "result": "passed"
+      },
+      {
+        "item": "全量自动化测试与构建隔离",
+        "true_if": "单测全绿，npm run build 构建成功输出至 local/dist/",
+        "false_if": "测试失败或构建报错",
+        "evidence": "全量 126 项测试全绿通过 (Exit Code 0)，npm run build 成功编译隔离产出于 local/dist/ (Exit Code 0)",
+        "result": "passed"
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": false,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "version": null
+}

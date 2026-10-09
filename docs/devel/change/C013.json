@@ -1,0 +1,92 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C013",
+  "title": "修复 Tab 键切擎事件冒泡双重触发与异步状态滞后导致无法按序切擎缺陷",
+  "type": "BugFix",
+  "status": "verified",
+  "branch": "fix/C013-tab-cycle-engine-order",
+  "is_hotfix": false,
+  "target": {
+    "module": "页面入口与导航",
+    "component": "SearchBar & useKeyboardShortcuts & App",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "why": "用户在搜索框按 Tab 键时无法按顺序顺次切换搜索引擎。排查发现两大根因：1) SearchBar 中的 handleInputKeyDown 捕获 Tab 键时仅执行了 e.preventDefault()，未调用 e.stopPropagation()，导致键盘事件向 window 冒泡，被 useKeyboardShortcuts 的全局监听器二次触发，单次按键跳过中间引擎；2) App.tsx 中的 handleCycleEngine 依赖闭包中的旧 engine 状态且在 setEngine 前执行了 await 异步存储写入，在高频切擎或微任务等待中形成状态滞后竞争。需阻止冒泡并改为基于 setEngine 函数式状态原子递增。",
+  "precheck": {
+    "description": "检测 SearchBar 中的 handleInputKeyDown 是否缺失 stopPropagation",
+    "command": "grep -q 'e.stopPropagation()' src/components/search/SearchBar.tsx",
+    "expected": "1",
+    "is_completed": true,
+    "evidence": "确认修复前 SearchBar.tsx 中未对 Tab 键调用 e.stopPropagation()；修复后已严格补充并在全局 hook 处同样阻断冒泡"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b fix/C013-tab-cycle-engine-order"
+    ],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "输入框 Tab 键盘事件冒泡防御",
+      "before": "handleInputKeyDown 仅执行 e.preventDefault()，事件冒泡至全局监听器被 useKeyboardShortcuts 二次消费",
+      "after": "handleInputKeyDown 补充 e.stopPropagation()，杜绝事件向 window 冒泡引发的二次切擎跳跃",
+      "impact": "SearchBar.tsx"
+    },
+    {
+      "scope": "切擎原子状态调度",
+      "before": "handleCycleEngine 依赖闭包变量 engine 并将 setEngine 阻塞在 await storageService.setEngine 之后",
+      "after": "使用 setEngine((prevEngine) => ...) 函数式原子更新，UI 状态秒级同步，存储持久化后台异步执行",
+      "impact": "App.tsx"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/01-页面入口与导航.md",
+    "topic": "EntryNavigation",
+    "modified": true,
+    "rule_diff": {
+      "before": "在搜索框处于聚焦状态时，拦截默认焦点跳转，顺次向前/向后循环切换四大搜索引擎",
+      "after": "在搜索框处于聚焦状态时，严格阻止冒泡并在 SearchBar 内部独占消费 Tab 键，基于函数式原子状态顺次切换必应 ↔ 谷歌 ↔ GitHub ↔ Bilibili，单次按键仅前进一步，Shift+Tab 逆向倒退一步"
+    }
+  },
+  "verification": {
+    "result": "passed",
+    "run_id": "test-c013-run-01",
+    "user_quote": "/commit",
+    "signoff": "verified by user via /commit",
+    "checks": [
+      {
+        "item": "单次按 Tab 严格按序前进一位",
+        "true_if": "在必应状态按 Tab 切换至谷歌，再按切换至 GitHub，再按切换至 Bilibili，再按循环回必应，中间无跳跃",
+        "false_if": "跳过中间某个引擎或无法改变引擎",
+        "evidence": "node:test cycleEngine 与 C013 连续状态递增断言通过：bing -> google -> github -> bilibili -> bing",
+        "result": "passed"
+      },
+      {
+        "item": "Shift+Tab 严格按序逆向倒退一位",
+        "true_if": "在必应状态按 Shift+Tab 逆向切换至 Bilibili，再按切换至 GitHub，再按切换至谷歌",
+        "false_if": "逆向切换顺序混乱或跳级",
+        "evidence": "node:test cycleEngine 与 C013 逆向状态递增断言通过：bing -> bilibili -> github -> google -> bing",
+        "result": "passed"
+      },
+      {
+        "item": "全量自动化测试与构建隔离",
+        "true_if": "单测全绿，npm run build 构建成功输出至 local/dist/",
+        "false_if": "测试失败或构建报错",
+        "evidence": "全量 124 项测试通过 (Exit Code 0)，npm run build 成功编译并隔离输出至 local/dist/ (Exit Code 0)",
+        "result": "passed"
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": false,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "version": null
+}

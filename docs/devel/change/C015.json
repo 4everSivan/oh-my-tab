@@ -1,0 +1,92 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C015",
+  "title": "修复首页打开与刷新时的界面抖动闪烁并优化内存与采样性能开销",
+  "type": "BugFix",
+  "status": "verified",
+  "branch": "fix/C015-startup-flicker-and-memory-opt",
+  "is_hotfix": false,
+  "target": {
+    "module": "工作台布局与外观",
+    "component": "App & storage & contrast",
+    "design_doc": "docs/devel/design/02-工作台布局与外观.md",
+    "design_topic": "WorkspaceAppearance"
+  },
+  "why": "首页初次打开或刷新时存在明显的界面撕裂与闪烁：1) App.tsx 首帧挂载使用静态默认值（默认米白纯色背景、默认 24px 搜索圆角等），而底层通过 6 次串行异步 await 从 chrome.storage 读取配置耗时 200~400ms，就绪后突然跃变，引发明显的视觉跳变与布局抖动；2) useWallpaperContrast 与 useSearchContrast 并行双重创建离线 Canvas 和 Image 解码，且 resize 事件未节流，Canvas 像素缓冲未及时释放，且 Object URL 缺少生命周期 revoke 机制，存在内存膨胀隐患。",
+  "precheck": {
+    "description": "检测 storageService 是否缺失同步启动快照机制",
+    "command": "grep -q 'oh_my_tab_boot_cache' src/services/storage/index.ts",
+    "expected": "1",
+    "is_completed": false,
+    "evidence": "当前存储服务尚未落地同步启动快照，首帧必走异步等待"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b fix/C015-startup-flicker-and-memory-opt"
+    ],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "零闪烁同步启动快照与并行 I/O",
+      "before": "App 首帧使用静态默认值渲染，串行 6 次 await 拉取配置，导致纯色背景与默认圆角在首帧曝光并突变",
+      "after": "引入同步 bootCache（localStorage 即时快照），React 首帧惰性初始化直接呈现用户真实配置；存储拉取重构为并行 Promise.all / 批量查询，首屏渲染零抖动",
+      "impact": "App.tsx & storageService"
+    },
+    {
+      "scope": "统合对比度采样管线与内存释放",
+      "before": "双 Hook 独立分配 Image 与 Canvas 进行重复采样，resize 未做节流，Canvas 缓冲未清空，Blob URL 未及时 revoke",
+      "after": "统合为单一画布采样管线（单次渲染、双区域取样），采样完毕立即重置 width=0 回收 GPU 内存，resize 接入 rAF 节流，完善 Blob URL 自动释放生命周期",
+      "impact": "useWallpaperContrast.ts & useSearchContrast.ts & App.tsx"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/02-工作台布局与外观.md",
+    "topic": "WorkspaceAppearance",
+    "modified": true,
+    "rule_diff": {
+      "before": "首页挂载时异步拉取存储配置，背景与搜索框在就绪前展示初始默认视觉状态",
+      "after": "首页建立同步启动快照契约（bootCache），首帧即完成用户真实配置（壁纸参数、搜索圆角与宽度、时钟参数等）的直出渲染，彻底消除刷新与新建标签页时的视觉抖动；壁纸几何采样建立统一管线与内存即时回收契约"
+    }
+  },
+  "verification": {
+    "result": "passed",
+    "run_id": "test-c015-run-130",
+    "user_quote": "/commit",
+    "signoff": "verified by user via /commit",
+    "checks": [
+      {
+        "item": "同步启动快照有效消除首帧跳变",
+        "true_if": "存在缓存时首帧立即读出用户配置，无初始圆角与纯色闪跳",
+        "false_if": "刷新仍先展示默认圆角与默认纯色背景",
+        "evidence": "引入 bootCache (localStorage) 与 React 惰性初始化 useState(() => boot?.xxx ?? ...)，首帧 0ms 呈现用户真实配置，loadAllSettings 并行加载，tests/startup-and-memory.test.cjs 验证通过",
+        "result": "passed"
+      },
+      {
+        "item": "单一画布采样与内存释放契约",
+        "true_if": "壁纸采样复用单管线，resize 具备节流，采样后重置画布尺寸，旧 Blob URL 自动释放",
+        "false_if": "多重创建画布、未及时释放或旧 URL 泄漏",
+        "evidence": "useAdaptiveContrast 统一单画布取样，canvas.width=0 释放 GPU 显存，resize 使用 rAF 节流，currentBlobUrlRef 闭环 revokeObjectURL，tests/startup-and-memory.test.cjs 验证通过",
+        "result": "passed"
+      },
+      {
+        "item": "全量自动化测试与构建隔离",
+        "true_if": "单测全绿，npm run build 构建成功输出至 local/dist/",
+        "false_if": "测试失败或构建报错",
+        "evidence": "130/130 自动化用例全绿通过，vite build 成功输出至 local/dist/，退出码 0",
+        "result": "passed"
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": false,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "version": null
+}

@@ -11,7 +11,17 @@
     "alarms",
     "notifications"
   ],
+  "host_permissions": [
+    "https://api.bing.com/*",
+    "https://suggestqueries.google.com/*",
+    "https://suggestion.baidu.com/*",
+    "https://s.search.bilibili.com/*"
+  ],
   "action": {
     "default_title": "oh-my-tab"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
   }
 }

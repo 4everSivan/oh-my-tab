@@ -3,7 +3,7 @@
   "id": "C009",
   "title": "修复搜索引擎选择菜单被下方网页图标遮挡缺陷",
   "type": "BugFix",
-  "status": "in_progress",
+  "status": "verified",
   "branch": "fix/C009-search-engine-menu-layer",
   "is_hotfix": false,
   "target": {
@@ -49,8 +49,8 @@
   "verification": {
     "result": true,
     "run_id": "c009-precheck-pass",
-    "user_quote": "",
-    "signoff": "",
+    "user_quote": "确认",
+    "signoff": "确认",
     "checks": [
       {
         "item": "搜索引擎菜单完整可见且不被遮挡",
@@ -70,8 +70,8 @@
   },
   "rejections": [],
   "sync": {
-    "design_pinned": false,
-    "changelog": false,
+    "design_pinned": true,
+    "changelog": true,
     "commit": "",
     "tag": ""
   },

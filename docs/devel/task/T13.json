@@ -1,0 +1,90 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T13",
+  "title": "搜索框光标字体同色、对焦占位隐去与搜索联想系统",
+  "milestone": "M1-v0.1.0-首发里程碑",
+  "status": "completed",
+  "branch": "feat/T13-search-suggestions-and-input-style",
+  "depends_on": [
+    "T04",
+    "T11",
+    "T12"
+  ],
+  "target": {
+    "module": "页面入口与导航",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "goal": "1) 搜索框输入字体颜色、光标指示符（caret-color）与占位文本颜色严格保持同色系一致（如 stone-400 / dark:stone-400）；2) 光标聚焦时光标显示且占位提示立即消失；3) 引入搜索联想体系（多源引擎联想与历史词建议、键盘上下方向键导航选中、回车直达搜索、毛玻璃质感）。",
+  "precheck": {
+    "description": "检测 suggestionService 联想服务模块是否已存在于代码库中",
+    "command": "grep -q 'fetchSuggestions' src/services/search/suggestionService.ts",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "fetchSuggestions 接口已就绪于 src/services/search/suggestionService.ts"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b feat/T13-search-suggestions-and-input-style"
+    ],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T13-1",
+      "title": "搜索框光标字体同色与对焦占位隐去契约",
+      "capability": "重构 SearchBar 输入框样式与交互，使 caret-color、color 与 placeholder 同色对齐，聚焦时占位提示立即消失，失焦空值平滑恢复",
+      "done": true
+    },
+    {
+      "id": "T13-2",
+      "title": "搜索联想服务适配器与历史词缓存",
+      "capability": "实现 suggestionService，支持 Bing/Google/Baidu/Bilibili 联想接口与本地搜索历史记录，配置防抖与跨域降级保护",
+      "done": true
+    },
+    {
+      "id": "T13-3",
+      "title": "搜索联想悬浮浮层与键盘上下键导航交互",
+      "capability": "在 SearchBar 下方渲染毛玻璃联想面板，支持 ArrowDown/ArrowUp 导航、Enter 直达搜索、Escape 收起与点击外部全域关闭",
+      "done": true
+    }
+  ],
+  "acceptance": {
+    "result": "passed",
+    "run_id": "test-suite-121-passed",
+    "checks": [
+      {
+        "item": "光标、字体与占位文字同色一致性",
+        "true_if": "SearchBar 的输入字体颜色、caret-color 与 placeholder 颜色完全一致，无视觉色阶割裂",
+        "false_if": "光标或字体颜色依然为深色/其他颜色，未与占位符对齐",
+        "evidence": "SearchBar input 设置 caret-stone-400 dark:caret-stone-400 与 text-stone-400 dark:text-stone-400，与 placeholder:text-stone-400 达成 100% 视觉统合",
+        "result": "passed"
+      },
+      {
+        "item": "对焦时占位文字立即隐去",
+        "true_if": "光标聚焦搜索框后，占位文本立即消失；失焦且无输入时占位文本重新呈现",
+        "false_if": "聚焦后占位文字依然显示或失焦后无法恢复",
+        "evidence": "SearchBar 绑定 isFocused 状态，聚焦时光标显现且 placeholder 置空，辅以 focus:placeholder-transparent",
+        "result": "passed"
+      },
+      {
+        "item": "搜索联想下拉与键盘导航",
+        "true_if": "键入字符时展示实时联想词与历史建议，可通过上下键选择高亮项、按回车直接搜索，按 Escape 收起",
+        "false_if": "联想列表无法弹出或键盘方向键无法导航",
+        "evidence": "suggestionService 与 SearchBar 联想面板全面集成，支持上下键导航预览、Enter 触发搜索与 Escape/全域点击关闭",
+        "result": "passed"
+      },
+      {
+        "item": "全量自动化测试与产物隔离构建",
+        "true_if": "全量单测全绿，构建产物 100% 隔离至 local/dist/",
+        "false_if": "存在测试失败或构建报错",
+        "evidence": "tests/search-suggestions.test.cjs 与全量 121 个测试全部全绿通过，生产构建 bundle 纯净收拢于 local/dist/",
+        "result": "passed"
+      }
+    ]
+  },
+  "version": "v0.1.0"
+}
