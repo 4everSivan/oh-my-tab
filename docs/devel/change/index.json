@@ -14,7 +14,8 @@
     "WorkspaceAppearance": {
       "design_doc": "docs/devel/design/02-工作台布局与外观.md",
       "changes": [
-        "C002"
+        "C002",
+        "C003"
       ]
     },
     "ProductivityWidgets": {
@@ -54,6 +55,14 @@
       "type": "Enhancement",
       "status": "in_progress",
       "branch": "fix/C002-wallpaper-dnd",
+      "topic": "WorkspaceAppearance",
+      "created": "2026-10-09"
+    },
+    "C003": {
+      "title": "修复材质预设切换失效：预设按钮未写回 type=material",
+      "type": "BugFix",
+      "status": "in_progress",
+      "branch": "fix/C003-material-preset",
       "topic": "WorkspaceAppearance",
       "created": "2026-10-09"
     }

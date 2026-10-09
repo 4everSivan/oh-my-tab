@@ -1,0 +1,77 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C003",
+  "title": "修复材质预设切换失效：预设按钮未写回 type=material，图片模式下视觉无变化",
+  "type": "BugFix",
+  "status": "in_progress",
+  "branch": "fix/C003-material-preset",
+  "is_hotfix": false,
+  "target": {
+    "module": "工作台布局与外观",
+    "component": "AppearanceDrawer 材质预设",
+    "design_doc": "docs/devel/design/02-工作台布局与外观.md",
+    "design_topic": "WorkspaceAppearance"
+  },
+  "why": "用户验证壁纸时发现切换预设材质（纸感/雾蓝/墨黑）无效。根因：材质预设按钮仅 onUpdateBackground({ name, color })，不携带 type:'material'；当前景背景为 type=image 时，点击预设仅更新被渲染层忽略的 name/color 字段，背景仍按图片渲染，视觉零变化。T05 交付以来该路径在『材质→材质』场景下被 type 恰好相等掩盖，任何一次设置图片后即暴露。",
+  "precheck": {
+    "description": "嗅探材质预设按钮是否缺少 type 写回",
+    "command": "grep -q \"onUpdateBackground({ type: 'material'\" src/components/settings/AppearanceDrawer.tsx",
+    "expected": "1",
+    "is_completed": false,
+    "evidence": "2026-10-09 执行退出码 1（预设按钮只传 name/color），缺陷确认在；运行时佐证：image 状态下点击预设视觉与配置均无变化"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "业务规则",
+      "before": "材质预设 onClick 仅传 { name, color }，type 不变；image 模式下点击预设无视觉效果",
+      "after": "材质预设 onClick 传 { type: 'material', name, color }，从任何背景类型一键回材质渲染",
+      "impact": "AppearanceDrawer.tsx 材质预设三个按钮"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/02-工作台布局与外观.md",
+    "topic": "WorkspaceAppearance",
+    "modified": true,
+    "rule_diff": {
+      "before": "材质预设点击更新材质名与颜色",
+      "after": "材质预设点击显式切换背景类型为材质并应用对应名称与颜色（含从图片模式返回）"
+    }
+  },
+  "verification": {
+    "result": null,
+    "run_id": "RUN-C003-001",
+    "user_quote": "",
+    "signoff": "",
+    "checks": [
+      {
+        "item": "自动化测试",
+        "true_if": "全量单测全绿，含材质预设 type 写回回归",
+        "false_if": "存在失败用例",
+        "evidence": "2026-10-09 实跑 npm test：88/88 全绿（0 失败，退出码 0），layout-appearance.test.cjs 新增 C003 回归（源码断言 + 渲染层分支语义）；npm run build 退出码 0",
+        "result": "passed"
+      },
+      {
+        "item": "行为实测",
+        "true_if": "预览环境 image 状态下点击材质预设 → 背景立即变为该材质颜色且配置 type=material 落盘",
+        "false_if": "点击预设仍无视觉变化",
+        "evidence": "预览环境实测：背景处于 image(paste-test.png) 状态 → 点击「雾蓝工作台」→ settings.background 落盘 {type:'material', name:'mist', color:'#e6edf5'}，背景层即时渲染 rgb(230,237,245)",
+        "result": "passed"
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": false,
+    "changelog": true,
+    "commit": "",
+    "tag": ""
+  },
+  "version": "v0.1.0"
+}

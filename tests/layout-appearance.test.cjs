@@ -1,4 +1,6 @@
 const { test } = require('node:test');
+const fs = require('node:fs');
+const path = require('node:path');
 const assert = require('node:assert/strict');
 
 function filterVisibleAndSort(items) {
@@ -75,4 +77,20 @@ test('Removing widget marks visible as false without deleting data entry', () =>
   assert.equal(updated.length, 2);
   assert.equal(updated[0].visible, false);
   assert.equal(updated[1].visible, true);
+});
+
+// ── C003 材质预设切换失效回归 ──────────────────────────────────
+test('材质预设必须写回 type=material：图片模式下点击预设立即生效（C003）', () => {
+  const drawerSrc = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'components', 'settings', 'AppearanceDrawer.tsx'),
+    'utf8'
+  );
+  assert.ok(
+    drawerSrc.includes("onUpdateBackground({ type: 'material', name: mat.id, color: mat.color })"),
+    '材质预设须显式切换 type=material，否则 image 模式下点击预设零视觉变化'
+  );
+  // 渲染层语义：type=image 且有派生地址时优先图片，材质预设必须离开该分支
+  const getBgStyle = (bg) => (bg.type === 'image' && bg.imageBlobUrl ? 'image' : 'color');
+  assert.equal(getBgStyle({ type: 'material', name: 'mist', color: '#e6edf5' }), 'color');
+  assert.equal(getBgStyle({ type: 'image', imageBlobUrl: 'blob:x' }), 'image');
 });

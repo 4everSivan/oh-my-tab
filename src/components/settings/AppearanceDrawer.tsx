@@ -481,9 +481,9 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
                       { id: 'dark', name: '墨黑仪表台', color: '#16191d' },
                     ].map((mat) => (
                       <button
-                        key={mat.id}
-                        onClick={() => onUpdateBackground({ name: mat.id, color: mat.color })}
-                        className={`p-3 rounded-xl border text-xs flex flex-col items-center space-y-1.5 transition-all ${
+                      key={mat.id}
+                      onClick={() => onUpdateBackground({ type: 'material', name: mat.id, color: mat.color })}
+                      className={`p-3 rounded-xl border text-xs flex flex-col items-center space-y-1.5 transition-all ${
                           background.name === mat.id
                             ? 'border-stone-900 dark:border-white font-medium ring-1 ring-stone-900 dark:ring-white'
                             : 'border-stone-200 dark:border-stone-800'
