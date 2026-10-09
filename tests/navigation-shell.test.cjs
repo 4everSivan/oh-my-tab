@@ -1,5 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 // Re-implement the pure functions to verify logic
 function getInitial(name) {
@@ -76,4 +78,26 @@ test('Undo operation restores removed item at original index', () => {
   const restored = [...current];
   restored.splice(removedIndex, 0, removedItem);
   assert.deepEqual(restored, original);
+});
+
+// ── C005 图标首字母兜底结构回归 ────────────────────────────────
+test('首字母仅作图标缺失兜底：absolute 底层垫底、img 上层覆盖、onError 露出 (C005)', () => {
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'components', 'shortcuts', 'Shortcuts.tsx'),
+    'utf8'
+  );
+  // 字母层必须绝对定位垫底，不再是与 img 并列的无条件 flex 兄弟
+  assert.ok(
+    /absolute inset-0 flex items-center justify-center[^>]*>\s*\{getInitial/.test(src.replace(/className=\{?"[^"]*"\s*/g, (m) => m)),
+      '首字母兜底层应为 absolute inset-0 居中结构'
+  );
+  // img 必须在字母层之后渲染（DOM 顺序决定覆盖关系）
+  const spanIdx = src.indexOf('absolute inset-0 flex items-center justify-center');
+  const imgIdx = src.indexOf('<img', spanIdx);
+  assert.ok(spanIdx !== -1 && imgIdx > spanIdx, 'img 必须位于字母兜底层之后以形成覆盖');
+  // onError 隐藏 img 露出字母；onLoad 恢复并隐藏字母（防透明图标透出）
+  assert.ok(/onError=\{[^}]*display = 'none'[\s\S]{0,200}visibility = 'visible'/.test(src), 'onError 必须隐藏 img 并恢复字母可见');
+  assert.ok(/onLoad=\{[^}]*display = ''[\s\S]{0,200}visibility = 'hidden'/.test(src), 'onLoad 必须恢复 img 并彻底隐藏字母层');
+  // 热链加载成功率：no-referrer
+  assert.ok(src.includes('referrerPolicy="no-referrer"'), 'img 应携带 no-referrer 提升图标热链成功率');
 });

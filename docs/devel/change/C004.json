@@ -3,7 +3,7 @@
   "id": "C004",
   "title": "修复背景渲染层从未可见：body 不透明底色覆盖 -z-20 固定层",
   "type": "BugFix",
-  "status": "in_progress",
+  "status": "verified",
   "branch": "fix/C004-bg-layer-visible",
   "is_hotfix": false,
   "target": {
@@ -47,8 +47,8 @@
   "verification": {
     "result": null,
     "run_id": "RUN-C004-001",
-    "user_quote": "",
-    "signoff": "",
+    "user_quote": "现在确认生效了",
+    "signoff": "2026-10-09 用户会话内口头确认背景/材质修复生效，AI 代签记入（RUN-C004-001）",
     "checks": [
       {
         "item": "自动化测试",

@@ -200,19 +200,31 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
               title={`${shortcut.name}\n右键查看菜单 / 长按可排序`}
             >
               {/* Icon Container with Squircle Continuous Curve */}
-              <div className="w-12 h-12 rounded-2xl bg-white/80 dark:bg-stone-800/80 backdrop-blur-md shadow-sm border border-black/5 dark:border-white/10 flex items-center justify-center overflow-hidden transition-all duration-200 group-hover:shadow-md group-hover:scale-105">
+              <div className="relative w-12 h-12 rounded-2xl bg-white/80 dark:bg-stone-800/80 backdrop-blur-md shadow-sm border border-black/5 dark:border-white/10 flex items-center justify-center overflow-hidden transition-all duration-200 group-hover:shadow-md group-hover:scale-105">
+                {/* 首字母是图标缺失时的独占兜底层（C005）：垫在容器底部，
+                    图标 img 加载成功后覆盖其上；onError 隐藏 img 才露出字母 */}
+                <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-stone-700 dark:text-stone-200 uppercase select-none">
+                  {getInitial(shortcut.name)}
+                </span>
                 <img
                   src={faviconUrl}
                   alt=""
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
                   onError={(e) => {
-                    // Fallback to text initial
+                    // 图标不可用：隐藏 img 露出底层首字母（字母唯一展示场景）
                     (e.target as HTMLElement).style.display = 'none';
+                    const letter = (e.target as HTMLElement).previousElementSibling as HTMLElement | null;
+                    if (letter) letter.style.visibility = 'visible';
                   }}
-                  className="w-6 h-6 object-contain"
+                  onLoad={(e) => {
+                    // 加载成功：恢复 img 并彻底隐藏字母层（防透明图标透出字母）
+                    (e.target as HTMLElement).style.display = '';
+                    const letter = (e.target as HTMLElement).previousElementSibling as HTMLElement | null;
+                    if (letter) letter.style.visibility = 'hidden';
+                  }}
+                  className="relative w-6 h-6 object-contain"
                 />
-                <span className="text-base font-semibold text-stone-700 dark:text-stone-200 uppercase select-none">
-                  {getInitial(shortcut.name)}
-                </span>
               </div>
 
               {/* Title */}

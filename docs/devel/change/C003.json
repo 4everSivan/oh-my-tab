@@ -3,7 +3,7 @@
   "id": "C003",
   "title": "修复材质预设切换失效：预设按钮未写回 type=material，图片模式下视觉无变化",
   "type": "BugFix",
-  "status": "in_progress",
+  "status": "verified",
   "branch": "fix/C003-material-preset",
   "is_hotfix": false,
   "target": {
@@ -47,8 +47,8 @@
   "verification": {
     "result": null,
     "run_id": "RUN-C003-001",
-    "user_quote": "",
-    "signoff": "",
+    "user_quote": "现在确认生效了",
+    "signoff": "2026-10-09 用户会话内口头确认背景/材质修复生效，AI 代签记入（RUN-C003-001）",
     "checks": [
       {
         "item": "自动化测试",

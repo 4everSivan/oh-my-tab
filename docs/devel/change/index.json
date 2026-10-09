@@ -9,7 +9,9 @@
     },
     "EntryNavigation": {
       "design_doc": "docs/devel/design/01-页面入口与导航.md",
-      "changes": []
+      "changes": [
+        "C005"
+      ]
     },
     "WorkspaceAppearance": {
       "design_doc": "docs/devel/design/02-工作台布局与外观.md",
@@ -61,7 +63,7 @@
     "C003": {
       "title": "修复材质预设切换失效：预设按钮未写回 type=material",
       "type": "BugFix",
-      "status": "in_progress",
+      "status": "verified",
       "branch": "fix/C003-material-preset",
       "topic": "WorkspaceAppearance",
       "created": "2026-10-09"
@@ -69,9 +71,17 @@
     "C004": {
       "title": "修复背景渲染层从未可见：body 不透明底色覆盖 -z-20 固定层",
       "type": "BugFix",
-      "status": "in_progress",
+      "status": "verified",
       "branch": "fix/C004-bg-layer-visible",
       "topic": "WorkspaceAppearance",
+      "created": "2026-10-09"
+    },
+    "C005": {
+      "title": "修复网站图标首字母始终显示：字母降级为图标缺失时的兜底层",
+      "type": "BugFix",
+      "status": "in_progress",
+      "branch": "fix/C005-icon-fallback",
+      "topic": "EntryNavigation",
       "created": "2026-10-09"
     }
   }
