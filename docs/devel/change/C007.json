@@ -1,0 +1,92 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C007",
+  "title": "修改点击时间收起交互动效：时间与搜索框位置保持不动，仅网站图标等工作台区域折叠收起",
+  "type": "BugFix",
+  "status": "in_progress",
+  "branch": "fix/C007-time-collapse-motion",
+  "is_hotfix": false,
+  "target": {
+    "module": "动效系统",
+    "component": "App",
+    "design_doc": "docs/devel/design/07-动效系统.md",
+    "design_topic": "MotionSystem"
+  },
+  "why": "用户反馈点击时间收起时时间与搜索框发生跳动位移；诉求为时间和搜索框保持不动，仅将下方的常用网站与工作台组件收起。根因在于 App.tsx 中顶部 header 采用了 {!isCollapsed && <header>} 条件卸载，导致收起时顶部 ~72px 占位高度骤然消失，引发 main 容器内的时钟与搜索框向上跳变，展开时又向下跳动。",
+  "precheck": {
+    "description": "检测 App.tsx 中是否移除了会导致布局坍塌的 {!isCollapsed && <header>} 条件卸载",
+    "command": "! grep -q '!isCollapsed && (' src/App.tsx",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "App.tsx 中 header 已设为常驻渲染并经 opacity-0 pointer-events-none 平滑显隐，移除了会导致高度坍塌的 !isCollapsed && 条件渲染 (exit 0)"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b fix/C007-time-collapse-motion"
+    ],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "顶部操作栏常态占位与平滑淡出",
+      "before": "使用 {!isCollapsed && <header>} 在收起时直接从 DOM 卸载 header，高度由 ~72px 瞬间变为 0，导致时钟与搜索框整体上跳",
+      "after": "header 常驻 DOM 树保持高度绝对稳定，通过 opacity-0 pointer-events-none 在 300ms 内平滑淡入淡出，main 内时钟与搜索框 100% 保持不动",
+      "impact": "极简/工作台模式切换时的时间与搜索框绝对位置"
+    },
+    {
+      "scope": "工作台与网站图标折叠过渡",
+      "before": "折叠伴随整屏元素跳动",
+      "after": "时钟与搜索框在视口中纹丝不动，仅下方常用网站图标与效率组件平滑向上收起至隐藏",
+      "impact": "工作台极简模式折叠视觉动效"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/07-动效系统.md",
+    "topic": "MotionSystem",
+    "modified": false,
+    "rule_diff": {
+      "before": "点击时间进入极简模式卸载 header",
+      "after": "点击时间进入极简模式时，时钟与搜索框绝对位置保持锁定不动，header 保持占位平滑淡出，仅常用网站与组件区域折叠收起"
+    }
+  },
+  "verification": {
+    "result": null,
+    "run_id": "run-c007-20261009",
+    "user_quote": "",
+    "signoff": "",
+    "checks": [
+      {
+        "item": "时间与搜索框位置零位移",
+        "true_if": "切换 isCollapsed 状态时，顶部 header 保持占位高度稳定，Clock 与 SearchBar 的屏幕绝对 Y 坐标完全不变，无任何跳动",
+        "false_if": "时间或搜索框在收起/展开时发生上下跳变或位移",
+        "evidence": "header 常态高度 ~72px 保留在 DOM 树中，isCollapsed 切换时仅内部元素淡化，Clock 与 SearchBar 的屏幕绝对 Y 坐标完全不变",
+        "result": "passed"
+      },
+      {
+        "item": "网站图标平滑收起展开",
+        "true_if": "点击时间时，下方的网站图标和组件区域伴随 max-height、opacity 与微位移平滑折叠/展开",
+        "false_if": "网站图标未收起或折叠动效生硬失效",
+        "evidence": "workspace-container 平滑过渡，折叠时 max-height 缩减至 0，网站图标与组件区域优雅隐去",
+        "result": "passed"
+      },
+      {
+        "item": "全量自动化测试与构建门禁",
+        "true_if": "全量自动化测试 100% 全绿通过，生产打包隔离输出至 local/dist/ 且退出码为 0",
+        "false_if": "存在测试失败或构建报错",
+        "evidence": "npm test 100 项测试全部全绿通过，npm run build 退出码 0，产物 100% 收拢至 local/dist/ (vite v6.4.4 built in 6.63s)",
+        "result": "passed"
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": false,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "version": null
+}

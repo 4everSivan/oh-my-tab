@@ -177,3 +177,21 @@ test('动效参数单一来源：组件源码不散落硬编码动效时长', ()
     assert.deepEqual(customDurations, [], '动效时长应引用 motion.css 令牌而非自定义值');
   }
 });
+
+// 7. C007 极简折叠模式下时间与搜索框零位移契约
+test('极简折叠模式切换时 header 保持占位高度稳定，时钟与搜索框零位移 (C007)', () => {
+  const appSrc = fs.readFileSync(path.resolve(__dirname, '../src/App.tsx'), 'utf-8');
+  // header 必须常驻渲染，禁止使用 !isCollapsed && <header> 条件卸载
+  assert.ok(!appSrc.includes('!isCollapsed && ('), 'header 不得使用 !isCollapsed 条件卸载以防高度坍塌');
+  // header 必须通过 opacity-0 pointer-events-none 响应 isCollapsed
+  assert.ok(
+    appSrc.includes("isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'"),
+    'header 须通过 opacity 与 pointer-events 平滑显隐'
+  );
+  // workspace-container 承载折叠动画
+  assert.ok(
+    appSrc.includes("data-collapsed={isCollapsed ? 'true' : 'false'}"),
+    '工作台容器须经 data-collapsed 承载折叠'
+  );
+});
+

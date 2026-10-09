@@ -179,31 +179,33 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Header controls (hidden in collapse mode) */}
-      {!isCollapsed && (
-        <header className="w-full flex items-center justify-between p-6 z-10 animate-fade-in select-none">
-          <div className="text-xs font-semibold tracking-wider uppercase opacity-60" style={{ color: textColor }}>
-            oh-my-tab
-          </div>
+      {/* Header controls (stays in layout to preserve vertical height; fades smoothly in collapse mode) */}
+      <header
+        className={`w-full flex items-center justify-between p-6 z-10 select-none transition-opacity duration-300 ${
+          isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+      >
+        <div className="text-xs font-semibold tracking-wider uppercase opacity-60" style={{ color: textColor }}>
+          oh-my-tab
+        </div>
 
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-xs font-medium text-stone-700 dark:text-stone-200 transition-all active:scale-95"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>添加组件</span>
-            </button>
-            <button
-              onClick={() => setIsDrawerOpen(true)}
-              className="p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95"
-              title="外观设置"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </header>
-      )}
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-xs font-medium text-stone-700 dark:text-stone-200 transition-all active:scale-95"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>添加组件</span>
+          </button>
+          <button
+            onClick={() => setIsDrawerOpen(true)}
+            className="p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95"
+            title="外观设置"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </header>
 
       {/* Main Workbench Area */}
       <main className="flex-1 flex flex-col items-center justify-start w-full px-4 z-0">

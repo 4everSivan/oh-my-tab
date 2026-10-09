@@ -41,7 +41,9 @@
     },
     "MotionSystem": {
       "design_doc": "docs/devel/design/07-动效系统.md",
-      "changes": []
+      "changes": [
+        "C007"
+      ]
     }
   },
   "cards": {
@@ -91,6 +93,14 @@
       "status": "in_progress",
       "branch": "fix/C006-shortcut-modal-overlay",
       "topic": "EntryNavigation",
+      "created": "2026-10-09"
+    },
+    "C007": {
+      "title": "修改点击时间收起交互动效：时间与搜索框位置保持不动，仅网站图标等工作台区域折叠收起",
+      "type": "BugFix",
+      "status": "in_progress",
+      "branch": "fix/C007-time-collapse-motion",
+      "topic": "MotionSystem",
       "created": "2026-10-09"
     }
   }
