@@ -1,0 +1,84 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C018",
+  "title": "调整常用网站翻页键盘快捷键：由上下方向键调整为左右方向键",
+  "type": "Enhancement",
+  "status": "closed",
+  "branch": "main",
+  "is_hotfix": false,
+  "target": {
+    "module": "页面入口与导航",
+    "component": "Shortcuts",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "why": "首页常用网站为单排水平横向排布（flex-nowrap），在空间隐喻与操作直觉上，使用左右方向键（ArrowRight ➡️ 下一页 / ArrowLeft ⬅️ 上一页）远比上下方向键（ArrowDown / ArrowUp）更符合横向切页的心智模型；同时与全局快捷键指南浮层保持一致。",
+  "precheck": {
+    "description": "检查当前 Shortcuts.tsx 中是否仍在使用 ArrowDown / ArrowUp 进行翻页调度",
+    "command": "grep -n \"e.key === 'ArrowDown'\" src/components/shortcuts/Shortcuts.tsx",
+    "expected": "输出包含 e.key === 'ArrowDown' 的代码行",
+    "is_completed": true,
+    "evidence": "91:      if (e.key === 'ArrowDown') {"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "键盘翻页快捷键调度与提示契约",
+      "before": "非文本输入态下监听 ArrowDown 切换下一页、ArrowUp 切换上一页，指示器 title 提示 ⬇️/⬆️",
+      "after": "非文本输入态下监听 ArrowRight 切换下一页、ArrowLeft 切换上一页，指示器 title 提示 ⬅️/➡️，并在快捷键全景指南浮层中登记",
+      "impact": "Shortcuts.tsx, ShortcutsHelpModal.tsx"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/01-页面入口与导航.md",
+    "topic": "EntryNavigation",
+    "modified": true,
+    "rule_diff": {
+      "before": "非输入态下按方向键 ArrowDown 切换至下一页、按 ArrowUp 切换至上一页",
+      "after": "非输入态下按方向键 ArrowRight 切换至下一页、按 ArrowLeft 切换至上一页"
+    }
+  },
+  "verification": {
+    "result": "passed",
+    "run_id": "npm-test-137",
+    "user_quote": "我确认",
+    "signoff": "2026-10-09",
+    "checks": [
+      {
+        "item": "自动化测试",
+        "true_if": "全量单测全绿，退出码为 0，含针对性回归测试",
+        "false_if": "存在任何测试失败、报错或未覆盖回归用例",
+        "evidence": "npm test 全部 137 项测试通过 (137 pass, 0 fail, 0 skipped)，含 C018 专项回归断言",
+        "result": true
+      },
+      {
+        "item": "行为实测",
+        "true_if": "非输入态下按 ArrowRight 切换下一页、ArrowLeft 切换上一页，输入态严格避让",
+        "false_if": "出现报错、非预期返回值或行为失真",
+        "evidence": "npm run build 编译成功 (耗时 7.63s)，Shortcuts.tsx 监听 ArrowRight 切换下一页、ArrowLeft 切换上一页，ShortcutsHelpModal.tsx 同步声明",
+        "result": true
+      },
+      {
+        "item": "反向影响排查",
+        "true_if": "未引入副作用，SearchBar 联想菜单等原 ArrowDown/ArrowUp 逻辑不受影响",
+        "false_if": "破坏了上下游其他接口或产生连锁反应",
+        "evidence": "未引入副作用，输入框激活时不抢占光标移动，SearchBar 联想菜单与其它组件逻辑均全绿通过",
+        "result": true
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": false,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "version": null
+}

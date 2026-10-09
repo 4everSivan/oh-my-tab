@@ -1,0 +1,84 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C020",
+  "title": "常用网站图标文件夹展开抽屉托盘与图标容器根据背景自适应明暗配色",
+  "type": "Enhancement",
+  "status": "closed",
+  "branch": "feat/C020-folder-drawer-adaptive-contrast",
+  "is_hotfix": false,
+  "target": {
+    "module": "页面入口与导航",
+    "component": "Shortcuts",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "why": "用户反馈文件夹点击展开后的毛玻璃抽屉托盘（Horizontal Expansion Tray）此前采用固定的 bg-white/75 静态类名，无法跟随当前壁纸采样及背景亮度（深色图片壁纸、深色纯色、暗夜材质）自适应切换底色与边框，在深色背景下视觉割裂突兀。需接入自适应取色管线，使托盘底色、边框、阴影、子项图标容器与文字完全动态契合背景明暗。",
+  "precheck": {
+    "description": "检测 Shortcuts.tsx 中抽屉托盘是否仍在使用硬编码的 bg-white/75",
+    "command": "grep -q 'bg-white/75' src/components/shortcuts/Shortcuts.tsx",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "precheck 退出码为 0，证实当前抽屉托盘仍在使用硬编码的静态类名 bg-white/75，缺陷现象存在，确认待实施"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "视觉样式与自适应配色管线",
+      "before": "毛玻璃抽屉托盘使用硬编码静态 bg-white/75 dark:bg-stone-900/75 样式，与壁纸自适应采样脱节",
+      "after": "基于 textColor 与 background 配置自适应计算 isDark，动态注入深色黑曜石毛玻璃（rgba(18, 18, 22, 0.72)）或浅色晶莹毛玻璃（rgba(255, 255, 255, 0.76)），托盘内外边框、阴影、子项图标与添加按钮全量自适应",
+      "impact": "常用网站文件夹展开抽屉在任何复杂明暗壁纸与材质下均保持协调优雅与高透高对比"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/01-页面入口与导航.md",
+    "topic": "EntryNavigation",
+    "modified": true,
+    "rule_diff": {
+      "before": "点击文件夹横向展开抽屉托盘呈现毛玻璃外观",
+      "after": "毛玻璃横向展开抽屉托盘严格遵循自适应背景取色契约：深色背景选用高对比深色黑曜石毛玻璃微底托，浅色背景选用清透晶莹高斯微底托，子项图标与文字协调自适应"
+    }
+  },
+  "verification": {
+    "result": "passed",
+    "run_id": "test-c020-pass",
+    "user_quote": "确认",
+    "signoff": "2026-10-09",
+    "checks": [
+      {
+        "item": "自动化测试",
+        "true_if": "全量单测全绿，退出码为 0，新增针对抽屉托盘背景自适应样式的专项回归断言",
+        "false_if": "存在任何测试失败、报错或未覆盖回归用例",
+        "evidence": "执行 npm test 退出码为 0，全量 142 项测试全部通过，C020 专项断言通过",
+        "result": true
+      },
+      {
+        "item": "行为实测",
+        "true_if": "深色与浅色背景下展开文件夹，抽屉底色与子项样式自适应切换且高透舒适",
+        "false_if": "在深色背景下仍为刺眼白底或在浅色背景下发黑不协调",
+        "evidence": "Shortcuts.tsx 移除静态 bg-white/75，接入 isDark 动态注入深浅自适应毛玻璃与高透边框投影，npm run build 退出码为 0",
+        "result": true
+      },
+      {
+        "item": "反向影响排查",
+        "true_if": "原有单排 6 槽位分页、左右方向键翻页、图标兜底及各项已有测试契约完全不受影响",
+        "false_if": "破坏现有导航、动效或分页交互",
+        "evidence": "既有 141 项测试（包含导航、动效、时钟、搜索、壁纸、T15 文件夹等）完全未受破坏，全量通过",
+        "result": true
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "",
+    "tag": ""
+  },
+  "version": null
+}

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "package": "tsc && vite build && (cd local/dist && zip -r -q ../oh-my-tab-v0.1.0.zip . -x '.*')",
     "preview": "vite preview",
     "test": "node --test tests/*.test.cjs"
   },

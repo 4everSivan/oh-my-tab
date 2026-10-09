@@ -6,11 +6,13 @@ import {
   SearchAppearance,
   BackgroundConfig,
   Shortcut,
+  ShortcutGroup,
   LayoutItem,
   DEFAULT_CLOCK_APPEARANCE,
   DEFAULT_SEARCH_APPEARANCE,
   DEFAULT_BACKGROUND_CONFIG,
   DEFAULT_SHORTCUTS,
+  DEFAULT_SHORTCUT_GROUPS,
   DEFAULT_LAYOUT,
 } from './services/storage';
 import { Clock } from './components/clock/Clock';
@@ -36,6 +38,24 @@ export const App: React.FC = () => {
   const [engine, setEngine] = useState<string>(() => boot?.engine ?? 'google');
   const [background, setBackground] = useState<BackgroundConfig>(() => boot?.background ?? DEFAULT_BACKGROUND_CONFIG);
   const [shortcuts, setShortcuts] = useState<Shortcut[]>(() => boot?.shortcuts ?? DEFAULT_SHORTCUTS);
+  const [shortcutGroups, setShortcutGroups] = useState<ShortcutGroup[]>(() => {
+    if (boot?.shortcutGroups && boot.shortcutGroups.length > 0) {
+      return boot.shortcutGroups;
+    }
+    const legacy = boot?.shortcuts;
+    return legacy && legacy.length > 0
+      ? [
+          {
+            id: 'group-default',
+            name: '主页',
+            shortcuts: legacy,
+          },
+        ]
+      : DEFAULT_SHORTCUT_GROUPS;
+  });
+  const [activeShortcutGroupId, setActiveShortcutGroupId] = useState<string>(
+    () => boot?.activeShortcutGroupId ?? 'group-default'
+  );
   const [layout, setLayout] = useState<LayoutItem[]>(() => boot?.layout ?? DEFAULT_LAYOUT);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -51,8 +71,16 @@ export const App: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     async function loadAll() {
-      const { clock: c, search: s, engine: e, background: b, shortcuts: sc, layout: l } =
-        await storageService.loadAllSettings();
+      const {
+        clock: c,
+        search: s,
+        engine: e,
+        background: b,
+        shortcuts: sc,
+        shortcutGroups: sg,
+        activeShortcutGroupId: agId,
+        layout: l,
+      } = await storageService.loadAllSettings();
 
       if (!isMounted) return;
 
@@ -83,6 +111,8 @@ export const App: React.FC = () => {
       setEngine(e);
       setBackground(finalBackground);
       setShortcuts(sc);
+      if (sg && sg.length > 0) setShortcutGroups(sg);
+      if (agId) setActiveShortcutGroupId(agId);
       setLayout(l);
     }
     loadAll();
@@ -222,6 +252,30 @@ export const App: React.FC = () => {
   const handleShortcutsChange = async (newShortcuts: Shortcut[]) => {
     await storageService.setShortcuts(newShortcuts);
     setShortcuts(newShortcuts);
+    // 同步更新当前活动组的 shortcuts 列表
+    const updatedGroups = shortcutGroups.map((g) =>
+      g.id === activeShortcutGroupId ? { ...g, shortcuts: newShortcuts } : g
+    );
+    setShortcutGroups(updatedGroups);
+    await storageService.setShortcutGroups(updatedGroups);
+  };
+
+  const handleGroupsChange = async (newGroups: ShortcutGroup[]) => {
+    setShortcutGroups(newGroups);
+    await storageService.setShortcutGroups(newGroups);
+    const activeGroup = newGroups.find((g) => g.id === activeShortcutGroupId) || newGroups[0];
+    if (activeGroup) {
+      setShortcuts(activeGroup.shortcuts);
+    }
+  };
+
+  const handleActiveGroupIdChange = async (groupId: string) => {
+    setActiveShortcutGroupId(groupId);
+    await storageService.setActiveShortcutGroupId(groupId);
+    const targetGroup = shortcutGroups.find((g) => g.id === groupId);
+    if (targetGroup) {
+      setShortcuts(targetGroup.shortcuts);
+    }
   };
 
   // Add widget with single-instance check
@@ -341,7 +395,13 @@ export const App: React.FC = () => {
           <div className="w-full mt-6">
             <Shortcuts
               shortcuts={shortcuts}
+              groups={shortcutGroups}
+              activeGroupId={activeShortcutGroupId}
+              onGroupsChange={handleGroupsChange}
+              onActiveGroupIdChange={handleActiveGroupIdChange}
               textColor={textColor}
+              shadowProtection={shadowProtection}
+              background={background}
               onChange={handleShortcutsChange}
             />
           </div>

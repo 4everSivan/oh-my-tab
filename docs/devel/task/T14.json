@@ -1,0 +1,94 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T14",
+  "title": "常用网站导入导出与单排6图标滑动/按键翻页系统",
+  "milestone": "M1-v0.1.0-首发里程碑",
+  "status": "completed",
+  "branch": "feat/T14-shortcuts-import-export-and-pagination",
+  "depends_on": [
+    "T04"
+  ],
+  "target": {
+    "module": "页面入口与导航",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "goal": "1) 提供常用网站配置 JSON 导入与导出功能，支持数据安全备份迁移并具备协议与合法性防御；2) 首页常用网站区域无论数据多少单页至多展示 1 排 6 个图标，多图标通过鼠标滚轮/触控板滑动翻页、非输入态方向键 ⬇️ (ArrowDown) / ⬆️ (ArrowUp) 翻页及底部小圆点指示器切页。",
+  "precheck": {
+    "description": "检测 Shortcuts 组件或服务是否已实现导出功能",
+    "command": "grep -q 'exportShortcuts' src/components/shortcuts/Shortcuts.tsx",
+    "expected": "1",
+    "is_completed": true,
+    "evidence": "开工前 precheck 返回 1 (未实现)；当前已在 Shortcuts.tsx 与 transfer.ts 中完整实现并导出"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b feat/T14-shortcuts-import-export-and-pagination"
+    ],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T14-1",
+      "title": "常用网站导入导出核心服务与格式校验防御",
+      "capability": "实现 exportShortcutsJSON 与 importShortcutsFromJSON，支持 JSON 导出下载、文件解析读取、非法协议/URL/超长名称过滤与自动生成 ID",
+      "done": true
+    },
+    {
+      "id": "T14-2",
+      "title": "常用网站单排6图标自动切片与平滑分页渲染",
+      "capability": "重构 Shortcuts 渲染容器，单页至多展示 1 排 6 个图标，多页计算切片，底部提供小圆点指示器（Dots）且支持点击切页与平滑过渡",
+      "done": true
+    },
+    {
+      "id": "T14-3",
+      "title": "滑动滚轮与方向键⬇️/⬆️翻页调度",
+      "capability": "Shortcuts 区域支持触控板/鼠标滚轮上下或左右滚动滑动防抖切页，全局支持非文本输入态下按方向键 ⬇️ (下一页) 与 ⬆️ (上一页) 翻页",
+      "done": true
+    },
+    {
+      "id": "T14-4",
+      "title": "导入导出 UI 交互入口集成与反馈",
+      "capability": "在 Shortcuts 添加网站弹窗提供导入与导出操作按钮，导入文件后即时持久化并刷新界面",
+      "done": true
+    }
+  ],
+  "acceptance": {
+    "result": "passed",
+    "run_id": "test-suite-135-passed",
+    "checks": [
+      {
+        "item": "单排 6 图标展示与分页切片正确性",
+        "true_if": "无论常用网站有几个，单页至多只展示 1 排 6 个图标，超出自动产生多页与对应数量的圆点指示器",
+        "false_if": "一行超过 6 个图标或换行平铺导致多排堆叠",
+        "evidence": "node:test tests/shortcuts-transfer-and-pagination.test.cjs 验证通过：PAGE_SIZE 锁定为 6，容器使用 flex-nowrap，超出 6 槽位自动分页并展示圆点指示器",
+        "result": "passed"
+      },
+      {
+        "item": "滑动与按键 ⬇️ / ⬆️ 翻页交互可用性",
+        "true_if": "在图标区域滚动滑动可平滑换页，非输入态下按 ArrowDown 下翻页、ArrowUp 上翻页，边界不越界",
+        "false_if": "按键或滑动无法切页，或输入框打字时误触发切页",
+        "evidence": "Shortcuts.tsx 包含 onWheel 节流调度与全局 ArrowDown/ArrowUp 监听（带 isEditable 避让），用例断言全部通过",
+        "result": "passed"
+      },
+      {
+        "item": "网站数据导入导出完整性与安全防御",
+        "true_if": "导出生成合规 JSON 文件，导入时有效过滤 javascript:/data: 等危险地址并合并/覆盖当前快捷方式",
+        "false_if": "无法下载或导入非法格式引起异常崩塌",
+        "evidence": "transfer.ts 导出 exportShortcutsToJSON、parseShortcutsFromJSON 与 mergeShortcuts，单测验证包含 XSS 拦截、超长字符截断、损坏 JSON 容错与去重",
+        "result": "passed"
+      },
+      {
+        "item": "全量自动化测试与构建隔离",
+        "true_if": "单测全绿，npm run build 构建成功输出至 local/dist/",
+        "false_if": "测试失败或构建报错",
+        "evidence": "全量 135 项测试用例全绿通过 (Exit Code 0)，npm run build 成功编译隔离输出至 local/dist/ (Exit Code 0)",
+        "result": "passed"
+      }
+    ]
+  },
+  "version": null
+}

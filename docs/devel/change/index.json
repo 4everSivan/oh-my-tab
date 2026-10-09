@@ -17,7 +17,11 @@
         "C012",
         "C013",
         "C014",
-        "C016"
+        "C016",
+        "C017",
+        "C018",
+        "C019",
+        "C020"
       ]
     },
     "WorkspaceAppearance": {
@@ -181,6 +185,38 @@
       "type": "BugFix",
       "status": "closed",
       "branch": "fix/C016-search-in-current-tab",
+      "topic": "EntryNavigation",
+      "created": "2026-10-09"
+    },
+    "C017": {
+      "title": "优化常用网站翻页圆点指示器视觉显著度并接入背景自适应配色",
+      "type": "Enhancement",
+      "status": "closed",
+      "branch": "main",
+      "topic": "EntryNavigation",
+      "created": "2026-10-09"
+    },
+    "C018": {
+      "title": "调整常用网站翻页键盘快捷键：由上下方向键调整为左右方向键",
+      "type": "Enhancement",
+      "status": "closed",
+      "branch": "main",
+      "topic": "EntryNavigation",
+      "created": "2026-10-09"
+    },
+    "C019": {
+      "title": "常用网站翻页圆点指示器增加快捷键（左右）与“翻页”提示文字",
+      "type": "Enhancement",
+      "status": "closed",
+      "branch": "main",
+      "topic": "EntryNavigation",
+      "created": "2026-10-09"
+    },
+    "C020": {
+      "title": "常用网站图标文件夹展开抽屉托盘与图标容器根据背景自适应明暗配色",
+      "type": "Enhancement",
+      "status": "closed",
+      "branch": "feat/C020-folder-drawer-adaptive-contrast",
       "topic": "EntryNavigation",
       "created": "2026-10-09"
     }

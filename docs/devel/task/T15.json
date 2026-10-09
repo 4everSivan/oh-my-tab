@@ -1,0 +1,92 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T15",
+  "title": "常用网站图标文件夹（Folder）系统与横向展开抽屉托盘",
+  "milestone": "M1-v0.1.0-首发里程碑",
+  "status": "completed",
+  "branch": "feat/T15-shortcut-folders",
+  "depends_on": [
+    "T04",
+    "T14"
+  ],
+  "target": {
+    "module": "页面入口与导航",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "goal": "1) 在 Shortcut 领域契约中扩展 isFolder 与 children 嵌套结构，单排 6 图标自动切片分页原生将文件夹作为单槽位处理；2) 文件夹图标渲染 2x2 微缩预览四宫格网格；3) 点击文件夹平滑横向展开毛玻璃抽屉托盘（Horizontal Expansion Tray），横向排布子网站并支持点击跳转、文件夹内添加网站与关闭；4) 支持拖拽移入文件夹、右键移入/移出/解散/重命名/删除文件夹；5) transfer 模块原生识别 iTab type: folder 结构 1:1 转换为图标文件夹。",
+  "precheck": {
+    "description": "检测 Shortcut 接口是否已扩展 isFolder 与 children 契约",
+    "command": "grep -q 'isFolder' src/services/storage/types.ts",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "precheck 检测成功通过，types.ts 已完整声明 isFolder?: boolean 与 children?: Shortcut[]"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T15-1",
+      "title": "Shortcut 嵌套文件夹领域契约与 StorageService 向后兼容",
+      "capability": "在 Shortcut 接口中扩展 isFolder 与 children 字段，保持与单排 6 槽位分页和现有持久化完全兼容",
+      "done": true
+    },
+    {
+      "id": "T15-2",
+      "title": "文件夹图标渲染与 2x2 四宫格微缩预览",
+      "capability": "主行槽位中渲染连续圆角文件夹外壳，容器内展示至多 4 个子站点的 2x2 微缩 Favicon/首字母预览网格",
+      "done": true
+    },
+    {
+      "id": "T15-3",
+      "title": "点击横向展开毛玻璃抽屉托盘（Horizontal Expansion Tray）",
+      "capability": "点击文件夹在下方横向展开抽屉托盘，支持横向紧凑滚动排布子站点、直接点击跳转、文件夹内快捷添加与关闭",
+      "done": true
+    },
+    {
+      "id": "T15-4",
+      "title": "拖拽与右键归纳管理（移入/移出/解散/重命名/删除）",
+      "capability": "支持长按拖拽图标直接放入文件夹图标；右键支持移入文件夹、新建文件夹并归纳、解散文件夹（子站还原首页）、移出文件夹",
+      "done": true
+    },
+    {
+      "id": "T15-5",
+      "title": "iTab 备份原生 1:1 文件夹结构导入与导出互通",
+      "capability": "parseShortcutsFromJSON 原生识别 iTab type: folder 节点并转换为 oh-my-tab 图标文件夹，导出 JSON 原生保留完整文件夹层级",
+      "done": true
+    }
+  ],
+  "acceptance": {
+    "result": "passed",
+    "run_id": "npm-test-141",
+    "checks": [
+      {
+        "item": "架构纯度与文件夹契约",
+        "true_if": "Shortcut 支持 isFolder 与 children 嵌套，文件夹占用单排 6 槽位中的 1 个槽位，单排 6 图标与左右按键翻页零割裂",
+        "false_if": "破坏现有单排 6 槽位分页或导致旧版单列表数据损坏",
+        "evidence": "types.ts 导出包含 isFolder 与 children 的 Shortcut 契约，141 项自动化测试 100% 全绿通过",
+        "result": true
+      },
+      {
+        "item": "2x2 微缩预览与横向展开抽屉托盘",
+        "true_if": "文件夹图标呈现 2x2 四宫格预览；点击平滑横向展开毛玻璃托盘，展示内部所有子网站并可直接点击访问与关闭",
+        "false_if": "无微缩预览或点击文件夹无横向展开响应",
+        "evidence": "Shortcuts.tsx 包含 grid-cols-2 四宫格微缩网格与 expandedFolderId 驱动的毛玻璃抽屉托盘，且支持 Escape 快捷关闭",
+        "result": true
+      },
+      {
+        "item": "归类整理与 iTab 文件夹 1:1 互通",
+        "true_if": "支持拖拽移入、右键移入/移出/解散文件夹；解析 iTab 备份时自动将 type: folder 转换为图标文件夹",
+        "false_if": "无法移入移出或 iTab 文件夹被强行打散丢弃",
+        "evidence": "Shortcuts.tsx 包含 handleDropIntoFolder / handleUngroupFolder / handleMoveOutOfFolder / handleMoveIntoFolder；transfer.ts 原生识别 iTab folder 节点，测试用例验证通过",
+        "result": true
+      }
+    ]
+  },
+  "version": null
+}

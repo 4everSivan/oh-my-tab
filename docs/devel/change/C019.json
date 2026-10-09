@@ -1,0 +1,84 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C019",
+  "title": "常用网站翻页圆点指示器增加快捷键（左右）与“翻页”提示文字",
+  "type": "Enhancement",
+  "status": "closed",
+  "branch": "main",
+  "is_hotfix": false,
+  "target": {
+    "module": "页面入口与导航",
+    "component": "Shortcuts",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "why": "单纯呈现圆点未能直观表达翻页操作，用户期望在翻页指示器中明确展示快捷键（左右 ← / →）与操作提示（翻页），兼备视觉心智映射与直接点击切页能力。",
+  "precheck": {
+    "description": "检查当前 Shortcuts.tsx 中的圆点指示器浮动胶囊内是否尚未包含 [←] [→] 快捷键与“翻页”提示文字",
+    "command": "grep -n '翻页' src/components/shortcuts/Shortcuts.tsx",
+    "expected": "返回为空或退出码非 0",
+    "is_completed": true,
+    "evidence": "grep exit code 1 (当前尚未包含“翻页”提示文字)"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "圆点指示器视觉与交互提示文本",
+      "before": "指示器缺少直观的左右快捷键键位标识与“翻页”提示引导",
+      "after": "指示器左侧整合 [←] [→] 左右快捷键键帽与“翻页”文字标识，键帽支持直接点击切页并联动首末页禁用态，字色自适应继承 textColor",
+      "impact": "Shortcuts.tsx"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/01-页面入口与导航.md",
+    "topic": "EntryNavigation",
+    "modified": true,
+    "rule_diff": {
+      "before": "单排 6 图标下方渲染圆点指示器",
+      "after": "单排 6 图标下方渲染整合左右快捷键键帽 [←] [→]、提示文字“翻页”、自适应分隔线与圆点槽位的浮动胶囊指示器"
+    }
+  },
+  "verification": {
+    "result": "passed",
+    "run_id": "npm-test-138",
+    "user_quote": "我确认",
+    "signoff": "2026-10-09",
+    "checks": [
+      {
+        "item": "自动化测试",
+        "true_if": "全量单测全绿，退出码为 0，含针对性回归测试",
+        "false_if": "存在任何测试失败、报错或未覆盖回归用例",
+        "evidence": "npm test 全部 138 项测试通过 (138 pass, 0 fail, 0 skipped)，含 C019 专项回归断言",
+        "result": true
+      },
+      {
+        "item": "行为实测",
+        "true_if": "指示器直观呈现快捷键 [←] [→] 键帽与“翻页”提示文字并与圆点同框协调展示，字色自适应背景",
+        "false_if": "出现报错、非预期返回值或行为失真",
+        "evidence": "npm run build 编译成功 (耗时 8.22s)，指示器胶囊呈现 [←] [→] 键帽、微文字“翻页”与自适应分隔线，字色继承 textColor",
+        "result": true
+      },
+      {
+        "item": "反向影响排查",
+        "true_if": "未引入副作用，圆点点击、键盘左右切页、滚轮切页均正常运作",
+        "false_if": "破坏了上下游其他接口或产生连锁反应",
+        "evidence": "未引入副作用，快捷方式增删改查、滚轮与方向键切页均正常运作且全绿通过",
+        "result": true
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": false,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "version": null
+}

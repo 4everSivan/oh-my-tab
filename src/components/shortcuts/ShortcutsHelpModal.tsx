@@ -17,6 +17,7 @@ const SHORTCUT_LIST: ShortcutItem[] = [
   { group: '搜索与引擎', keyDesc: '`', action: '快速对焦到主页搜索框' },
   { group: '搜索与引擎', keyDesc: 'Tab', action: '顺次切换搜索引擎（必应 / 谷歌 / GitHub / Bilibili）' },
   { group: '搜索与引擎', keyDesc: 'Shift + Tab', action: '逆向切换上一款搜索引擎' },
+  { group: '常用网站', keyDesc: '← / →', action: '切换上一页 / 下一页网站图标' },
   { group: '视图与浮层', keyDesc: 'Esc', action: '级联退出：关掉抽屉设置、弹窗或搜索焦点' },
   { group: '视图与浮层', keyDesc: 'e / s', action: '打开 / 关闭外观与壁纸设置抽屉' },
   { group: '视图与浮层', keyDesc: 'a', action: '打开 / 关闭添加效率组件弹窗' },

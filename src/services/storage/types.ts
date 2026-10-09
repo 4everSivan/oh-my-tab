@@ -40,6 +40,14 @@ export interface Shortcut {
   id: string;
   name: string;
   url: string;
+  isFolder?: boolean;
+  children?: Shortcut[];
+}
+
+export interface ShortcutGroup {
+  id: string;
+  name: string;
+  shortcuts: Shortcut[];
 }
 
 export interface LayoutItem {
@@ -57,6 +65,8 @@ export interface AppSettings {
   engine: string;
   background: BackgroundConfig;
   shortcuts: Shortcut[];
+  shortcutGroups?: ShortcutGroup[];
+  activeShortcutGroupId?: string;
   layout: LayoutItem[];
 }
 
@@ -98,6 +108,14 @@ export const DEFAULT_SHORTCUTS: Shortcut[] = [
   { id: 'linear', name: 'Linear', url: 'https://linear.app/' },
   { id: 'feishu', name: '飞书', url: 'https://feishu.cn/' },
   { id: 'chatgpt', name: 'ChatGPT', url: 'https://chatgpt.com/' },
+];
+
+export const DEFAULT_SHORTCUT_GROUPS: ShortcutGroup[] = [
+  {
+    id: 'group-default',
+    name: '主页',
+    shortcuts: DEFAULT_SHORTCUTS,
+  },
 ];
 
 export const DEFAULT_LAYOUT: LayoutItem[] = [];

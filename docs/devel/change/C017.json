@@ -1,0 +1,90 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C017",
+  "title": "优化常用网站翻页圆点指示器视觉显著度并接入背景自适应配色",
+  "type": "Enhancement",
+  "status": "closed",
+  "branch": "main",
+  "is_hotfix": false,
+  "target": {
+    "module": "页面入口与导航",
+    "component": "Shortcuts",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "why": "原常用网站翻页圆点指示器尺寸过于微小（h-1.5 即 6px）且使用静态硬编码的 stone 灰阶色值，在深色壁纸或复杂图片壁纸下几乎不可见，无法根据当前壁纸亮度与对比度自适应调整色彩与投影，且点击热区较小，影响切页认知与点击操作。",
+  "precheck": {
+    "description": "检查 Shortcuts.tsx 中是否仍在使用静态硬编码 stone 色值与微小尺寸作为圆点指示器",
+    "command": "grep -n 'bg-stone-700/80' src/components/shortcuts/Shortcuts.tsx",
+    "expected": "输出包含 bg-stone-700/80 的代码行",
+    "is_completed": true,
+    "evidence": "396:                  ? 'w-4 bg-stone-700/80 dark:bg-stone-200/90 shadow-xs'"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "圆点指示器视觉显著度与点击热区",
+      "before": "高度仅为 h-1.5 (6px)，当前页宽度为 w-4 (16px)，按钮无扩充点击热区，直接裸露于页面缺少视觉底托",
+      "after": "圆点指示器高度升级为 h-2 (8px)，当前页宽度扩展至 w-5 (20px)，按钮提供充足热区内边距，并配合毛玻璃微浮动胶囊底托",
+      "impact": "Shortcuts.tsx"
+    },
+    {
+      "scope": "背景自适应色彩与高对比投影",
+      "before": "硬编码 bg-stone-700/80 与 bg-stone-400/40 样式，无法随壁纸自适应且深色背景下辨识度极低",
+      "after": "动态继承自适应计算出的 textColor 与 shadowProtection，背景明暗切换时圆点同步自适应黑白墨色并挂载柔和抗反光投影",
+      "impact": "Shortcuts.tsx, App.tsx"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/01-页面入口与导航.md",
+    "topic": "EntryNavigation",
+    "modified": true,
+    "rule_diff": {
+      "before": "单排 6 图标下方渲染半透明圆点指示器",
+      "after": "单排 6 图标下方渲染具有充足热区、胶囊微浮动底托与自适应 textColor / shadowProtection 配色的翻页圆点指示器"
+    }
+  },
+  "verification": {
+    "result": "passed",
+    "run_id": "npm-test-136",
+    "user_quote": "确认验收，但是我现在想调整一下刚刚的方向键上下来切换网页图标，改成左右方向键",
+    "signoff": "verified and closed by user oral confirmation",
+    "checks": [
+      {
+        "item": "自动化测试",
+        "true_if": "全量单测全绿，退出码为 0，含针对性回归测试",
+        "false_if": "存在任何测试失败、报错或未覆盖回归用例",
+        "evidence": "npm test 全部 136 项测试通过 (136 pass, 0 fail, 0 skipped)，含 C017 专项回归断言",
+        "result": true
+      },
+      {
+        "item": "行为实测",
+        "true_if": "圆点指示器显著度提升，支持自适应随背景切换黑白颜色，点击切页灵敏",
+        "false_if": "出现报错、非预期返回值或行为失真",
+        "evidence": "npm run build 编译成功 (耗时 6.82s)，圆点升级为 h-2/w-5 显著胶囊并提供毛玻璃底托，动态绑定 textColor 与 shadowProtection",
+        "result": true
+      },
+      {
+        "item": "反向影响排查",
+        "true_if": "未引入副作用，常用网站增删改查、拖拽排序与导入导出均正常",
+        "false_if": "破坏了上下游其他接口或产生连锁反应",
+        "evidence": "原 135 项历史测试无一破坏，快捷方式增删改查、排序及分页切片逻辑均全绿通过",
+        "result": true
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": false,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "version": null
+}

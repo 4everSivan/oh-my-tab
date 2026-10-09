@@ -3,11 +3,13 @@ import {
   SearchAppearance,
   BackgroundConfig,
   Shortcut,
+  ShortcutGroup,
   LayoutItem,
   DEFAULT_CLOCK_APPEARANCE,
   DEFAULT_SEARCH_APPEARANCE,
   DEFAULT_BACKGROUND_CONFIG,
   DEFAULT_SHORTCUTS,
+  DEFAULT_SHORTCUT_GROUPS,
   DEFAULT_LAYOUT,
 } from './types';
 import { chromeStorageAdapter, IStorageAdapter } from './chromeStorage';
@@ -19,6 +21,8 @@ const STORAGE_KEYS = {
   ENGINE: 'settings.engine',
   BACKGROUND: 'settings.background',
   SHORTCUTS: 'settings.shortcuts',
+  SHORTCUT_GROUPS: 'settings.shortcutGroups',
+  ACTIVE_SHORTCUT_GROUP_ID: 'settings.activeShortcutGroupId',
   LAYOUT: 'settings.layout',
   WIDGET_CONTENT_PREFIX: 'widgets/',
 };
@@ -31,6 +35,8 @@ export interface BootCache {
   engine?: string;
   background?: BackgroundConfig;
   shortcuts?: Shortcut[];
+  shortcutGroups?: ShortcutGroup[];
+  activeShortcutGroupId?: string;
   layout?: LayoutItem[];
   savedAt?: number;
 }
@@ -71,19 +77,23 @@ export class StorageService {
     engine: string;
     background: BackgroundConfig;
     shortcuts: Shortcut[];
+    shortcutGroups: ShortcutGroup[];
+    activeShortcutGroupId: string;
     layout: LayoutItem[];
   }> {
-    const [clock, search, engine, background, shortcuts, layout] = await Promise.all([
+    const [clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout] = await Promise.all([
       this.getClock(),
       this.getSearch(),
       this.getEngine(),
       this.getBackground(),
       this.getShortcuts(),
+      this.getShortcutGroups(),
+      this.getActiveShortcutGroupId(),
       this.getLayout(),
     ]);
 
-    updateBootCache({ clock, search, engine, background, shortcuts, layout });
-    return { clock, search, engine, background, shortcuts, layout };
+    updateBootCache({ clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout });
+    return { clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout };
   }
 
   // Clock
@@ -161,6 +171,47 @@ export class StorageService {
   async setShortcuts(shortcuts: Shortcut[]): Promise<void> {
     await this.adapter.set(STORAGE_KEYS.SHORTCUTS, shortcuts);
     updateBootCache({ shortcuts });
+  }
+
+  // Shortcut Groups (T15)
+  async getShortcutGroups(): Promise<ShortcutGroup[]> {
+    const groups = await this.adapter.get<ShortcutGroup[] | null>(STORAGE_KEYS.SHORTCUT_GROUPS, null);
+    if (groups && Array.isArray(groups) && groups.length > 0) {
+      return groups;
+    }
+    // 向后兼容迁移：若尚未保存过分组，将既有 shortcuts 列表包装为默认主页分组
+    const legacyShortcuts = await this.getShortcuts();
+    const defaultGroups: ShortcutGroup[] =
+      legacyShortcuts && legacyShortcuts.length > 0
+        ? [
+            {
+              id: 'group-default',
+              name: '主页',
+              shortcuts: legacyShortcuts,
+            },
+          ]
+        : DEFAULT_SHORTCUT_GROUPS;
+    return defaultGroups;
+  }
+
+  async setShortcutGroups(groups: ShortcutGroup[]): Promise<void> {
+    await this.adapter.set(STORAGE_KEYS.SHORTCUT_GROUPS, groups);
+    updateBootCache({ shortcutGroups: groups });
+    // 保持 legacy shortcuts 键与活动分组同步，确保向下兼容
+    if (groups.length > 0) {
+      const activeId = await this.getActiveShortcutGroupId();
+      const activeGroup = groups.find((g) => g.id === activeId) || groups[0];
+      await this.setShortcuts(activeGroup.shortcuts);
+    }
+  }
+
+  async getActiveShortcutGroupId(): Promise<string> {
+    return this.adapter.get<string>(STORAGE_KEYS.ACTIVE_SHORTCUT_GROUP_ID, 'group-default');
+  }
+
+  async setActiveShortcutGroupId(groupId: string): Promise<void> {
+    await this.adapter.set(STORAGE_KEYS.ACTIVE_SHORTCUT_GROUP_ID, groupId);
+    updateBootCache({ activeShortcutGroupId: groupId });
   }
 
   // Layout
