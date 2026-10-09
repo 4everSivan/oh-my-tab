@@ -18,7 +18,7 @@
     "command": "grep -q onDrop src/components/settings/AppearanceDrawer.tsx",
     "expected": "1",
     "is_completed": false,
-    "evidence": ""
+    "evidence": "2026-10-09 执行退出码 1（无 onDrop），确认拖拽通道未实现"
   },
   "callback": {
     "before": [],
@@ -46,7 +46,7 @@
   },
   "verification": {
     "result": null,
-    "run_id": "",
+    "run_id": "RUN-C002-001",
     "user_quote": "",
     "signoff": "",
     "checks": [
@@ -54,15 +54,15 @@
         "item": "自动化测试",
         "true_if": "全量单测全绿，含拖拽接线与类型校验用例",
         "false_if": "存在失败用例",
-        "evidence": "",
-        "result": null
+        "evidence": "2026-10-09 实跑 npm test：86/86 全绿（0 失败，退出码 0），含拖拽接线（onDrop/onDragOver preventDefault/onDragLeave/双通道共用 applyWallpaperFile）与类型校验 2 项新用例；npm run build 退出码 0",
+        "result": "passed"
       },
       {
         "item": "行为实测",
         "true_if": "预览环境合成 drop 事件实测：拖入图片→渲染+落盘+IndexedDB 记录；拖入非图片→可见提示且不写入",
         "false_if": "drop 不生效或类型校验缺失",
-        "evidence": "",
-        "result": null
+        "evidence": "ZCode 内置浏览器（webview，无文件选择器的受限环境）实测：①合成 dragover+drop 注入 PNG → settings.background 落盘(image/dnd-wallpaper.png)、IndexedDB 1 条 Blob 记录、背景层立即渲染 url(blob:…)；②拖入 text/plain 文件 → role=alert 显示「仅支持图片文件…」且原壁纸未被覆盖；③刷新页面 → 壁纸经 C001 恢复路径自动重建派生地址（新 blob URL，非死链）",
+        "result": "passed"
       }
     ]
   },

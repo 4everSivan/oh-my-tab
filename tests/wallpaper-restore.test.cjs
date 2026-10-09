@@ -66,3 +66,18 @@ test('壁纸走 IndexedDB 的分层边界未被破坏（MOT/T02 既有契约）'
   // Blob 与轻量配置分层：settings.background 仍走 chrome/localStorage 适配器
   assert.ok(read('src/services/storage/index.ts').includes("'settings.background'"), '背景配置键不应迁移到 IndexedDB');
 });
+
+// ── 6. C002 拖拽上传通道 ───────────────────────────────────────
+test('拖拽上传接线完整：dragover 阻止默认、drop 取文件、与选择器共用保存链路', () => {
+  assert.ok(drawerSrc.includes('onDrop={handleWallpaperDrop}'), '上传区未接 onDrop');
+  assert.ok(/onDragOver=\{[^}]*preventDefault/.test(drawerSrc), 'onDragOver 未 preventDefault（drop 不会被允许）');
+  assert.ok(drawerSrc.includes('onDragLeave'), '缺少 dragleave 取消高亮');
+  assert.ok(drawerSrc.includes('e.dataTransfer.files'), 'drop 未从 dataTransfer 取文件');
+  const sharedCalls = drawerSrc.match(/await applyWallpaperFile\(file\)/g) || [];
+  assert.equal(sharedCalls.length, 2, '选择器与拖拽两条通道都必须走 applyWallpaperFile 唯一链路');
+});
+
+test('拖拽通道有图片类型校验，非图片文件给出可见提示', () => {
+  assert.ok(/applyWallpaperFile[\s\S]{0,260}startsWith\('image\/'\)/.test(drawerSrc), '共用链路缺少 image/* 类型校验');
+  assert.ok(drawerSrc.includes('仅支持图片文件'), '非图片文件缺少可见错误提示');
+});

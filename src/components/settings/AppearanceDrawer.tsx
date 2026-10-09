@@ -43,16 +43,20 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
   const [activeTab, setActiveTab] = useState<'clock' | 'search' | 'background'>('clock');
   // 上传失败的可见反馈（C001：此前异常被静默吞掉，用户零感知）
   const [uploadError, setUploadError] = useState<string | null>(null);
+  // 拖拽悬停高亮（C002：webview 无文件选择器，拖拽是等价上传通道）
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // 350ms 与 motion.css 的 --panel-close-dur 保持一致，退出动画播完再卸载
   const { mounted, open } = useDelayedUnmount(isOpen, 350);
 
   if (!mounted) return null;
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  // 点击选择与拖拽文件共用的唯一保存链路（C001 恢复/反馈语义在此收口）
+  const applyWallpaperFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setUploadError('仅支持图片文件（PNG/JPEG/WebP 等），请重新选择或拖入');
+      return;
+    }
     setUploadError(null);
     const id = `wallpaper-${Date.now()}`;
     try {
@@ -70,8 +74,23 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
       });
     } catch {
       setUploadError('壁纸保存失败，请重试；若持续失败请检查浏览器存储权限');
-      e.target.value = '';
     }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await applyWallpaperFile(file);
+    // 清空 value 允许连续两次选择同一文件
+    e.target.value = '';
+  };
+
+  const handleWallpaperDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    await applyWallpaperFile(file);
   };
 
   return (
@@ -463,10 +482,26 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-xs text-stone-600 dark:text-stone-400">上传本地壁纸</label>
-                    <label className="flex flex-col items-center justify-center p-4 rounded-xl border border-dashed border-stone-300 dark:border-stone-700 hover:border-stone-400 cursor-pointer transition-colors">
-                      <Upload className="w-5 h-5 text-stone-400 mb-1" />
+                    <label
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDragOver(true);
+                      }}
+                      onDragLeave={() => setIsDragOver(false)}
+                      onDrop={handleWallpaperDrop}
+                      className={`flex flex-col items-center justify-center p-4 rounded-xl border border-dashed cursor-pointer transition-colors ${
+                        isDragOver
+                          ? 'border-stone-900 dark:border-white bg-black/5 dark:bg-white/10'
+                          : 'border-stone-300 dark:border-stone-700 hover:border-stone-400'
+                      }`}
+                    >
+                      <Upload className={`w-5 h-5 mb-1 ${isDragOver ? 'text-stone-700 dark:text-stone-200' : 'text-stone-400'}`} />
                       <span className="text-xs text-stone-600 dark:text-stone-300">
-                        {background.name ? background.name : '点击选择图片 (PNG/JPEG/WebP)'}
+                        {isDragOver
+                          ? '松开以设置壁纸'
+                          : background.name
+                            ? background.name
+                            : '点击选择或拖拽图片到此处 (PNG/JPEG/WebP)'}
                       </span>
                       <input
                         type="file"

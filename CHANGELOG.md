@@ -18,6 +18,7 @@
 - **核心效率组件交付 (T06)**：首发交付今日待办 (`core.todo`)、随手便签 (`core.notes`)、专注计时 (`core.focus`) 三款内置组件，实现跨刷新状态恢复与“移除卡片保留内容”(`INV_RETAIN_CONTENT_ON_REMOVE`) 物理隔离。
 - **Chrome 扩展端到端集成与实况报告 (T07)**：完成 Manifest V3 生产打包与 Chrome 扩展解压加载验证，产出 `local/deploy_report.md` 实况报告，64 项自动化测试全绿通过。
 - **动效系统 (T08)**：参考 transitions.dev 方法论建立纯 CSS 动效令牌梯度与 `t-*` 片段命名空间（`src/styles/motion.css` 单一来源），接入时间数字逐位弹入、待办勾选 stroke 描画、模态/抽屉开合退出动画、栅格卡片交错入场与列表项入场，内置 `prefers-reduced-motion` 全局降级守卫，修复 `animate-fade-in` 历史空操作类；零新增 JS 动效依赖，79 项自动化测试全绿。
+- **壁纸拖拽上传 (C002)**：外观抽屉壁纸上传区支持拖拽文件直传（悬停高亮、`image/*` 类型校验与可见错误提示），与点击选择共用同一保存链路；webview 等无文件选择器环境亦可上传。
 
 ### Added
 
