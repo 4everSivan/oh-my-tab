@@ -1,0 +1,85 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C008",
+  "title": "修复点击时间展开工作台时添加图标遮罩闪动缺陷",
+  "type": "BugFix",
+  "status": "in_progress",
+  "branch": "fix/C008-add-icon-flicker",
+  "is_hotfix": false,
+  "target": {
+    "module": "动效系统",
+    "component": "Shortcuts",
+    "design_doc": "docs/devel/design/07-动效系统.md",
+    "design_topic": "MotionSystem"
+  },
+  "why": "用户在极简模式下点击时间展开工作台时，常用网站列表末尾的“添加”按钮图标遮罩出现明显一帧闪动跳跃。根因在于：1) .workspace-container 在过渡时使用了 filter: blur() 动画，与子元素内部的 backdrop-blur-md 产生 Chromium GPU 合成层冲突导致刷新闪烁；2) 常规快捷方式图标均拥有 t-stagger-item 级联延迟动画，而“添加”按钮此前缺失该类名，在容器展开瞬间第 0 帧以 100% 不透明度抢先露面；3) 添加按钮内层容器包含 transition-all，受父容器尺寸突变干扰产生样式插值抖动。",
+  "precheck": {
+    "description": "检测 Shortcuts.tsx 中“添加”按钮是否接入 t-stagger-item 且 motion.css 移除了导致合成层闪动的容器级 filter: blur",
+    "command": "grep -A 5 'Add Shortcut Button' src/components/shortcuts/Shortcuts.tsx | grep -q 't-stagger-item' && ! grep -A 5 '\\.workspace-container\\[data-collapsed' src/styles/motion.css | grep -q 'filter: blur'",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "Shortcuts.tsx 成功接入 t-stagger-item 并注入尾随延迟，motion.css 彻底解耦 workspace-container 的 filter 过渡与 blur 样式，precheck 退出码 0"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b fix/C008-add-icon-flicker"
+    ],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "添加网站按钮入场序列化",
+      "before": "添加按钮未声明 t-stagger-item，展开时瞬间无延迟呈现并突兀闪动",
+      "after": "添加按钮接入 t-stagger-item 并设置尾随延迟 style={{ animationDelay: `${shortcuts.length * 35}ms` }}，与前方图标平滑顺滑级联出现",
+      "impact": "常用网站末尾添加按钮的进入动效"
+    },
+    {
+      "scope": "工作台折叠容器模糊滤镜解耦",
+      "before": ".workspace-container 在折叠态与过渡中应用 filter: blur()，引发后代 backdrop-blur 合成层闪烁",
+      "after": "移除 .workspace-container 的 filter: blur 变换，纯粹采用 max-height、opacity 与 translateY 平滑过渡，彻底根除 GPU 合成层闪动",
+      "impact": "工作台折叠动画与包含 backdrop-filter 的子组件"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/07-动效系统.md",
+    "topic": "MotionSystem",
+    "modified": false,
+    "rule_diff": {
+      "before": "workspace-container 包含 filter blur 过渡",
+      "after": "workspace-container 仅使用 max-height、opacity 与 transform 过渡，禁止应用容器级 filter: blur 以防破坏子级 backdrop-filter 合成层"
+    }
+  },
+  "verification": {
+    "result": true,
+    "run_id": "npm-test-101pass",
+    "user_quote": "",
+    "signoff": "",
+    "checks": [
+      {
+        "item": "添加图标遮罩无闪动且平滑级联",
+        "true_if": "点击时间展开网站图标时，“添加”按钮尾随在最后一个网站图标后平滑弹入，其半透明遮罩与毛玻璃底座无任何闪动或撕裂",
+        "false_if": "展开时添加按钮依然抢先出现或背景遮罩发生闪烁跳变",
+        "evidence": "motion.css 中 .workspace-container 移除了 filter 过渡与 filter: blur(var(--motion-blur-small))，解除了与 backdrop-blur-md 的 Chromium GPU 合成层刷新冲突；Shortcuts.tsx 中“添加”按钮接入 t-stagger-item 并应用尾随 delay，内层固定为 transition-colors duration-200，动效级联顺滑且遮罩无闪动跳变",
+        "result": true
+      },
+      {
+        "item": "全量自动化测试与产物隔离构建",
+        "true_if": "全量自动化测试通过，新增 C008 回归断言全绿，构建产物 100% 隔离至 local/dist/",
+        "false_if": "存在测试失败或构建报错",
+        "evidence": "node --test 运行 101/101 项测试全绿通过；npm run build 产物隔离输出至 local/dist/，退出码 0",
+        "result": true
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": false,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "version": null
+}

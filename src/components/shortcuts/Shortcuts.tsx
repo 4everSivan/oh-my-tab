@@ -240,14 +240,15 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
           );
         })}
 
-        {/* Add Shortcut Button */}
+        {/* Add Shortcut Button (C008: 接入 t-stagger-item 与尾随延迟，避免展开时闪动抢先露出) */}
         <button
           type="button"
           onClick={openAddModal}
-          className="flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-16"
+          className="t-stagger-item flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-16"
+          style={{ animationDelay: `${shortcuts.length * 35}ms` }}
           title="添加常用网站"
         >
-          <div className="w-12 h-12 rounded-2xl bg-black/5 dark:bg-white/10 backdrop-blur-md border border-dashed border-stone-300 dark:border-stone-700 flex items-center justify-center transition-all duration-200 group-hover:bg-black/10 dark:group-hover:bg-white/15">
+          <div className="w-12 h-12 rounded-2xl bg-black/5 dark:bg-white/10 backdrop-blur-md border border-dashed border-stone-300 dark:border-stone-700 flex items-center justify-center transition-colors duration-200 group-hover:bg-black/10 dark:group-hover:bg-white/15">
             <Plus className="w-5 h-5 text-stone-500 dark:text-stone-400" />
           </div>
           <span

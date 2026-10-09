@@ -195,3 +195,31 @@ test('极简折叠模式切换时 header 保持占位高度稳定，时钟与搜
   );
 });
 
+// 8. C008 添加图标级联入场与工作台折叠容器滤镜解耦契约
+test('工作台折叠容器禁止 filter:blur 且常用网站添加按钮接入级联延迟 (C008)', () => {
+  const shortcutsSrc = fs.readFileSync(path.resolve(__dirname, '../src/components/shortcuts/Shortcuts.tsx'), 'utf-8');
+  // 1. workspace-container 折叠态严禁应用 filter: blur 以防破坏后代 backdrop-filter 合成层
+  assert.ok(
+    !/\.workspace-container\[data-collapsed=['"]true['"]\]\s*\{[^}]*filter:\s*blur/m.test(motionCss),
+    'workspace-container 折叠态不得包含 filter: blur'
+  );
+  assert.ok(
+    !/\.workspace-container\s*\{[^}]*transition:[^}]*filter/m.test(motionCss),
+    'workspace-container 基础样式不得为 filter 声明过渡'
+  );
+  // 2. Shortcuts.tsx 的添加按钮必须接入 t-stagger-item 与尾随延迟
+  assert.ok(
+    shortcutsSrc.includes('Add Shortcut Button (C008: 接入 t-stagger-item 与尾随延迟'),
+    'Shortcuts.tsx 添加按钮应声明 C008 标记'
+  );
+  assert.ok(
+    shortcutsSrc.includes('animationDelay: `${shortcuts.length * 35}ms`'),
+    '添加按钮必须计算尾随 animationDelay 保证顺滑级联'
+  );
+  assert.ok(
+    shortcutsSrc.includes('transition-colors duration-200 group-hover:bg-black/10'),
+    '添加按钮背景过渡应锁定为 transition-colors'
+  );
+});
+
+

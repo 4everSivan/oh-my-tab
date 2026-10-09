@@ -42,7 +42,8 @@
     "MotionSystem": {
       "design_doc": "docs/devel/design/07-动效系统.md",
       "changes": [
-        "C007"
+        "C007",
+        "C008"
       ]
     }
   },
@@ -100,6 +101,14 @@
       "type": "BugFix",
       "status": "closed",
       "branch": "fix/C007-time-collapse-motion",
+      "topic": "MotionSystem",
+      "created": "2026-10-09"
+    },
+    "C008": {
+      "title": "修复点击时间展开工作台时添加图标遮罩闪动缺陷",
+      "type": "BugFix",
+      "status": "in_progress",
+      "branch": "fix/C008-add-icon-flicker",
       "topic": "MotionSystem",
       "created": "2026-10-09"
     }
