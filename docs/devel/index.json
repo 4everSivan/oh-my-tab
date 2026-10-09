@@ -1,8 +1,8 @@
 {
-  "$schema": "adflow-devel-index-v1",
-  "project": "oh-my-tab",
-  "created": "2026-10-07",
-  "last_change": "2026-10-08",
+ "$schema": "adflow-devel-index-v1",
+ "project": "oh-my-tab",
+ "created": "2026-10-07",
+ "last_change": "2026-10-09",
   "status": "active",
   "description": "研发内场核心工作区总账路由，聚合现行设计基线与执行卡池",
   "subsystems": [
@@ -80,6 +80,16 @@
           "last_change": "2026-10-08",
           "confirmed_on": "2026-10-08",
           "confirmed_scope": "组件可扩展架构方向：多实例数据模型、单实例交互政策、栅格流式布局与契约单一来源；契约字段未冻结"
+        },
+        {
+          "id": "DESIGN-MOTION",
+          "topic": "MotionSystem",
+          "doc": "docs/devel/design/07-动效系统.md",
+          "status": "baseline",
+          "description": "动效令牌梯度、t-* 片段命名空间、React 集成与 reduced-motion 降级",
+          "last_change": "2026-10-09",
+          "confirmed_on": "2026-10-09",
+          "confirmed_scope": "纯 CSS 动效路线（参考 transitions.dev）、首版 7 类片段范围、系统级 reduced-motion 守卫、不引入 JS 动效库"
         }
       ]
     },

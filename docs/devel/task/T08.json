@@ -1,0 +1,98 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T08",
+  "title": "动效系统：令牌梯度与首版 7 类动效片段接入",
+  "milestone": "M1-v0.1.0-首发里程碑",
+  "status": "in_progress",
+  "branch": "feat/T08-motion-system",
+  "depends_on": [
+    "T05",
+    "T06"
+  ],
+  "target": {
+    "module": "动效系统",
+    "design_doc": "docs/devel/design/07-动效系统.md",
+    "design_topic": "MotionSystem"
+  },
+  "goal": "参考 transitions.dev 方法论，以纯 CSS 建立统一动效令牌梯度（时长/缓动/距离/缩放/模糊）与 t-* 片段命名空间，交付首版 7 类片段（数字弹入、勾选描画、模态开合、抽屉侧滑、卡片交错入场、列表项入场、通用淡入）并接入时钟、待办、添加组件模态、外观抽屉与栅格布局，配套 prefers-reduced-motion 全局降级守卫，修复既有 animate-fade-in 空操作类。",
+  "precheck": {
+    "description": "检测动效样式层与支撑模块是否已在代码库中实现",
+    "command": "test -f src/styles/motion.css && test -f src/hooks/useDelayedUnmount.ts",
+    "expected": "0",
+    "is_completed": false,
+    "evidence": ""
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T08-1",
+      "title": "动效令牌梯度与 motion.css 落地",
+      "capability": "在 src/styles/motion.css 定义 :root 令牌（5 档时长、3 类缓动、距离/缩放/模糊）及片段私有参数组，经 index.css 引入全局生效",
+      "done": false
+    },
+    {
+      "id": "T08-2",
+      "title": "t-digit 数字弹入接入时钟",
+      "capability": "Clock.tsx 时间字符串逐位渲染为 t-digit span，key 含字符值，仅数值变化的位重放入场动画",
+      "done": false
+    },
+    {
+      "id": "T08-3",
+      "title": "t-check 勾选描画与 t-list-enter 接入待办",
+      "capability": "待办勾选改为 aria-checked 驱动的背景填充 + SVG path stroke 描画（取消快速回退），新增项入场弹入",
+      "done": false
+    },
+    {
+      "id": "T08-4",
+      "title": "t-modal 与 t-panel-slide 开合动画",
+      "capability": "AddWidgetModal 与 AppearanceDrawer 经 useDelayedUnmount 支撑退出动画：data-open 属性驱动缩放淡入淡出（模态）与右侧滑入滑出（抽屉），关闭动画完成后卸载 DOM",
+      "done": false
+    },
+    {
+      "id": "T08-5",
+      "title": "t-card-enter 卡片交错入场与 animate-fade-in 修复",
+      "capability": "GridContainer 卡片挂载交错淡入上升（computeCardStagger 封顶 360ms）；为既有 animate-fade-in 类提供真实淡入定义",
+      "done": false
+    },
+    {
+      "id": "T08-6",
+      "title": "prefers-reduced-motion 全局守卫与动效测试套件",
+      "capability": "motion.css 内置全局降级守卫（时长归零、迭代置 1）；tests/motion-system.test.cjs 覆盖令牌/片段/守卫存在性、组件接线与交错封顶纯函数",
+      "done": false
+    }
+  ],
+  "acceptance": {
+    "result": null,
+    "run_id": "",
+    "checks": [
+      {
+        "item": "纯 CSS 动效路线与令牌单一来源",
+        "true_if": "全部动效以 CSS transition/animation 实现且零新增 JS 动效运行时依赖；时长/缓动参数仅存在于 motion.css :root 令牌",
+        "false_if": "引入 framer-motion/GSAP 等动效库，或组件内散落硬编码动效参数",
+        "evidence": "",
+        "result": null
+      },
+      {
+        "item": "reduced-motion 降级守卫",
+        "true_if": "prefers-reduced-motion: reduce 时全部 t-* 片段与 animate-fade-in 时长归零、功能与交互不受影响",
+        "false_if": "系统开启减少动态效果后仍有位移/模糊动画播放或交互被阻塞",
+        "evidence": "",
+        "result": null
+      },
+      {
+        "item": "动效测试与构建全绿",
+        "true_if": "npm test 全部通过（含新增动效用例）且 npm run build 退出码为 0，产物仍全量收拢 local/dist/",
+        "false_if": "存在失败用例、类型错误或产物散落根目录",
+        "evidence": "",
+        "result": null
+      }
+    ]
+  },
+  "version": "v0.1.0"
+}

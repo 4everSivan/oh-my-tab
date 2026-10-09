@@ -1,6 +1,6 @@
 # 远期特性与技术债池
 
-> **created**: 2026-10-07 ｜ **last-change**: 2026-10-07 ｜ **status**: active
+> **created**: 2026-10-07 ｜ **last-change**: 2026-10-09 ｜ **status**: active
 
 ## 1. 简介
 

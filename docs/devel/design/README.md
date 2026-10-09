@@ -1,6 +1,6 @@
 # 系统设计方案中心 (design/)
 
-> **created**: 2026-10-07 ｜ **last-change**: 2026-10-08 ｜ **status**: active
+> **created**: 2026-10-07 ｜ **last-change**: 2026-10-09 ｜ **status**: active
 
 ## 1. 简介
 
@@ -19,6 +19,7 @@
 | [04-数据保存与同步.md](04-数据保存与同步.md) | `DataPersistenceSync` | `DESIGN-DATA` | 首页保存/恢复边界与原型迁移；正式存储/同步方案 | draft | 2026-10-08 |
 | [05-深度扩展与外部数据.md](05-深度扩展与外部数据.md) | `ExtensionDataSources` | `DESIGN-EXT` | 外部数据源接入、权限与请求降级；组件契约见 06 | draft | 2026-10-08 |
 | [06-组件契约与注册.md](06-组件契约与注册.md) | `WidgetContract` | `DESIGN-WIDGET-CONTRACT` | 组件契约、注册表、实例模型、宿主服务与状态分类 | draft | 2026-10-08 |
+| [07-动效系统.md](07-动效系统.md) | `MotionSystem` | `DESIGN-MOTION` | 动效令牌梯度、t-* 片段命名空间、React 集成与 reduced-motion 降级 | 现行基线 | 2026-10-09 |
 
 ## 3. 规范
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://ad-flow.org/schemas/task-index.v1.json",
   "phase": "Phase 1 - Chrome 扩展核心工程与首版功能交付 (v0.1.0)",
-  "updated_at": "2026-10-08",
+  "updated_at": "2026-10-09",
   "milestones": {
     "M1": {
       "title": "M1-v0.1.0-首发里程碑",
@@ -13,7 +13,8 @@
         "T04",
         "T05",
         "T06",
-        "T07"
+        "T07",
+        "T08"
       ]
     }
   },
@@ -57,6 +58,12 @@
       "design_doc": "docs/devel/design/06-组件契约与注册.md",
       "tasks": [
         "T03"
+      ]
+    },
+    "MotionSystem": {
+      "design_doc": "docs/devel/design/07-动效系统.md",
+      "tasks": [
+        "T08"
       ]
     }
   },
@@ -128,6 +135,16 @@
         "T02",
         "T03",
         "T04",
+        "T05",
+        "T06"
+      ]
+    },
+    "T08": {
+      "title": "动效系统：令牌梯度与首版 7 类动效片段接入",
+      "status": "in_progress",
+      "branch": "feat/T08-motion-system",
+      "milestone": "M1-v0.1.0-首发里程碑",
+      "depends_on": [
         "T05",
         "T06"
       ]
