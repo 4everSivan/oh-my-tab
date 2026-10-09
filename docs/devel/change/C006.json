@@ -1,0 +1,85 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C006",
+  "title": "修复添加/编辑网站弹窗遮罩范围异常：父级 transform 包含块导致遮罩仅覆盖工作台窄条",
+  "type": "BugFix",
+  "status": "in_progress",
+  "branch": "fix/C006-shortcut-modal-overlay",
+  "is_hotfix": false,
+  "target": {
+    "module": "页面入口与导航",
+    "component": "Shortcuts",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "why": "用户在工作台点击添加常用网站时，弹窗遮罩仅覆盖屏幕中部工作台的水平窄条，顶部时钟与底部壁纸漏光未被遮罩。根因在于 .workspace-container 在展开态设置了 transform: translateY(0) 与 filter: blur(0)，根据 W3C 规范创建了局部包含块，使 Shortcuts 内本应 relative 于视口的 fixed inset-0 遮罩被约束在工作台矩形内部；同时快捷方式弹窗、右键菜单与撤销 Toast 位于局部 DOM 树内未挂载至顶层 body。",
+  "precheck": {
+    "description": "检测 Shortcuts.tsx 是否使用 createPortal 挂载全局浮层且 motion.css 展开态设为 transform: none",
+    "command": "grep -q 'createPortal' src/components/shortcuts/Shortcuts.tsx && grep -q 'transform: none;' src/styles/motion.css",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "Shortcuts.tsx 已引入 createPortal 挂载浮层，且 motion.css 中 .workspace-container 展开态已设为 transform: none (exit 0)"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b fix/C006-shortcut-modal-overlay"
+    ],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "Shortcuts 全局浮层挂载机制 (createPortal)",
+      "before": "添加/编辑网站模态框 (editingShortcut)、右键上下文菜单 (contextMenu) 与撤销提示条 (lastRemoved) 直接内联在 Shortcuts 组件 DOM 树中",
+      "after": "使用 createPortal 将 editingShortcut 弹窗、contextMenu 与 lastRemoved 统一挂载至 document.body，彻底解耦父级样式与层叠上下文",
+      "impact": "常用网站模块的所有全局浮层"
+    },
+    {
+      "scope": "工作台平滑折叠容器常态样式 (.workspace-container)",
+      "before": "展开态常驻 transform: translateY(0) scale(1) 与 filter: blur(0)，强制创建包含块",
+      "after": "展开态设置 transform: none 与 filter: none，仅在 data-collapsed='true' 或过渡时激活变换，避免意外截获 fixed 后代",
+      "impact": "工作台折叠动画与内部组件的 fixed 定位行为"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/01-页面入口与导航.md",
+    "topic": "EntryNavigation",
+    "modified": false,
+    "rule_diff": {
+      "before": "右键菜单与编辑弹窗在组件内部声明 fixed 定位呈现",
+      "after": "全站所有全局遮罩与模态弹窗必须挂载至 body 根节点或脱离含有 transform/filter 的父级包含块，严禁遮罩局部化"
+    }
+  },
+  "verification": {
+    "result": null,
+    "run_id": "run-c006-20261009",
+    "user_quote": "",
+    "signoff": "",
+    "checks": [
+      {
+        "item": "全屏遮罩与包含块解耦",
+        "true_if": "Shortcuts 的弹窗、右键菜单与撤销提示通过 createPortal 渲染到 body，且 .workspace-container 展开态不创建包含块，遮罩 100% 铺满视口",
+        "false_if": "弹窗遮罩仍只覆盖中间工作台矩形，或时钟与底部被暴露在遮罩外",
+        "evidence": "Shortcuts 的 editingShortcut、contextMenu、lastRemoved 已全部经 createPortal 挂载到 document.body；.workspace-container 展开态已更新为 transform: none 与 filter: none，不再产生包含块截获 fixed 遮罩",
+        "result": "passed"
+      },
+      {
+        "item": "自动化回归测试",
+        "true_if": "全量 98+ 项测试全绿，针对 createPortal 与全屏遮罩结构补充断言且全部通过，npm run build 退出码为 0",
+        "false_if": "存在任何单测失败或构建编译报错",
+        "evidence": "npm test 99 项用例 100% 全绿（含新增 C006 包含块与 portal 断言），npm run build 产物隔离输出至 local/dist/ 耗时 7.03s 退出码 0",
+        "result": "passed"
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": false,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "version": null
+}

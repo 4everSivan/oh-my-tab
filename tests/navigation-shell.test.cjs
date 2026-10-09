@@ -101,3 +101,30 @@ test('首字母仅作图标缺失兜底：absolute 底层垫底、img 上层覆�
   // 热链加载成功率：no-referrer
   assert.ok(src.includes('referrerPolicy="no-referrer"'), 'img 应携带 no-referrer 提升图标热链成功率');
 });
+
+// ── C006 弹窗与浮层 createPortal 全局挂载与遮罩契约 ────────────────
+test('常用网站弹窗与浮层必须经 createPortal 挂载至 document.body，防包含块局部化 (C006)', () => {
+  const shortcutsSrc = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'components', 'shortcuts', 'Shortcuts.tsx'),
+    'utf8'
+  );
+  // 必须引入 createPortal
+  assert.ok(shortcutsSrc.includes("import { createPortal } from 'react-dom'"));
+  // 弹窗必须通过 createPortal 挂载到 document.body
+  assert.ok(/createPortal\([\s\S]*?className="fixed inset-0[\s\S]*?document\.body\s*\)/.test(shortcutsSrc));
+  // 桌面右键菜单也必须挂载到 document.body
+  assert.ok(/createPortal\([\s\S]*?className="[^"]*origin-menu[\s\S]*?document\.body\s*\)/.test(shortcutsSrc));
+  // 撤销 Toast 也必须挂载到 document.body
+  assert.ok(/createPortal\([\s\S]*?className="[^"]*t-toast[\s\S]*?document\.body\s*\)/.test(shortcutsSrc));
+
+  // motion.css 中的 .workspace-container 展开态不得常驻 transform/filter
+  const motionSrc = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'styles', 'motion.css'),
+    'utf8'
+  );
+  const containerMatch = motionSrc.match(/\.workspace-container\s*\{([\s\S]*?)\}/);
+  assert.ok(containerMatch, 'motion.css 必须包含 .workspace-container 规则');
+  assert.ok(containerMatch[1].includes('transform: none'), '展开态必须为 transform: none');
+  assert.ok(containerMatch[1].includes('filter: none'), '展开态必须为 filter: none');
+});
+

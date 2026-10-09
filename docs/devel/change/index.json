@@ -10,7 +10,8 @@
     "EntryNavigation": {
       "design_doc": "docs/devel/design/01-页面入口与导航.md",
       "changes": [
-        "C005"
+        "C005",
+        "C006"
       ]
     },
     "WorkspaceAppearance": {
@@ -81,6 +82,14 @@
       "type": "BugFix",
       "status": "in_progress",
       "branch": "fix/C005-icon-fallback",
+      "topic": "EntryNavigation",
+      "created": "2026-10-09"
+    },
+    "C006": {
+      "title": "修复添加/编辑网站弹窗遮罩范围异常：父级 transform 包含块导致遮罩仅覆盖工作台窄条",
+      "type": "BugFix",
+      "status": "in_progress",
+      "branch": "fix/C006-shortcut-modal-overlay",
       "topic": "EntryNavigation",
       "created": "2026-10-09"
     }

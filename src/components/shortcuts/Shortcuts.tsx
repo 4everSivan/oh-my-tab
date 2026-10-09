@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Shortcut } from '../../services/storage/types';
 import { Plus, ExternalLink, Edit2, Trash2, Undo2 } from 'lucide-react';
 
@@ -259,117 +260,133 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
       </div>
 
       {/* Undo Notification Bar */}
-      {lastRemoved && (
-        <div className="fixed bottom-6 z-40 flex items-center space-x-3 px-4 py-2 bg-stone-900/90 text-white text-xs rounded-xl shadow-lg backdrop-blur-md t-toast">
-          <span>已移除 {lastRemoved.shortcut.name}</span>
-          <button
-            onClick={handleUndoRemove}
-            className="flex items-center space-x-1 text-emerald-400 hover:text-emerald-300 font-medium cursor-pointer"
-          >
-            <Undo2 className="w-3.5 h-3.5" />
-            <span>撤销</span>
-          </button>
-        </div>
-      )}
+      {lastRemoved &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center space-x-3 px-4 py-2 bg-stone-900/90 text-white text-xs rounded-xl shadow-lg backdrop-blur-md t-toast">
+            <span>已移除 {lastRemoved.shortcut.name}</span>
+            <button
+              onClick={handleUndoRemove}
+              className="flex items-center space-x-1 text-emerald-400 hover:text-emerald-300 font-medium cursor-pointer"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+              <span>撤销</span>
+            </button>
+          </div>,
+          document.body
+        )}
 
       {/* Desktop Context Menu */}
-      {contextMenu && (
-        <div
-          className="origin-menu fixed z-50 w-40 py-1 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md rounded-xl border border-black/10 dark:border-white/10 shadow-xl select-none"
-          style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
-        >
-          <button
-            onClick={() => {
-              window.open(contextMenu.shortcut.url, '_blank');
-              setContextMenu(null);
-            }}
-            className="w-full px-3 py-1.5 text-left text-xs text-stone-700 dark:text-stone-300 hover:bg-black/5 dark:hover:bg-white/10 flex items-center space-x-2"
+      {contextMenu &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className="origin-menu fixed z-50 w-40 py-1 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md rounded-xl border border-black/10 dark:border-white/10 shadow-xl select-none"
+            style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
           >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span>新标签页打开</span>
-          </button>
-          <button
-            onClick={() => {
-              openEditModal(contextMenu.shortcut);
-              setContextMenu(null);
-            }}
-            className="w-full px-3 py-1.5 text-left text-xs text-stone-700 dark:text-stone-300 hover:bg-black/5 dark:hover:bg-white/10 flex items-center space-x-2"
-          >
-            <Edit2 className="w-3.5 h-3.5" />
-            <span>编辑网站</span>
-          </button>
-          <div className="my-1 border-t border-black/5 dark:border-white/5" />
-          <button
-            onClick={() => {
-              handleRemove(contextMenu.shortcut);
-              setContextMenu(null);
-            }}
-            className="w-full px-3 py-1.5 text-left text-xs text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center space-x-2"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>移除网站</span>
-          </button>
-        </div>
-      )}
+            <button
+              onClick={() => {
+                window.open(contextMenu.shortcut.url, '_blank');
+                setContextMenu(null);
+              }}
+              className="w-full px-3 py-1.5 text-left text-xs text-stone-700 dark:text-stone-300 hover:bg-black/5 dark:hover:bg-white/10 flex items-center space-x-2"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>新标签页打开</span>
+            </button>
+            <button
+              onClick={() => {
+                openEditModal(contextMenu.shortcut);
+                setContextMenu(null);
+              }}
+              className="w-full px-3 py-1.5 text-left text-xs text-stone-700 dark:text-stone-300 hover:bg-black/5 dark:hover:bg-white/10 flex items-center space-x-2"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+              <span>编辑网站</span>
+            </button>
+            <div className="my-1 border-t border-black/5 dark:border-white/5" />
+            <button
+              onClick={() => {
+                handleRemove(contextMenu.shortcut);
+                setContextMenu(null);
+              }}
+              className="w-full px-3 py-1.5 text-left text-xs text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center space-x-2"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>移除网站</span>
+            </button>
+          </div>,
+          document.body
+        )}
 
       {/* Edit / Add Modal */}
-      {editingShortcut && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-          <form
-            onSubmit={handleSaveModal}
-            className="w-full max-w-sm p-6 bg-white dark:bg-stone-900 rounded-2xl border border-black/10 dark:border-white/10 shadow-2xl space-y-4"
+      {editingShortcut &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setEditingShortcut(null);
+              }
+            }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
           >
-            <h3 className="text-sm font-semibold text-stone-800 dark:text-white">
-              {isAdding ? '添加常用网站' : '编辑网站'}
-            </h3>
+            <form
+              onSubmit={handleSaveModal}
+              className="w-full max-w-sm p-6 bg-white dark:bg-stone-900 rounded-2xl border border-black/10 dark:border-white/10 shadow-2xl space-y-4"
+            >
+              <h3 className="text-sm font-semibold text-stone-800 dark:text-white">
+                {isAdding ? '添加常用网站' : '编辑网站'}
+              </h3>
 
-            {editError && (
-              <p className="text-xs text-rose-500 bg-rose-50 dark:bg-rose-950/50 p-2 rounded-lg">
-                {editError}
-              </p>
-            )}
+              {editError && (
+                <p className="text-xs text-rose-500 bg-rose-50 dark:bg-rose-950/50 p-2 rounded-lg">
+                  {editError}
+                </p>
+              )}
 
-            <div className="space-y-1">
-              <label className="text-xs text-stone-500 font-medium">网站名称</label>
-              <input
-                type="text"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="例如：GitHub"
-                className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-transparent text-stone-900 dark:text-white focus:outline-none focus:border-stone-400"
-                autoFocus
-              />
-            </div>
+              <div className="space-y-1">
+                <label className="text-xs text-stone-500 font-medium">网站名称</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="例如：GitHub"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-transparent text-stone-900 dark:text-white focus:outline-none focus:border-stone-400"
+                  autoFocus
+                />
+              </div>
 
-            <div className="space-y-1">
-              <label className="text-xs text-stone-500 font-medium">网站网址 (URL)</label>
-              <input
-                type="text"
-                value={editUrl}
-                onChange={(e) => setEditUrl(e.target.value)}
-                placeholder="https://example.com"
-                className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-transparent text-stone-900 dark:text-white focus:outline-none focus:border-stone-400"
-              />
-            </div>
+              <div className="space-y-1">
+                <label className="text-xs text-stone-500 font-medium">网站网址 (URL)</label>
+                <input
+                  type="text"
+                  value={editUrl}
+                  onChange={(e) => setEditUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-transparent text-stone-900 dark:text-white focus:outline-none focus:border-stone-400"
+                />
+              </div>
 
-            <div className="flex justify-end space-x-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setEditingShortcut(null)}
-                className="px-4 py-2 text-xs rounded-xl bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 font-medium transition-colors"
-              >
-                取消
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 text-xs rounded-xl bg-stone-900 hover:bg-black dark:bg-white dark:hover:bg-stone-200 text-white dark:text-stone-900 font-medium transition-colors shadow-sm"
-              >
-                保存
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingShortcut(null)}
+                  className="px-4 py-2 text-xs rounded-xl bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 font-medium transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-xs rounded-xl bg-stone-900 hover:bg-black dark:bg-white dark:hover:bg-stone-200 text-white dark:text-stone-900 font-medium transition-colors shadow-sm"
+                >
+                  保存
+                </button>
+              </div>
+            </form>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

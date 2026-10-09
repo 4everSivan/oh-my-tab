@@ -254,12 +254,13 @@
 }
 
 /* ══ workspace-container 工作台极简模式平滑折叠 ═══════════════
- * 点击时间收起/展开：高度平滑收缩，伴随微缩放 scale(0.97) 与 translateY(-16px) */
+ * 点击时间收起/展开：高度平滑收缩，伴随微缩放 scale(0.97) 与 translateY(-16px)。
+ * 注意：展开态必须保持 transform: none 与 filter: none，避免为 fixed 后代误创包含块 (C006) */
 .workspace-container {
   max-height: 1600px;
   opacity: 1;
-  transform: translateY(0) scale(1);
-  filter: blur(0);
+  transform: none;
+  filter: none;
   transition:
     max-height 320ms var(--motion-ease-smooth-out),
     opacity 250ms var(--motion-ease-smooth-out),
