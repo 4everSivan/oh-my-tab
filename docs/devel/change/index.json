@@ -90,7 +90,7 @@
     "C006": {
       "title": "修复添加/编辑网站弹窗遮罩范围异常：父级 transform 包含块导致遮罩仅覆盖工作台窄条",
       "type": "BugFix",
-      "status": "in_progress",
+      "status": "closed",
       "branch": "fix/C006-shortcut-modal-overlay",
       "topic": "EntryNavigation",
       "created": "2026-10-09"
@@ -98,7 +98,7 @@
     "C007": {
       "title": "修改点击时间收起交互动效：时间与搜索框位置保持不动，仅网站图标等工作台区域折叠收起",
       "type": "BugFix",
-      "status": "in_progress",
+      "status": "closed",
       "branch": "fix/C007-time-collapse-motion",
       "topic": "MotionSystem",
       "created": "2026-10-09"

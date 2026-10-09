@@ -3,7 +3,7 @@
   "id": "C007",
   "title": "修改点击时间收起交互动效：时间与搜索框位置保持不动，仅网站图标等工作台区域折叠收起",
   "type": "BugFix",
-  "status": "in_progress",
+  "status": "closed",
   "branch": "fix/C007-time-collapse-motion",
   "is_hotfix": false,
   "target": {
@@ -46,17 +46,17 @@
   "design": {
     "doc": "docs/devel/design/07-动效系统.md",
     "topic": "MotionSystem",
-    "modified": false,
+    "modified": true,
     "rule_diff": {
       "before": "点击时间进入极简模式卸载 header",
       "after": "点击时间进入极简模式时，时钟与搜索框绝对位置保持锁定不动，header 保持占位平滑淡出，仅常用网站与组件区域折叠收起"
     }
   },
   "verification": {
-    "result": null,
+    "result": "passed",
     "run_id": "run-c007-20261009",
-    "user_quote": "",
-    "signoff": "",
+    "user_quote": "确认",
+    "signoff": "2026-10-09",
     "checks": [
       {
         "item": "时间与搜索框位置零位移",
@@ -83,9 +83,9 @@
   },
   "rejections": [],
   "sync": {
-    "design_pinned": false,
-    "changelog": false,
-    "commit": "",
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "62f2411",
     "tag": ""
   },
   "version": null

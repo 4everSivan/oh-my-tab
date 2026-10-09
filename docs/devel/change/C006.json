@@ -3,7 +3,7 @@
   "id": "C006",
   "title": "修复添加/编辑网站弹窗遮罩范围异常：父级 transform 包含块导致遮罩仅覆盖工作台窄条",
   "type": "BugFix",
-  "status": "in_progress",
+  "status": "closed",
   "branch": "fix/C006-shortcut-modal-overlay",
   "is_hotfix": false,
   "target": {
@@ -32,7 +32,7 @@
   "changes": [
     {
       "scope": "Shortcuts 全局浮层挂载机制 (createPortal)",
-      "before": "添加/编辑网站模态框 (editingShortcut)、右键上下文菜单 (contextMenu) 与撤销提示条 (lastRemoved) 直接内联在 Shortcuts 组件 DOM 树中",
+      "before": "添加/编辑网站模态框 (editingShortcut)、右键上下文菜单 (contextMenu) 与撤销提示条 (lastRemoved) 直接内联在 Shortcuts 组件 DOM树中",
       "after": "使用 createPortal 将 editingShortcut 弹窗、contextMenu 与 lastRemoved 统一挂载至 document.body，彻底解耦父级样式与层叠上下文",
       "impact": "常用网站模块的所有全局浮层"
     },
@@ -46,17 +46,17 @@
   "design": {
     "doc": "docs/devel/design/01-页面入口与导航.md",
     "topic": "EntryNavigation",
-    "modified": false,
+    "modified": true,
     "rule_diff": {
       "before": "右键菜单与编辑弹窗在组件内部声明 fixed 定位呈现",
       "after": "全站所有全局遮罩与模态弹窗必须挂载至 body 根节点或脱离含有 transform/filter 的父级包含块，严禁遮罩局部化"
     }
   },
   "verification": {
-    "result": null,
+    "result": "passed",
     "run_id": "run-c006-20261009",
-    "user_quote": "",
-    "signoff": "",
+    "user_quote": "确认",
+    "signoff": "2026-10-09",
     "checks": [
       {
         "item": "全屏遮罩与包含块解耦",
@@ -76,9 +76,9 @@
   },
   "rejections": [],
   "sync": {
-    "design_pinned": false,
-    "changelog": false,
-    "commit": "",
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "d8a6c7f",
     "tag": ""
   },
   "version": null
