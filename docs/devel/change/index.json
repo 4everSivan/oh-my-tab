@@ -1,7 +1,7 @@
 {
   "$schema": "https://ad-flow.org/schemas/change-index.v1.json",
   "version": "1.0",
-  "updated_at": "2026-10-07",
+  "updated_at": "2026-10-09",
   "topics": {
     "SystemOverview": {
       "design_doc": "docs/devel/design/00-系统总体设计.md",
@@ -21,7 +21,9 @@
     },
     "DataPersistenceSync": {
       "design_doc": "docs/devel/design/04-数据保存与同步.md",
-      "changes": []
+      "changes": [
+        "C001"
+      ]
     },
     "ExtensionDataSources": {
       "design_doc": "docs/devel/design/05-深度扩展与外部数据.md",
@@ -30,7 +32,20 @@
     "WidgetContract": {
       "design_doc": "docs/devel/design/06-组件契约与注册.md",
       "changes": []
+    },
+    "MotionSystem": {
+      "design_doc": "docs/devel/design/07-动效系统.md",
+      "changes": []
     }
   },
-  "cards": {}
+  "cards": {
+    "C001": {
+      "title": "修复自定义壁纸上传不生效：刷新死链、静默失败与 IndexedDB 空库阻塞",
+      "type": "BugFix",
+      "status": "in_progress",
+      "branch": "fix/C001-wallpaper-restore",
+      "topic": "DataPersistenceSync",
+      "created": "2026-10-09"
+    }
+  }
 }
