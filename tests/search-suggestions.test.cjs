@@ -217,3 +217,23 @@ test('GitHub 引擎提供专用语法快捷补全 (T13)', () => {
   const starResults = getGitHubSuggestions('stars');
   assert.deepEqual(starResults, ['stars:>1000']);
 });
+
+test('搜索词回车与选定联想词必须在当前页面直接跳转 (C016)', () => {
+  const searchBarSrc = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'components', 'search', 'SearchBar.tsx'),
+    'utf8'
+  );
+
+  // 1. 验证 executeSearch 采用 window.location.href 进行当前页面跳转
+  assert.ok(
+    searchBarSrc.includes('window.location.href = url'),
+    'SearchBar 必须使用 window.location.href = url 在当前页面导航跳转'
+  );
+
+  // 2. 验证不再使用 window.open 新建标签页
+  assert.ok(
+    !searchBarSrc.includes("window.open(url, '_blank'"),
+    'SearchBar 不得再调用 window.open(url, \'_blank\') 打开新标签页'
+  );
+});
+

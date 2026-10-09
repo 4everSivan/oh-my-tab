@@ -192,7 +192,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     if (!trimmed) return;
 
     const url = `${currentEngine.url}?${encodeURIComponent(currentEngine.queryParam)}=${encodeURIComponent(trimmed)}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    // 当前页面跳转 (C016): 由原新标签页打开调整为在当前页面直接导航跳转
+    window.location.href = url;
     setQuery('');
     rawQueryRef.current = '';
     setShowSuggestions(false);

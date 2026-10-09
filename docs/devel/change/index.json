@@ -16,7 +16,8 @@
         "C011",
         "C012",
         "C013",
-        "C014"
+        "C014",
+        "C016"
       ]
     },
     "WorkspaceAppearance": {
@@ -173,6 +174,14 @@
       "status": "closed",
       "branch": "fix/C015-startup-flicker-and-memory-opt",
       "topic": "WorkspaceAppearance",
+      "created": "2026-10-09"
+    },
+    "C016": {
+      "title": "修改搜索提交跳转行为：由新标签页打开调整为当前页面跳转",
+      "type": "BugFix",
+      "status": "closed",
+      "branch": "fix/C016-search-in-current-tab",
+      "topic": "EntryNavigation",
       "created": "2026-10-09"
     }
   }
