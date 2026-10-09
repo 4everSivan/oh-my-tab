@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { WidgetComponentProps, WidgetManifest } from '../../contract/types';
-import { Plus, Trash2, CheckCircle2, Circle } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 
 export interface TodoItem {
   id: string;
@@ -139,14 +139,14 @@ export const TodoWidget: React.FC<WidgetComponentProps> = ({ host }) => {
       <div className="flex-1 max-h-56 overflow-y-auto space-y-1.5 pr-1">
         {totalCount === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center text-stone-400 dark:text-stone-500">
-            <CheckCircle2 className="w-7 h-7 mb-2 opacity-30 stroke-[1.5]" />
+            <span className="w-7 h-7 mb-2 rounded-full border border-current opacity-30" />
             <span className="text-xs">暂无待办事项，开始规划今天吧</span>
           </div>
         ) : (
           items.map((item) => (
             <div
               key={item.id}
-              className={`group flex items-center justify-between p-2 rounded-xl border transition-all ${
+              className={`t-list-enter group flex items-center justify-between p-2 rounded-xl border transition-all ${
                 item.completed
                   ? 'bg-black/[0.02] dark:bg-white/[0.02] border-transparent opacity-60'
                   : 'bg-white/60 dark:bg-stone-800/40 border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10'
@@ -156,11 +156,21 @@ export const TodoWidget: React.FC<WidgetComponentProps> = ({ host }) => {
                 onClick={() => toggleComplete(item.id)}
                 className="flex items-center space-x-2.5 flex-1 cursor-pointer overflow-hidden select-none"
               >
-                {item.completed ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                ) : (
-                  <Circle className="w-4 h-4 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 shrink-0" />
-                )}
+                {/* t-check：aria-checked 驱动背景填充 + 勾路径 stroke 描画 */}
+                <button
+                  role="checkbox"
+                  aria-checked={item.completed}
+                  aria-label={item.completed ? '标记为未完成' : '标记为已完成'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleComplete(item.id);
+                  }}
+                  className="t-check"
+                >
+                  <svg viewBox="0 0 10.1668 10.1668" aria-hidden="true">
+                    <path d="M1 5.52L3.92 9.17L9.17 1" />
+                  </svg>
+                </button>
                 <span
                   className={`text-xs truncate ${
                     item.completed

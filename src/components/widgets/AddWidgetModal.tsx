@@ -3,6 +3,7 @@ import { LayoutItem } from '../../services/storage/types';
 import { widgetRegistry } from '../../contract/registry';
 import { WidgetManifest } from '../../contract/types';
 import { X, Plus, Check } from 'lucide-react';
+import { useDelayedUnmount } from '../../hooks/useDelayedUnmount';
 
 interface AddWidgetModalProps {
   isOpen: boolean;
@@ -17,13 +18,24 @@ export const AddWidgetModal: React.FC<AddWidgetModalProps> = ({
   layout,
   onAddWidget,
 }) => {
-  if (!isOpen) return null;
+  // 150ms 与 motion.css 的 --modal-close-dur 保持一致，退出动画播完再卸载
+  const { mounted, open } = useDelayedUnmount(isOpen, 150);
+
+  if (!mounted) return null;
 
   const manifests = widgetRegistry.getAllManifests();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-md p-6 bg-white dark:bg-stone-900 rounded-3xl border border-black/10 dark:border-white/10 shadow-2xl space-y-4 select-none">
+    <div
+      data-open={open}
+      onClick={onClose}
+      className="t-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm select-none"
+    >
+      <div
+        data-open={open}
+        onClick={(e) => e.stopPropagation()}
+        className="t-modal w-full max-w-md p-6 bg-white dark:bg-stone-900 rounded-3xl border border-black/10 dark:border-white/10 shadow-2xl space-y-4"
+      >
         <div className="flex items-center justify-between pb-2 border-b border-black/5 dark:border-white/5">
           <h3 className="text-sm font-semibold text-stone-800 dark:text-white">
             添加效率组件

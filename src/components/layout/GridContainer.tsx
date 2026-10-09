@@ -4,6 +4,7 @@ import { WidgetInstance } from '../../contract/types';
 import { widgetRegistry } from '../../contract/registry';
 import { CardShell } from '../card/CardShell';
 import { storageService } from '../../services/storage';
+import { computeCardStagger } from '../../utils/motion';
 
 interface GridContainerProps {
   layout: LayoutItem[];
@@ -48,7 +49,7 @@ export const GridContainer: React.FC<GridContainerProps> = ({
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-6">
       <div className="grid grid-cols-12 gap-5 items-start">
-        {visibleItems.map((item) => {
+        {visibleItems.map((item, index) => {
           const manifest = widgetRegistry.getManifest(item.typeId);
           const Component = widgetRegistry.getComponent(item.typeId);
           const instance: WidgetInstance = {
@@ -62,11 +63,15 @@ export const GridContainer: React.FC<GridContainerProps> = ({
           const hostContext = widgetRegistry.createHostContext(instance, storageService);
 
           const spanClass = getColSpanClass(item.span || manifest?.defaultSpan || 6);
+          // t-card-enter 挂载交错入场；--card-stagger-delay 由封顶后的步进值注入
+          const enterStyle = {
+            '--card-stagger-delay': `${computeCardStagger(index)}ms`,
+          } as React.CSSProperties;
 
           if (!Component || !manifest) {
             // Forward compatibility for unknown widget types
             return (
-              <div key={item.instanceId} className={spanClass}>
+              <div key={item.instanceId} className={`${spanClass} t-card-enter`} style={enterStyle}>
                 <CardShell
                   instance={instance}
                   state="unknown_type"
@@ -77,7 +82,7 @@ export const GridContainer: React.FC<GridContainerProps> = ({
           }
 
           return (
-            <div key={item.instanceId} className={spanClass}>
+            <div key={item.instanceId} className={`${spanClass} t-card-enter`} style={enterStyle}>
               <CardShell
                 instance={instance}
                 manifest={manifest}

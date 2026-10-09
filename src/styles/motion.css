@@ -1,0 +1,284 @@
+/*
+ * oh-my-tab 动效系统（@topic: MotionSystem，设计基线 docs/devel/design/07-动效系统.md）
+ * 方法论参考 transitions.dev：语义化 motion 令牌 + t-* 片段命名空间 + 系统级降级守卫。
+ * 本文件是全部动效参数的单一来源；组件不得散落硬编码时长/缓动/位移。
+ */
+
+:root {
+  /* ── 时长梯度 ────────────────────────────────────────────── */
+  --motion-duration-micro: 80ms;   /* 微交互延迟 */
+  --motion-duration-quick: 150ms;  /* 模态关闭、勾选填充 */
+  --motion-duration-fast: 250ms;   /* 模态开启、通用淡入 */
+  --motion-duration-medium: 350ms; /* 抽屉关闭、列表项入场 */
+  --motion-duration-slow: 400ms;   /* 抽屉开启、卡片入场 */
+
+  /* ── 缓动 ───────────────────────────────────────────────── */
+  --motion-ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1); /* 开合与位移统一缓动 */
+  --motion-ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1);  /* 弹入（数字、列表项） */
+  --motion-ease-in-out: ease-in-out;
+
+  /* ── 距离 / 缩放 / 模糊 ──────────────────────────────────── */
+  --motion-distance-base: 8px;
+  --motion-distance-medium: 12px;
+  --motion-scale-modal: 0.96;
+  --motion-blur-small: 2px;
+
+  /* ── t-digit 数字弹入（时钟逐位渲染，key 含字符值仅变化位重挂载重放） ── */
+  --digit-dur: 500ms;
+  --digit-distance: 8px;
+  --digit-stagger: 70ms;
+  --digit-blur: 2px;
+  --digit-ease: cubic-bezier(0.34, 1.45, 0.64, 1);
+
+  /* ── t-check 勾选描画（aria-checked 驱动：先填充背景再 stroke 描画） ── */
+  --check-box: 150ms;
+  --check-draw: 350ms;
+  --check-delay: 0ms;
+  --check-uncheck: 150ms;
+  --check-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --check-len: 15;      /* path getTotalLength() 上取整，防止欠描画 */
+  --check-fill: #10b981; /* emerald-500，与待办进度条同色系 */
+
+  /* ── t-modal 模态开合（data-open 驱动，开快于关的对比节奏） ── */
+  --modal-open-dur: 250ms;
+  --modal-close-dur: 150ms;
+  --modal-scale: 0.96;
+  --modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ── t-panel-slide 抽屉侧滑（自右缘滑入 + 交叉模糊） ── */
+  --panel-open-dur: 400ms;
+  --panel-close-dur: 350ms;
+  --panel-blur: 2px;
+  --panel-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ── t-card-enter 卡片交错入场（--card-stagger-delay 由 computeCardStagger 注入） ── */
+  --card-enter-dur: 400ms;
+  --card-enter-distance: 12px;
+  --card-enter-blur: 2px;
+  --card-enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ── t-list-enter 列表项入场 ── */
+  --list-enter-dur: 350ms;
+  --list-enter-distance: 8px;
+  --list-enter-blur: 2px;
+  --list-enter-ease: cubic-bezier(0.34, 1.36, 0.64, 1);
+}
+
+/* ══ t-digit 数字弹入 ═════════════════════════════════════════
+ * 时间数字逐位 span 渲染；key 含字符值，数值变化的位重挂载即重放入场。
+ * 冒号等恒定字符 key 稳定，仅首次挂载参与入场。 */
+@keyframes t-digit-pop-in {
+  0% {
+    transform: translateY(var(--digit-distance));
+    opacity: 0;
+    filter: blur(var(--digit-blur));
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+.t-digit-group {
+  display: inline-flex;
+  align-items: baseline;
+}
+.t-digit {
+  display: inline-block;
+  animation: t-digit-pop-in var(--digit-dur) var(--digit-ease) both;
+  will-change: transform, opacity, filter;
+}
+
+/* ══ t-check 勾选描画 ═════════════════════════════════════════
+ * 待办完成勾选：背景先填充（--check-box），勾路径经 stroke-dashoffset
+ * 描画（--check-draw）；取消时快速回退（--check-uncheck）不反向描画。 */
+.t-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1.5px solid rgba(120, 113, 108, 0.5);
+  border-radius: 5px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background var(--check-box) var(--check-ease),
+    border-color var(--check-box) var(--check-ease);
+}
+.t-check:hover {
+  border-color: rgba(87, 83, 78, 0.9);
+}
+.t-check svg {
+  width: 11px;
+  height: 11px;
+  display: block;
+}
+.t-check svg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: var(--check-len);
+  stroke-dashoffset: var(--check-len);
+  transition: stroke-dashoffset var(--check-uncheck) var(--check-ease);
+}
+.t-check[aria-checked='true'] {
+  background: var(--check-fill);
+  border-color: var(--check-fill);
+}
+.t-check[aria-checked='true'] svg path {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset var(--check-draw) var(--check-ease) var(--check-delay);
+}
+
+/* ══ t-modal 模态开合 ═════════════════════════════════════════
+ * 根遮罩淡入淡出，卡片缩放（--modal-scale）+ 淡入；关闭态禁交互。
+ * 与 useDelayedUnmount 配合：关闭时保持挂载播放退出动画后再卸载。 */
+.t-modal-overlay {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--modal-close-dur) var(--modal-ease);
+}
+.t-modal-overlay[data-open='true'] {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity var(--modal-open-dur) var(--modal-ease);
+}
+.t-modal {
+  transform: scale(var(--modal-scale));
+  opacity: 0;
+  transition:
+    transform var(--modal-close-dur) var(--modal-ease),
+    opacity var(--modal-close-dur) var(--modal-ease);
+  will-change: transform, opacity;
+}
+.t-modal[data-open='true'] {
+  transform: scale(1);
+  opacity: 1;
+  transition:
+    transform var(--modal-open-dur) var(--modal-ease),
+    opacity var(--modal-open-dur) var(--modal-ease);
+}
+
+/* ══ t-panel-slide 抽屉侧滑 ══════════════════════════════════
+ * 面板自右缘 translateX(100%) 滑入 + 交叉模糊；关闭反向滑出。 */
+.t-panel-overlay {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--panel-close-dur) var(--panel-ease);
+}
+.t-panel-overlay[data-open='true'] {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity var(--panel-open-dur) var(--panel-ease);
+}
+.t-panel-slide {
+  transform: translateX(100%);
+  opacity: 0;
+  filter: blur(var(--panel-blur));
+  pointer-events: none;
+  transition:
+    transform var(--panel-close-dur) var(--panel-ease),
+    opacity var(--panel-close-dur) var(--panel-ease),
+    filter var(--panel-close-dur) var(--panel-ease);
+  will-change: transform, opacity, filter;
+}
+.t-panel-slide[data-open='true'] {
+  transform: translateX(0);
+  opacity: 1;
+  filter: blur(0);
+  pointer-events: auto;
+  transition:
+    transform var(--panel-open-dur) var(--panel-ease),
+    opacity var(--panel-open-dur) var(--panel-ease),
+    filter var(--panel-open-dur) var(--panel-ease);
+}
+
+/* ══ t-card-enter 卡片交错入场 ═══════════════════════════════
+ * 挂载时上升 + 淡入 + 去模糊；--card-stagger-delay 由
+ * computeCardStagger(index) 注入（40ms 步进，360ms 封顶）。 */
+@keyframes t-card-enter-in {
+  0% {
+    transform: translateY(var(--card-enter-distance));
+    opacity: 0;
+    filter: blur(var(--card-enter-blur));
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+.t-card-enter {
+  animation: t-card-enter-in var(--card-enter-dur) var(--card-enter-ease) both;
+  animation-delay: var(--card-stagger-delay, 0ms);
+  will-change: transform, opacity, filter;
+}
+
+/* ══ t-list-enter 列表项入场 ═════════════════════════════════
+ * 新增待办项挂载弹入；既有项 DOM 稳定不重放。 */
+@keyframes t-list-enter-in {
+  0% {
+    transform: translateY(var(--list-enter-distance));
+    opacity: 0;
+    filter: blur(var(--list-enter-blur));
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+.t-list-enter {
+  animation: t-list-enter-in var(--list-enter-dur) var(--list-enter-ease) both;
+  will-change: transform, opacity, filter;
+}
+
+/* ══ animate-fade-in 通用淡入 ════════════════════════════════
+ * 修复历史空操作类：此前该类名在组件中大量引用但从未定义。 */
+@keyframes t-fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+.animate-fade-in {
+  animation: t-fade-in var(--motion-duration-fast) ease-out both;
+}
+
+/* ══ 全局降级守卫 ════════════════════════════════════════════
+ * 系统"减少动态效果"（prefers-reduced-motion: reduce）时，
+ * 全部动效即时完成：时长/延迟归零、迭代置 1、位移与模糊取消；
+ * 开合语义仍由 data-open 控制，交互不受影响。 */
+@media (prefers-reduced-motion: reduce) {
+  .t-digit,
+  .t-card-enter,
+  .t-list-enter,
+  .animate-fade-in {
+    animation-duration: 0.01ms;
+    animation-delay: 0ms;
+    animation-iteration-count: 1;
+  }
+  .t-modal,
+  .t-modal-overlay,
+  .t-panel-slide,
+  .t-panel-overlay,
+  .t-check,
+  .t-check svg path {
+    transition-duration: 0.01ms;
+    transition-delay: 0ms;
+  }
+  .t-digit,
+  .t-card-enter,
+  .t-list-enter,
+  .t-panel-slide {
+    filter: none;
+  }
+}

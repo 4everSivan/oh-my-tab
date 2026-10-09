@@ -64,7 +64,7 @@ export const Clock: React.FC<ClockProps> = ({
       onClick={onToggleCollapse}
       title="点击切换极简/工作台模式"
     >
-      {/* Time Display */}
+      {/* Time Display：逐位渲染，key 含字符值——仅数值变化的位重挂载并重放 t-digit 弹入 */}
       <h1
         className={`tracking-tight transition-transform duration-200 group-hover:scale-[1.01] ${fontClass}`}
         style={{
@@ -74,7 +74,13 @@ export const Clock: React.FC<ClockProps> = ({
           textShadow: textShadowStyle,
         }}
       >
-        {timeString}
+        <span className="t-digit-group">
+          {Array.from(timeString).map((char, index) => (
+            <span key={`${index}-${char}`} className="t-digit">
+              {char}
+            </span>
+          ))}
+        </span>
       </h1>
 
       {/* Date Display */}

@@ -11,6 +11,7 @@ import {
 } from '../../services/storage/types';
 import { X, RotateCcw, Clock, Search, Image as ImageIcon, Upload } from 'lucide-react';
 import { wallpaperStorage } from '../../services/storage/wallpaper';
+import { useDelayedUnmount } from '../../hooks/useDelayedUnmount';
 
 interface AppearanceDrawerProps {
   isOpen: boolean;
@@ -41,7 +42,10 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'clock' | 'search' | 'background'>('clock');
 
-  if (!isOpen) return null;
+  // 350ms 与 motion.css 的 --panel-close-dur 保持一致，退出动画播完再卸载
+  const { mounted, open } = useDelayedUnmount(isOpen, 350);
+
+  if (!mounted) return null;
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -59,8 +63,16 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-xs animate-fade-in">
-      <div className="w-full max-w-md h-full bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-l border-black/10 dark:border-white/10 shadow-2xl flex flex-col">
+    <div
+      data-open={open}
+      onClick={onClose}
+      className="t-panel-overlay fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-xs"
+    >
+      <div
+        data-open={open}
+        onClick={(e) => e.stopPropagation()}
+        className="t-panel-slide w-full max-w-md h-full bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-l border-black/10 dark:border-white/10 shadow-2xl flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-black/5 dark:border-white/5">
           <h2 className="text-sm font-semibold text-stone-800 dark:text-white tracking-wide">
