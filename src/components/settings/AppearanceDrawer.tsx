@@ -41,6 +41,8 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
   onResetBackground,
 }) => {
   const [activeTab, setActiveTab] = useState<'clock' | 'search' | 'background'>('clock');
+  // 上传失败的可见反馈（C001：此前异常被静默吞掉，用户零感知）
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // 350ms 与 motion.css 的 --panel-close-dur 保持一致，退出动画播完再卸载
   const { mounted, open } = useDelayedUnmount(isOpen, 350);
@@ -51,15 +53,25 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setUploadError(null);
     const id = `wallpaper-${Date.now()}`;
-    await wallpaperStorage.saveWallpaper(id, file, file.name, file.type);
-    const objectUrl = URL.createObjectURL(file);
-    onUpdateBackground({
-      type: 'image',
-      imageId: id,
-      imageBlobUrl: objectUrl,
-      name: file.name,
-    });
+    try {
+      await wallpaperStorage.saveWallpaper(id, file, file.name, file.type);
+      const objectUrl = URL.createObjectURL(file);
+      // 回收上一张壁纸的派生地址，防止会话内 Blob 泄漏
+      if (background.imageBlobUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(background.imageBlobUrl);
+      }
+      onUpdateBackground({
+        type: 'image',
+        imageId: id,
+        imageBlobUrl: objectUrl,
+        name: file.name,
+      });
+    } catch {
+      setUploadError('壁纸保存失败，请重试；若持续失败请检查浏览器存储权限');
+      e.target.value = '';
+    }
   };
 
   return (
@@ -463,6 +475,9 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
                         className="hidden"
                       />
                     </label>
+                    {uploadError && (
+                      <p className="text-xs text-rose-500" role="alert">{uploadError}</p>
+                    )}
                   </div>
 
                   {/* Shade */}

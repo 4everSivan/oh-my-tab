@@ -19,6 +19,7 @@ import { AddWidgetModal } from './components/widgets/AddWidgetModal';
 import { WidgetManifest } from './contract/types';
 import { createWidgetInstance } from './contract/widget';
 import { parseHex, chooseFloatingForeground, blend } from './utils/contrast';
+import { planBackgroundRestore } from './utils/background';
 import { SlidersHorizontal, Plus } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -43,10 +44,29 @@ export const App: React.FC = () => {
       const sc = await storageService.getShortcuts();
       const l = await storageService.getLayout();
 
+      // 壁纸恢复（C001）：imageBlobUrl 是会话级派生地址，刷新后死链；
+      // 以 imageId 从 IndexedDB 取回 Blob 重建；记录缺失时回退材质并回写存储
+      let background = b;
+      if (b.type === 'image' && b.imageId) {
+        const record = await storageService.wallpaper.getWallpaper(b.imageId);
+        const plan = planBackgroundRestore(b, !!record);
+        if (plan.kind === 'restore' && record) {
+          background = {
+            ...plan.config,
+            imageBlobUrl: URL.createObjectURL(
+              record.data instanceof Blob ? record.data : new Blob([record.data])
+            ),
+          };
+        } else if (plan.kind === 'fallback') {
+          await storageService.setBackground(plan.config);
+          background = plan.config;
+        }
+      }
+
       setClock(c);
       setSearch(s);
       setEngine(e);
-      setBackground(b);
+      setBackground(background);
       setShortcuts(sc);
       setLayout(l);
     }
