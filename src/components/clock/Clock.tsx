@@ -5,12 +5,14 @@ interface ClockProps {
   appearance: ClockAppearance;
   isCollapsed: boolean;
   textColor?: string;
+  shadowProtection?: string;
   onToggleCollapse: () => void;
 }
 
 export const Clock: React.FC<ClockProps> = ({
   appearance,
   textColor = '#141c20',
+  shadowProtection = 'none',
   onToggleCollapse,
 }) => {
   const [time, setTime] = useState(new Date());
@@ -51,12 +53,14 @@ export const Clock: React.FC<ClockProps> = ({
 
   const textShadowStyle =
     appearance.shadow === 'soft'
-      ? '0 4px 16px rgba(0, 0, 0, 0.25)'
+      ? '0 4px 16px rgba(0, 0, 0, 0.35)'
+      : shadowProtection && shadowProtection !== 'none'
+      ? shadowProtection
       : 'none';
 
   return (
     <div
-      className={`flex flex-col select-none cursor-pointer group transition-all duration-300 ${alignClass}`}
+      className={`flex flex-col select-none cursor-pointer group transition-colors duration-300 ${alignClass}`}
       style={{
         paddingTop: `${appearance.top}px`,
         color: textColor,
@@ -66,7 +70,7 @@ export const Clock: React.FC<ClockProps> = ({
     >
       {/* Time Display：逐位渲染，key 含字符值——仅数值变化的位重挂载并重放 t-digit 弹入 */}
       <h1
-        className={`tracking-tight transition-transform duration-200 group-hover:scale-[1.01] ${fontClass}`}
+        className={`tracking-tight tabular-nums transition-transform duration-200 group-hover:scale-[1.01] ${fontClass}`}
         style={{
           fontSize: `${appearance.size}px`,
           fontWeight: appearance.weight,
@@ -74,7 +78,7 @@ export const Clock: React.FC<ClockProps> = ({
           textShadow: textShadowStyle,
         }}
       >
-        <span className="t-digit-group">
+        <span className="t-digit-group tabular-nums">
           {Array.from(timeString).map((char, index) => (
             <span key={`${index}-${char}`} className="t-digit">
               {char}

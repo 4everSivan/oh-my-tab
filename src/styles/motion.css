@@ -253,6 +253,99 @@
   animation: t-fade-in var(--motion-duration-fast) ease-out both;
 }
 
+/* ══ workspace-container 工作台极简模式平滑折叠 ═══════════════
+ * 点击时间收起/展开：高度平滑收缩，伴随微缩放 scale(0.97) 与 translateY(-16px) */
+.workspace-container {
+  max-height: 1600px;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+  transition:
+    max-height 320ms var(--motion-ease-smooth-out),
+    opacity 250ms var(--motion-ease-smooth-out),
+    transform 320ms var(--motion-ease-smooth-out),
+    filter 250ms var(--motion-ease-smooth-out);
+  transform-origin: top center;
+  overflow: visible;
+}
+.workspace-container[data-collapsed='true'] {
+  max-height: 0 !important;
+  opacity: 0;
+  transform: translateY(-16px) scale(0.97);
+  filter: blur(var(--motion-blur-small));
+  pointer-events: none;
+  overflow: hidden;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* ══ t-stagger-item 常用网站级联入场与微交互 ═════════════════
+ * 首次呈现时每个图标按 35ms 步进级联升起；带有实体按键弹性按压 */
+@keyframes t-stagger-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.95);
+    filter: blur(var(--motion-blur-small));
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+.t-stagger-item {
+  animation: t-stagger-rise 400ms var(--motion-ease-smooth-out) both;
+  will-change: transform, opacity, filter;
+}
+
+/* ══ origin-menu 源点感知菜单弹入 ════════════════════════════
+ * 桌面右键菜单与搜索引擎选择：以点击源点以 scale(0.94) + blur 展开 */
+.origin-menu {
+  transform-origin: top left;
+  transform: scale(1);
+  opacity: 1;
+  filter: blur(0);
+  transition:
+    transform 200ms var(--motion-ease-smooth-out),
+    opacity 200ms var(--motion-ease-smooth-out),
+    filter 200ms var(--motion-ease-smooth-out);
+  will-change: transform, opacity, filter;
+}
+.origin-menu[data-open='false'] {
+  transform: scale(0.94);
+  opacity: 0;
+  filter: blur(var(--motion-blur-small));
+  pointer-events: none;
+}
+
+/* ══ t-tabs-sliding 专注计时模式切换滑块 ═════════════════════
+ * 药丸高亮背景经 smooth 缓动平滑位移 */
+.t-tabs-sliding {
+  transition:
+    left 250ms var(--motion-ease-smooth-out),
+    width 250ms var(--motion-ease-smooth-out);
+  will-change: left, width;
+}
+
+/* ══ t-toast 撤销通知条浮动升起 ═════════════════════════════
+ * 自屏幕底部边缘 translateY(16px) + scale(0.97) 弹入升起 */
+@keyframes t-toast-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+    filter: blur(var(--motion-blur-small));
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+.t-toast {
+  animation: t-toast-rise 300ms var(--motion-ease-smooth-out) both;
+  will-change: transform, opacity, filter;
+}
+
 /* ══ 全局降级守卫 ════════════════════════════════════════════
  * 系统"减少动态效果"（prefers-reduced-motion: reduce）时，
  * 全部动效即时完成：时长/延迟归零、迭代置 1、位移与模糊取消；
@@ -261,6 +354,8 @@
   .t-digit,
   .t-card-enter,
   .t-list-enter,
+  .t-stagger-item,
+  .t-toast,
   .animate-fade-in {
     animation-duration: 0.01ms;
     animation-delay: 0ms;
@@ -270,6 +365,9 @@
   .t-modal-overlay,
   .t-panel-slide,
   .t-panel-overlay,
+  .workspace-container,
+  .origin-menu,
+  .t-tabs-sliding,
   .t-check,
   .t-check svg path {
     transition-duration: 0.01ms;
@@ -278,7 +376,11 @@
   .t-digit,
   .t-card-enter,
   .t-list-enter,
-  .t-panel-slide {
+  .t-stagger-item,
+  .t-toast,
+  .t-panel-slide,
+  .workspace-container,
+  .origin-menu {
     filter: none;
   }
 }

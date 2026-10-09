@@ -2,8 +2,8 @@
  * Background geometry and contrast rules based on WCAG sRGB luminance
  */
 
-export const LIGHT_RGB = [255, 255, 255];
-export const DARK_RGB = [20, 28, 32];
+export const LIGHT_RGB: [number, number, number] = [255, 255, 255];
+export const DARK_RGB: [number, number, number] = [20, 28, 32];
 
 export function parseHex(hex: string): [number, number, number] {
   if (!/^#[0-9a-f]{6}$/i.test(hex)) {
@@ -45,25 +45,95 @@ export function blend(
   ];
 }
 
-export function chooseFloatingForeground(samples: number[][]): {
+/**
+ * Match CSS background-size: cover, centered horizontally and vertically positioned.
+ */
+export function coverRect(
+  imageWidth: number,
+  imageHeight: number,
+  frameWidth: number,
+  frameHeight: number,
+  position: 'center' | 'top' | 'bottom' = 'center'
+): { x: number; y: number; width: number; height: number } {
+  if (
+    ![imageWidth, imageHeight, frameWidth, frameHeight].every(
+      (n) => Number.isFinite(n) && n > 0
+    )
+  ) {
+    throw new RangeError('Invalid image or frame size');
+  }
+  const scale = Math.max(frameWidth / imageWidth, frameHeight / imageHeight);
+  const width = imageWidth * scale;
+  const height = imageHeight * scale;
+  return {
+    x: (frameWidth - width) / 2,
+    y: position === 'top' ? 0 : (frameHeight - height) * (position === 'bottom' ? 1 : 0.5),
+    width,
+    height,
+  };
+}
+
+export interface FloatingForegroundResult {
   tone: 'light' | 'dark';
   color: string;
-} {
+  minContrast: number;
+  shadowProtection: string;
+}
+
+export function chooseFloatingForegroundWithProtection(samples: number[][]): FloatingForegroundResult {
   if (!Array.isArray(samples) || !samples.length) {
-    return { tone: 'dark', color: '#141c20' };
+    return {
+      tone: 'dark',
+      color: '#141c20',
+      minContrast: 1,
+      shadowProtection: 'none',
+    };
   }
 
-  const candidates: Array<{ tone: 'light' | 'dark'; color: string; rgb: number[]; coverage: number; average: number }> = [
-    { tone: 'light', color: '#ffffff', rgb: LIGHT_RGB, coverage: 0, average: 0 },
-    { tone: 'dark', color: '#141c20', rgb: DARK_RGB, coverage: 0, average: 0 },
+  const candidates: Array<{
+    tone: 'light' | 'dark';
+    color: string;
+    rgb: [number, number, number];
+    coverage: number;
+    average: number;
+    minContrast: number;
+  }> = [
+    { tone: 'light', color: '#ffffff', rgb: LIGHT_RGB, coverage: 0, average: 0, minContrast: Infinity },
+    { tone: 'dark', color: '#141c20', rgb: DARK_RGB, coverage: 0, average: 0, minContrast: Infinity },
   ];
 
   for (const item of candidates) {
     const ratios = samples.map((pixel) => contrastRatio(item.rgb, pixel));
     item.coverage = ratios.filter((value) => value >= 4.5).length / samples.length;
     item.average = ratios.reduce((sum, value) => sum + Math.log(value), 0) / ratios.length;
+    item.minContrast = ratios.reduce((lowest, value) => Math.min(lowest, value), Infinity);
   }
 
   candidates.sort((a, b) => b.coverage - a.coverage || b.average - a.average);
-  return { tone: candidates[0].tone, color: candidates[0].color };
+  const best = candidates[0];
+
+  // If contrast is below the safe threshold of 4.5:1, provide adaptive shadow protection halo
+  let shadowProtection = 'none';
+  if (best.minContrast < 4.5) {
+    if (best.tone === 'light') {
+      shadowProtection = '0 2px 14px rgba(0, 0, 0, 0.55), 0 0 2px rgba(0, 0, 0, 0.7)';
+    } else {
+      shadowProtection = '0 2px 14px rgba(255, 255, 255, 0.75), 0 0 2px rgba(255, 255, 255, 0.9)';
+    }
+  }
+
+  return {
+    tone: best.tone,
+    color: best.color,
+    minContrast: best.minContrast,
+    shadowProtection,
+  };
+}
+
+export function chooseFloatingForeground(samples: number[][]): {
+  tone: 'light' | 'dark';
+  color: string;
+} {
+  const result = chooseFloatingForegroundWithProtection(samples);
+  return { tone: result.tone, color: result.color };
 }

@@ -14,7 +14,8 @@
         "T05",
         "T06",
         "T07",
-        "T08"
+        "T08",
+        "T09"
       ]
     }
   },
@@ -35,7 +36,8 @@
     "WorkspaceAppearance": {
       "design_doc": "docs/devel/design/02-工作台布局与外观.md",
       "tasks": [
-        "T05"
+        "T05",
+        "T09"
       ]
     },
     "ProductivityWidgets": {
@@ -63,7 +65,8 @@
     "MotionSystem": {
       "design_doc": "docs/devel/design/07-动效系统.md",
       "tasks": [
-        "T08"
+        "T08",
+        "T09"
       ]
     }
   },
@@ -141,12 +144,22 @@
     },
     "T08": {
       "title": "动效系统：令牌梯度与首版 7 类动效片段接入",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "feat/T08-motion-system",
       "milestone": "M1-v0.1.0-首发里程碑",
       "depends_on": [
         "T05",
         "T06"
+      ]
+    },
+    "T09": {
+      "title": "时钟等颜色自动选取优化与全站交互动效体验增强",
+      "status": "completed",
+      "branch": "feat/T09-motion-contrast-upgrade",
+      "milestone": "M1-v0.1.0-首发里程碑",
+      "depends_on": [
+        "T05",
+        "T08"
       ]
     }
   }

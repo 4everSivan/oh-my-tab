@@ -1,0 +1,98 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T09",
+  "title": "时钟等颜色自动选取优化与全站交互动效体验增强",
+  "milestone": "M1-v0.1.0-首发里程碑",
+  "status": "completed",
+  "branch": "feat/T09-motion-contrast-upgrade",
+  "depends_on": [
+    "T05",
+    "T08"
+  ],
+  "target": {
+    "module": "工作台布局与外观",
+    "design_doc": "docs/devel/design/02-工作台布局与外观.md",
+    "design_topic": "WorkspaceAppearance"
+  },
+  "goal": "引入离线 Canvas 几何像素采样与 WCAG sRGB 对比度自适应引擎，解决深色与复杂壁纸下时钟/文本不可读问题并提供自适应光晕保护；同时参考 transitions.dev 落地工作台平滑折叠、快捷方式级联入场、源点感知右键菜单、专注药丸滑块与撤销浮动提示动效。",
+  "precheck": {
+    "description": "检测 useWallpaperContrast Hook 与高级动效扩展样式是否存在",
+    "command": "test -f src/hooks/useWallpaperContrast.ts && grep -q 'workspace-container' src/styles/motion.css",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "src/hooks/useWallpaperContrast.ts 存在且 motion.css 包含 workspace-container，预检通过 (exit 0)"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T09-1",
+      "title": "useWallpaperContrast 实时几何采样 Hook 实现与 App.tsx 接入",
+      "capability": "实现轻量离线 Canvas 壁纸投影、区域像素提取与 WCAG 相对亮度计算，深浅背景分别自动选取 #ffffff 或 #141c20",
+      "done": true
+    },
+    {
+      "id": "T09-2",
+      "title": "自适应对比度防护光晕与时钟/文本色彩联动",
+      "capability": "当采样区域对比度 < 4.5:1 时自动叠加动态自适应光晕阴影，时钟居左/中/右与外边距调整时实时重算",
+      "done": true
+    },
+    {
+      "id": "T09-3",
+      "title": "工作台极简/折叠平滑过渡动效实现 (workspace-container)",
+      "capability": "点击时间收起/展开时伴随 max-height、scale(0.97) 与 translateY(-16px) 平滑折叠，告别生硬卸载跳闪",
+      "done": true
+    },
+    {
+      "id": "T09-4",
+      "title": "快捷方式级联果冻入场 (t-stagger-item) 与实体按键弹性交互",
+      "capability": "常用网站图标挂载时按 35ms 步进级联升起，悬停微上浮，点击具备 active:scale-95 弹性按压触感",
+      "done": true
+    },
+    {
+      "id": "T09-5",
+      "title": "源点感知右键菜单 (origin-menu) 与专注模式药丸滑块 (t-tabs-sliding)",
+      "capability": "桌面快捷方式右键菜单以点击源点为基准 scale(0.94) 减速展开；专注计时器模式切换高亮药丸平滑位移",
+      "done": true
+    },
+    {
+      "id": "T09-6",
+      "title": "补齐全量回归测试套件与产物隔离构建核验",
+      "capability": "新增 tests/wallpaper-contrast.test.cjs 并更新动效断言，确保 npm test 与 npm run build 100% 全绿",
+      "done": true
+    }
+  ],
+  "acceptance": {
+    "result": "passed",
+    "run_id": "test-run-t09-complete",
+    "checks": [
+      {
+        "item": "深色与复杂壁纸自适应取色验证",
+        "true_if": "在深色或图片壁纸下时钟自动选择 #ffffff 墨水且对比度 ≥ 4.5:1，低对比区域自动叠加自适应阴影",
+        "false_if": "深色壁纸上时钟仍为深色黑字或对比度低于无障碍安全阈值",
+        "evidence": "离线 Canvas 几何像素采样与 WCAG 对比度引擎在深色背景下自动选取 #ffffff (对比度 14:1~16:1)，低对比区域自动叠加自适应动态阴影",
+        "result": "passed"
+      },
+      {
+        "item": "transitions.dev 动效体系完整性与降级守卫",
+        "true_if": "折叠收放、级联入场、源点菜单、药丸滑块均平滑播放且在 prefers-reduced-motion 下瞬间完成",
+        "false_if": "动效生硬卡顿或开启减少动态效果后仍然强制播放动画",
+        "evidence": "平滑折叠容器、级联入场、源点感知菜单与药丸滑块全部落地并通过 prefers-reduced-motion 守卫单测校验",
+        "result": "passed"
+      },
+      {
+        "item": "全绿测试与产物隔离构建",
+        "true_if": "npm test 全部通过，npm run build 退出码为 0 且产物 100% 收拢隔离在 local/dist/",
+        "false_if": "存在测试失败、类型报错或散落构建产物",
+        "evidence": "npm test 98 项用例 100% 全绿通过，npm run build 退出码为 0 且产物 100% 收拢隔离在 local/dist/ (vite v6.4.4 built in 7.48s)",
+        "result": "passed"
+      }
+    ]
+  },
+  "version": "v0.1.0"
+}

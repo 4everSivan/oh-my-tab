@@ -196,7 +196,8 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
               onPointerCancel={handlePointerUp}
               onContextMenu={(e) => handleContextMenu(e, shortcut)}
               onClick={(e) => handleItemClick(e, shortcut.url)}
-              className="flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-16"
+              className="t-stagger-item flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-16"
+              style={{ animationDelay: `${index * 35}ms` }}
               title={`${shortcut.name}\n右键查看菜单 / 长按可排序`}
             >
               {/* Icon Container with Squircle Continuous Curve */}
@@ -259,11 +260,11 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
 
       {/* Undo Notification Bar */}
       {lastRemoved && (
-        <div className="fixed bottom-6 z-40 flex items-center space-x-3 px-4 py-2 bg-stone-900/90 text-white text-xs rounded-xl shadow-lg backdrop-blur-md animate-fade-in">
+        <div className="fixed bottom-6 z-40 flex items-center space-x-3 px-4 py-2 bg-stone-900/90 text-white text-xs rounded-xl shadow-lg backdrop-blur-md t-toast">
           <span>已移除 {lastRemoved.shortcut.name}</span>
           <button
             onClick={handleUndoRemove}
-            className="flex items-center space-x-1 text-emerald-400 hover:text-emerald-300 font-medium"
+            className="flex items-center space-x-1 text-emerald-400 hover:text-emerald-300 font-medium cursor-pointer"
           >
             <Undo2 className="w-3.5 h-3.5" />
             <span>撤销</span>
@@ -274,7 +275,7 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
       {/* Desktop Context Menu */}
       {contextMenu && (
         <div
-          className="fixed z-50 w-40 py-1 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md rounded-xl border border-black/10 dark:border-white/10 shadow-xl select-none"
+          className="origin-menu fixed z-50 w-40 py-1 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md rounded-xl border border-black/10 dark:border-white/10 shadow-xl select-none"
           style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
         >
           <button

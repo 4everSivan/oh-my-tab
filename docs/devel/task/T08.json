@@ -3,7 +3,7 @@
   "id": "T08",
   "title": "动效系统：令牌梯度与首版 7 类动效片段接入",
   "milestone": "M1-v0.1.0-首发里程碑",
-  "status": "in_progress",
+  "status": "completed",
   "branch": "feat/T08-motion-system",
   "depends_on": [
     "T05",

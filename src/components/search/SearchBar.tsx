@@ -83,7 +83,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
           {/* Engine dropdown menu */}
           {showEngineMenu && (
-            <div className="absolute left-0 mt-2 w-32 py-1.5 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md rounded-xl border border-black/10 dark:border-white/10 shadow-lg z-30">
+            <div className="origin-menu absolute left-0 mt-2 w-32 py-1.5 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md rounded-xl border border-black/10 dark:border-white/10 shadow-lg z-30">
               {SEARCH_ENGINES.map((engine) => (
                 <button
                   key={engine.id}

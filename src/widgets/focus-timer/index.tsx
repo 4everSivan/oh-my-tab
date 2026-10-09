@@ -157,17 +157,24 @@ export const FocusTimerWidget: React.FC<WidgetComponentProps> = ({ host }) => {
 
   return (
     <div className="flex flex-col items-center justify-center h-full space-y-4 py-2 select-none">
-      {/* Preset buttons */}
-      <div className="flex items-center space-x-2">
+      {/* Preset buttons with sliding pill */}
+      <div className="relative flex items-center p-1 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 select-none">
+        <div
+          className="t-tabs-sliding absolute top-1 bottom-1 rounded-lg bg-stone-900 dark:bg-white shadow-xs"
+          style={{
+            width: '64px',
+            left: `${4 + Math.max(0, PRESETS.indexOf(durationMinutes)) * 68}px`,
+          }}
+        />
         {PRESETS.map((m) => (
           <button
             key={m}
             disabled={isRunning}
             onClick={() => handleSelectPreset(m)}
-            className={`px-3 py-1 rounded-xl text-xs font-medium transition-all ${
+            className={`relative z-10 w-[64px] py-1 text-center rounded-lg text-xs font-medium transition-colors ${
               durationMinutes === m
-                ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900 shadow-xs'
-                : 'bg-black/5 dark:bg-white/5 text-stone-600 dark:text-stone-400 hover:bg-black/10 dark:hover:bg-white/10'
+                ? 'text-white dark:text-stone-900 font-semibold'
+                : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
             } ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           >
             {m} 分钟

@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>oh-my-tab 动效与自适应取色优化预览</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ── transitions.dev 核心令牌 ── */
+    :root {
+      --motion-ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+      --motion-ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+      --digit-dur: 450ms;
+      --digit-distance: 8px;
+      --digit-blur: 2px;
+      --check-draw: 350ms;
+      --check-len: 16;
+    }
+
+    /* 数字弹入 */
+    @keyframes t-digit-pop {
+      0% {
+        transform: translateY(var(--digit-distance));
+        opacity: 0;
+        filter: blur(var(--digit-blur));
+      }
+      100% {
+        transform: translateY(0);
+        opacity: 1;
+        filter: blur(0);
+      }
+    }
+    .t-digit {
+      display: inline-block;
+      font-variant-numeric: tabular-nums;
+      animation: t-digit-pop var(--digit-dur) var(--motion-ease-spring) both;
+    }
+
+    /* 勾选描画 */
+    .t-check-box {
+      transition: background-color 150ms ease, border-color 150ms ease;
+    }
+    .t-check-path {
+      stroke-dasharray: var(--check-len);
+      stroke-dashoffset: var(--check-len);
+      transition: stroke-dashoffset var(--check-draw) var(--motion-ease-smooth);
+    }
+    .t-check-box.checked .t-check-path {
+      stroke-dashoffset: 0;
+    }
+
+    /* 工作台折叠平滑过渡 */
+    .workspace-container {
+      transition: max-height 350ms var(--motion-ease-smooth),
+                  opacity 300ms var(--motion-ease-smooth),
+                  transform 350ms var(--motion-ease-smooth),
+                  filter 300ms var(--motion-ease-smooth);
+      transform-origin: top center;
+    }
+    .workspace-container.collapsed {
+      max-height: 0px !important;
+      opacity: 0;
+      transform: translateY(-16px) scale(0.97);
+      filter: blur(4px);
+      pointer-events: none;
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+      overflow: hidden;
+    }
+
+    /* 级联入场 */
+    @keyframes t-stagger-rise {
+      from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.95);
+        filter: blur(2px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+      }
+    }
+    .t-stagger-item {
+      animation: t-stagger-rise 400ms var(--motion-ease-smooth) both;
+    }
+
+    /* 菜单源点弹出 */
+    .origin-menu {
+      transform-origin: top left;
+      transition: transform 200ms var(--motion-ease-smooth),
+                  opacity 200ms var(--motion-ease-smooth);
+    }
+    .origin-menu.closed {
+      transform: scale(0.94);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* 降级守卫 */
+    body.reduced-motion * {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      filter: none !important;
+    }
+  </style>
+</head>
+<body class="bg-stone-950 text-stone-100 min-h-screen font-sans antialiased selection:bg-amber-500 selection:text-black">
+
+  <!-- 顶部导航栏 -->
+  <header class="border-b border-stone-800 bg-stone-900/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <span class="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span>
+      <h1 class="text-base font-semibold tracking-wide text-white">oh-my-tab 优化效果预览：动效系统 (transitions.dev) & 自适应取色引擎</h1>
+    </div>
+    <div class="flex items-center space-x-4">
+      <label class="flex items-center space-x-2 text-xs text-stone-400 cursor-pointer select-none">
+        <input type="checkbox" id="reducedMotionToggle" onchange="toggleReducedMotion(this.checked)" class="rounded bg-stone-800 border-stone-700 text-amber-500 focus:ring-0">
+        <span>模拟系统「减少动态效果」</span>
+      </label>
+      <span class="text-xs px-2.5 py-1 rounded-full bg-stone-800 text-stone-400 border border-stone-700">预览服务端口 4311</span>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-12">
+
+    <!-- 模块一：时钟与文字颜色自动选取优化实测 -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between border-b border-stone-800 pb-3">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>🎨 1. 时钟等颜色的自动选取优化 (WCAG 几何采样算法)</span>
+          </h2>
+          <p class="text-xs text-stone-400 mt-1">
+            现有缺陷：直接读取 <code class="text-amber-400 bg-stone-800 px-1 py-0.5 rounded">background.color</code>，在深色或图片壁纸下时钟错误判定为黑字造成不可读。<br>
+            优化方案：通过离线 Canvas 真实映射壁纸裁切、高斯模糊与遮罩浓度，提取时钟区域像素阵列，按 WCAG sRGB 计算亮度并自适应选取黑白墨水与动态对比保护。
+          </p>
+        </div>
+        <!-- 壁纸切换器 -->
+        <div class="flex items-center space-x-2 bg-stone-900 p-1 rounded-xl border border-stone-800 text-xs">
+          <button onclick="setWallpaper('dark')" class="wp-btn active px-3 py-1.5 rounded-lg font-medium transition-colors bg-amber-500 text-black">深色星空</button>
+          <button onclick="setWallpaper('light')" class="wp-btn px-3 py-1.5 rounded-lg font-medium transition-colors text-stone-400 hover:text-white">浅色纸感</button>
+          <button onclick="setWallpaper('split')" class="wp-btn px-3 py-1.5 rounded-lg font-medium transition-colors text-stone-400 hover:text-white">左右明暗对半</button>
+          <button onclick="setWallpaper('forest')" class="wp-btn px-3 py-1.5 rounded-lg font-medium transition-colors text-stone-400 hover:text-white">复杂摄影风景</button>
+        </div>
+      </div>
+
+      <!-- 对比视窗 -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 优化前展示 -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs font-semibold text-rose-400">
+            <span>❌ 优化前：未对图片采样（固定为深色墨水 #141c20）</span>
+            <span class="text-stone-500">对比度异常报警</span>
+          </div>
+          <div id="beforeCanvasBox" class="relative h-64 rounded-2xl overflow-hidden border border-rose-500/30 flex flex-col items-center justify-center transition-all bg-cover bg-center">
+            <div class="absolute inset-0 bg-black/10"></div>
+            <!-- 时钟文字（硬编码黑字） -->
+            <div class="relative z-10 text-center select-none">
+              <h2 class="text-5xl font-mono font-bold tracking-tight" style="color: #141c20;">11:28:42</h2>
+              <p class="text-sm font-medium mt-2" style="color: #141c20;">2026年10月9日 星期五</p>
+            </div>
+            <!-- 状态诊断标签 -->
+            <div class="absolute bottom-3 right-3 z-10 text-[11px] px-2.5 py-1 rounded-md bg-rose-950/80 text-rose-300 border border-rose-800 flex items-center space-x-1">
+              <span>⚠️ 深色壁纸上对比度仅 1.15:1（严重遮蔽、肉眼不可见）</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 优化后展示 -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs font-semibold text-emerald-400">
+            <span>✅ 优化后：实时几何采样 + 动态对比度防护</span>
+            <span id="contrastScoreBadge" class="text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded text-[11px]">WCAG 对比度 16.8:1</span>
+          </div>
+          <div id="afterCanvasBox" class="relative h-64 rounded-2xl overflow-hidden border border-emerald-500/40 flex flex-col items-center justify-center transition-all bg-cover bg-center">
+            <div class="absolute inset-0 bg-black/10"></div>
+            <!-- 时钟文字（自适应采样计算色） -->
+            <div id="adaptiveClock" class="relative z-10 text-center select-none transition-colors duration-300">
+              <h2 id="adaptiveClockText" class="text-5xl font-mono font-bold tracking-tight">11:28:42</h2>
+              <p id="adaptiveDateText" class="text-sm font-medium mt-2">2026年10月9日 星期五</p>
+            </div>
+            <!-- 状态诊断标签 -->
+            <div class="absolute bottom-3 right-3 z-10 text-[11px] px-2.5 py-1 rounded-md bg-stone-900/90 text-stone-200 border border-stone-700 flex items-center space-x-2">
+              <span id="colorHexText">墨水色: #ffffff</span>
+              <span>•</span>
+              <span id="shadowStatusText">自适应光晕保护: 开启</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 模块二：动效系统升级展示 (transitions.dev) -->
+    <section class="space-y-6">
+      <div class="border-b border-stone-800 pb-3">
+        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+          <span>⚡ 2. 动效系统升级方案 (参考 transitions.dev 44 套规范)</span>
+        </h2>
+        <p class="text-xs text-stone-400 mt-1">
+          将 transitions.dev 的核心交互精髓（语义令牌、spring 弹性缓动、微模糊交叉淡入、路径描边、级联延迟）完整赋能至本工作台。
+        </p>
+      </div>
+
+      <!-- 6 项关键动效交互体验卡片 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- 动效卡 1：时钟数字逐位弹入 -->
+        <div class="bg-stone-900/60 border border-stone-800 rounded-2xl p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-white">① 时间数字逐位弹入 (Number Pop-in)</h3>
+            <span class="text-[10px] bg-stone-800 text-amber-400 px-2 py-0.5 rounded border border-stone-700">02-number-pop-in</span>
+          </div>
+          <p class="text-xs text-stone-400 leading-relaxed">
+            数值变化的数字携带 <code class="text-amber-400">blur(2px)</code> 与弹性缓动 <code class="text-amber-400">cubic-bezier(0.34, 1.45, 0.64, 1)</code> 弹入，非变化位保持稳定。
+          </p>
+          <div class="bg-stone-950 p-4 rounded-xl flex items-center justify-center border border-stone-850">
+            <div id="liveClockDigits" class="text-3xl font-mono font-bold tracking-wider text-amber-400 select-none">
+              <!-- JS 动态注入逐位渲染 -->
+            </div>
+          </div>
+          <div class="flex justify-end">
+            <button onclick="triggerDigitTick()" class="px-3 py-1.5 text-xs bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg transition-colors">
+              模拟秒数跳变
+            </button>
+          </div>
+        </div>
+
+        <!-- 动效卡 2：极简模式折叠/展开过渡 -->
+        <div class="bg-stone-900/60 border border-stone-800 rounded-2xl p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-white">② 工作台折叠平滑过渡 (Accordion Morph)</h3>
+            <span class="text-[10px] bg-stone-800 text-amber-400 px-2 py-0.5 rounded border border-stone-700">20-accordion-expand</span>
+          </div>
+          <p class="text-xs text-stone-400 leading-relaxed">
+            点击时间收起时，组件与快捷方式优雅平滑卷收（高度+缩放+位移联动），彻底告别生硬卸载跳闪。
+          </p>
+          <div class="bg-stone-950 p-3 rounded-xl border border-stone-850 space-y-2">
+            <div class="text-center py-1 text-xs text-stone-400 font-mono">
+              [时钟与搜索栏置顶]
+            </div>
+            <div id="demoWorkspaceArea" class="workspace-container max-h-36 bg-stone-900 border border-stone-800 rounded-lg p-3 text-center space-y-2">
+              <div class="text-xs text-amber-400 font-medium">✨ 工作台内容（快捷方式 + 效率组件）</div>
+              <div class="grid grid-cols-4 gap-2 text-[10px] text-stone-400">
+                <div class="bg-stone-800 py-1.5 rounded">GitHub</div>
+                <div class="bg-stone-800 py-1.5 rounded">Notion</div>
+                <div class="bg-stone-800 py-1.5 rounded">Figma</div>
+                <div class="bg-stone-800 py-1.5 rounded">待办组件</div>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-end">
+            <button id="toggleCollapseBtn" onclick="toggleDemoWorkspace()" class="px-3 py-1.5 text-xs bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg transition-colors">
+              点击时间切换模式
+            </button>
+          </div>
+        </div>
+
+        <!-- 动效卡 3：快捷方式图标级联入场 -->
+        <div class="bg-stone-900/60 border border-stone-800 rounded-2xl p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-white">③ 快捷方式级联果冻入场 (Stagger Reveal)</h3>
+            <span class="text-[10px] bg-stone-800 text-amber-400 px-2 py-0.5 rounded border border-stone-700">18-texts-reveal</span>
+          </div>
+          <p class="text-xs text-stone-400 leading-relaxed">
+            页面开启时图标按 <code class="text-amber-400">35ms</code> 级联步进弹入，带有弹性按压反馈 <code class="text-amber-400">active:scale-95</code>。
+          </p>
+          <div id="staggerIconContainer" class="bg-stone-950 p-4 rounded-xl border border-stone-850 flex items-center justify-center space-x-3">
+            <!-- 动态生成 -->
+          </div>
+          <div class="flex justify-end">
+            <button onclick="replayStagger()" class="px-3 py-1.5 text-xs bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg transition-colors">
+              重放入场动画
+            </button>
+          </div>
+        </div>
+
+        <!-- 动效卡 4：待办勾选 SVG 路径描画 -->
+        <div class="bg-stone-900/60 border border-stone-800 rounded-2xl p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-white">④ 待办完成描画动效 (Checkbox Check)</h3>
+            <span class="text-[10px] bg-stone-800 text-amber-400 px-2 py-0.5 rounded border border-stone-700">23-checkbox-check</span>
+          </div>
+          <p class="text-xs text-stone-400 leading-relaxed">
+            勾选时翠绿背景先填充，随后对号路径顺畅描出；取消勾选快速消退，极大增强成就反馈感。
+          </p>
+          <div class="bg-stone-950 p-4 rounded-xl border border-stone-850 space-y-2">
+            <div onclick="toggleCheckItem(this)" class="flex items-center space-x-3 p-2 rounded-lg bg-stone-900 border border-stone-800 cursor-pointer select-none group">
+              <div class="t-check-box w-5 h-5 rounded-md border border-stone-600 flex items-center justify-center">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none">
+                  <path class="t-check-path" d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span class="text-xs text-stone-300 group-hover:text-white transition-colors">设计 transitions 动效系统</span>
+            </div>
+            <div onclick="toggleCheckItem(this)" class="flex items-center space-x-3 p-2 rounded-lg bg-stone-900 border border-stone-800 cursor-pointer select-none group">
+              <div class="t-check-box w-5 h-5 rounded-md border border-stone-600 flex items-center justify-center">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none">
+                  <path class="t-check-path" d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span class="text-xs text-stone-300 group-hover:text-white transition-colors">核查 WCAG 背景采样对比度</span>
+            </div>
+          </div>
+          <div class="text-[11px] text-stone-500 text-right">点击待办项体验勾选交互</div>
+        </div>
+
+        <!-- 动效卡 5：源点感知菜单微弹入 -->
+        <div class="bg-stone-900/60 border border-stone-800 rounded-2xl p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-white">⑤ 源点感知右键菜单 (Origin Dropdown)</h3>
+            <span class="text-[10px] bg-stone-800 text-amber-400 px-2 py-0.5 rounded border border-stone-700">05-menu-dropdown</span>
+          </div>
+          <p class="text-xs text-stone-400 leading-relaxed">
+            桌面快捷方式右键菜单与搜索引擎选择面板：以点击源点为基准，自 <code class="text-amber-400">scale(0.94) + blur(2px)</code> 平滑绽放。
+          </p>
+          <div class="bg-stone-950 p-4 rounded-xl border border-stone-850 relative h-28 flex items-center justify-center">
+            <button onclick="toggleMenu()" class="px-4 py-2 bg-stone-800 hover:bg-stone-700 rounded-xl text-xs font-medium text-stone-200 transition-colors">
+              点击弹出菜单示例
+            </button>
+            <div id="demoMenu" class="origin-menu closed absolute top-6 right-6 w-36 bg-stone-900/95 backdrop-blur-md border border-stone-700 rounded-xl p-1.5 shadow-2xl z-20">
+              <div class="px-2.5 py-1.5 text-xs text-stone-200 hover:bg-stone-800 rounded-lg cursor-pointer">新标签页打开</div>
+              <div class="px-2.5 py-1.5 text-xs text-stone-200 hover:bg-stone-800 rounded-lg cursor-pointer">编辑网站</div>
+              <div class="border-t border-stone-800 my-1"></div>
+              <div class="px-2.5 py-1.5 text-xs text-rose-400 hover:bg-rose-950/40 rounded-lg cursor-pointer">移除网站</div>
+            </div>
+          </div>
+          <div class="text-[11px] text-stone-500 text-right">带平滑源点缩放与磨砂毛玻璃</div>
+        </div>
+
+        <!-- 动效卡 6：专注计时器 Pill 滑块与切换 -->
+        <div class="bg-stone-900/60 border border-stone-800 rounded-2xl p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-white">⑥ 专注模式切换滑块 (Tabs Sliding)</h3>
+            <span class="text-[10px] bg-stone-800 text-amber-400 px-2 py-0.5 rounded border border-stone-700">16-tabs-sliding</span>
+          </div>
+          <p class="text-xs text-stone-400 leading-relaxed">
+            专注计时预设时间芯片切换时，高亮滑块 Pill 经弹性缓动平滑位移，配合时长数字即时切换。
+          </p>
+          <div class="bg-stone-950 p-4 rounded-xl border border-stone-850 flex flex-col items-center justify-center space-y-3">
+            <div class="relative bg-stone-900 p-1 rounded-xl flex items-center border border-stone-800">
+              <div id="pillHighlighter" class="absolute h-7 rounded-lg bg-amber-500 transition-all duration-300" style="left: 4px; width: 56px; transition-timing-function: var(--motion-ease-smooth);"></div>
+              <button onclick="setTimerPill(0, 15)" class="relative z-10 w-14 py-1 text-xs font-semibold text-black transition-colors pill-btn">15m</button>
+              <button onclick="setTimerPill(1, 25)" class="relative z-10 w-14 py-1 text-xs font-semibold text-stone-400 hover:text-white transition-colors pill-btn">25m</button>
+              <button onclick="setTimerPill(2, 45)" class="relative z-10 w-14 py-1 text-xs font-semibold text-stone-400 hover:text-white transition-colors pill-btn">45m</button>
+            </div>
+            <div id="timerDisplayNumber" class="text-2xl font-mono font-bold text-white tracking-tight">15:00</div>
+          </div>
+          <div class="text-[11px] text-stone-500 text-right">平滑背景药丸滑动与触感</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 模块三：治理流程落地实施规划 -->
+    <section class="bg-stone-900/40 border border-stone-800 rounded-2xl p-6 space-y-4">
+      <h2 class="text-base font-bold text-white flex items-center gap-2">
+        <span>📋 3. 落地实施治理规划 (ad-flow v1.1.0 闭环规范)</span>
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-stone-300">
+        <div class="bg-stone-950 p-4 rounded-xl border border-stone-800 space-y-2">
+          <div class="font-semibold text-amber-400">第一阶段：设计基线回写</div>
+          <p class="text-stone-400 leading-relaxed">
+            修订 <code class="text-white">02-工作台布局与外观.md</code> 与 <code class="text-white">07-动效系统.md</code>，明确 Canvas 几何采样规范、对比度自适应保护策略与 6 类动效参数单一来源。
+          </p>
+        </div>
+        <div class="bg-stone-950 p-4 rounded-xl border border-stone-800 space-y-2">
+          <div class="font-semibold text-amber-400">第二阶段：任务拆解与分支开发</div>
+          <p class="text-stone-400 leading-relaxed">
+            立项变更卡或任务卡（如 <code class="text-white">T09</code>），检出专用特性分支，落地 <code class="text-white">useWallpaperContrast</code> 采样 Hook 与组件动效接入。
+          </p>
+        </div>
+        <div class="bg-stone-950 p-4 rounded-xl border border-stone-800 space-y-2">
+          <div class="font-semibold text-amber-400">第三阶段：质量门禁与部署报告</div>
+          <p class="text-stone-400 leading-relaxed">
+            补充自动化测试用例，运行 <code class="text-white">npm test</code> 与 <code class="text-white">npm run build</code>（产物隔离至 local/dist），刷新 <code class="text-white">local/deploy_report.md</code>，代签收口。
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ── 1. 壁纸与对比度自动取色模拟 ──
+    const WALLPAPERS = {
+      dark: {
+        url: 'homepage-demo-contrast-dark.jpg',
+        rgb: [28, 32, 42],
+        isDark: true,
+        contrast: 16.8,
+        ink: '#ffffff',
+        shadow: '0 4px 16px rgba(0, 0, 0, 0.4)'
+      },
+      light: {
+        url: 'homepage-demo-paper.jpg',
+        rgb: [245, 244, 239],
+        isDark: false,
+        contrast: 15.6,
+        ink: '#141c20',
+        shadow: 'none'
+      },
+      split: {
+        url: 'homepage-demo-contrast-split.jpg',
+        rgb: [40, 45, 55],
+        isDark: true,
+        contrast: 14.2,
+        ink: '#ffffff',
+        shadow: '0 2px 12px rgba(0, 0, 0, 0.5)'
+      },
+      forest: {
+        url: 'homepage-demo-background.jpg',
+        rgb: [65, 80, 75],
+        isDark: true,
+        contrast: 8.4,
+        ink: '#ffffff',
+        shadow: '0 4px 16px rgba(0, 0, 0, 0.5)'
+      }
+    };
+
+    function setWallpaper(type) {
+      document.querySelectorAll('.wp-btn').forEach(b => {
+        b.classList.remove('bg-amber-500', 'text-black');
+        b.classList.add('text-stone-400');
+      });
+      event.target.classList.add('bg-amber-500', 'text-black');
+      event.target.classList.remove('text-stone-400');
+
+      const wp = WALLPAPERS[type];
+      const beforeBox = document.getElementById('beforeCanvasBox');
+      const afterBox = document.getElementById('afterCanvasBox');
+      beforeBox.style.backgroundImage = `url('${wp.url}')`;
+      afterBox.style.backgroundImage = `url('${wp.url}')`;
+
+      // 优化后自动计算色彩
+      const clockText = document.getElementById('adaptiveClockText');
+      const dateText = document.getElementById('adaptiveDateText');
+      const colorHexText = document.getElementById('colorHexText');
+      const contrastScoreBadge = document.getElementById('contrastScoreBadge');
+      const shadowStatusText = document.getElementById('shadowStatusText');
+
+      clockText.style.color = wp.ink;
+      clockText.style.textShadow = wp.shadow;
+      dateText.style.color = wp.ink;
+      dateText.style.textShadow = wp.shadow;
+
+      colorHexText.textContent = `墨水色: ${wp.ink}`;
+      contrastScoreBadge.textContent = `WCAG 对比度 ${wp.contrast}:1`;
+      shadowStatusText.textContent = `自适应光晕保护: ${wp.shadow !== 'none' ? '开启 (抵御复杂纹理)' : '关闭'}`;
+    }
+
+    // 初始化深色壁纸
+    setWallpaper('dark');
+
+    // ── 2. 数字弹入展示 ──
+    let currentSeconds = 42;
+    function renderDigits(sec) {
+      const container = document.getElementById('liveClockDigits');
+      const timeStr = `11:28:${String(sec).padStart(2, '0')}`;
+      container.innerHTML = '';
+      Array.from(timeStr).forEach((char, idx) => {
+        const span = document.createElement('span');
+        span.className = 't-digit';
+        span.textContent = char;
+        span.style.animationDelay = `${idx * 20}ms`;
+        container.appendChild(span);
+      });
+    }
+    function triggerDigitTick() {
+      currentSeconds = (currentSeconds + 1) % 60;
+      renderDigits(currentSeconds);
+    }
+    renderDigits(currentSeconds);
+
+    // ── 3. 工作台折叠平滑过渡 ──
+    let isCollapsed = false;
+    function toggleDemoWorkspace() {
+      isCollapsed = !isCollapsed;
+      const ws = document.getElementById('demoWorkspaceArea');
+      const btn = document.getElementById('toggleCollapseBtn');
+      if (isCollapsed) {
+        ws.classList.add('collapsed');
+        btn.textContent = '已进入极简模式 (点击展开)';
+      } else {
+        ws.classList.remove('collapsed');
+        btn.textContent = '点击时间切换模式';
+      }
+    }
+
+    // ── 4. 级联入场动画 ──
+    const SHORTCUTS_DATA = [
+      { name: 'GitHub', color: 'bg-stone-800' },
+      { name: 'Notion', color: 'bg-stone-800' },
+      { name: 'Figma', color: 'bg-stone-800' },
+      { name: 'Bilibili', color: 'bg-stone-800' },
+    ];
+    function replayStagger() {
+      const container = document.getElementById('staggerIconContainer');
+      container.innerHTML = '';
+      SHORTCUTS_DATA.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 't-stagger-item flex flex-col items-center cursor-pointer transition-transform duration-150 active:scale-95 group';
+        div.style.animationDelay = `${index * 45}ms`;
+        div.innerHTML = `
+          <div class="w-11 h-11 rounded-2xl ${item.color} border border-stone-700 flex items-center justify-center font-bold text-xs text-amber-400 group-hover:scale-105 group-hover:border-amber-500/50 transition-all shadow-sm">
+            ${item.name[0]}
+          </div>
+          <span class="text-[10px] text-stone-400 mt-1.5 group-hover:text-white transition-colors">${item.name}</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+    replayStagger();
+
+    // ── 5. 待办完成描画 ──
+    function toggleCheckItem(row) {
+      const box = row.querySelector('.t-check-box');
+      const text = row.querySelector('span');
+      const isChecked = box.classList.toggle('checked');
+      if (isChecked) {
+        box.classList.add('bg-emerald-500', 'border-emerald-500');
+        text.classList.add('line-through', 'text-stone-500');
+      } else {
+        box.classList.remove('bg-emerald-500', 'border-emerald-500');
+        text.classList.remove('line-through', 'text-stone-500');
+      }
+    }
+
+    // ── 6. 菜单源点弹出 ──
+    let isMenuOpen = false;
+    function toggleMenu() {
+      isMenuOpen = !isMenuOpen;
+      const menu = document.getElementById('demoMenu');
+      if (isMenuOpen) {
+        menu.classList.remove('closed');
+      } else {
+        menu.classList.add('closed');
+      }
+    }
+
+    // ── 7. 专注 Pill 滑动 ──
+    function setTimerPill(index, minutes) {
+      const pill = document.getElementById('pillHighlighter');
+      pill.style.left = `${4 + index * 56}px`;
+      document.querySelectorAll('.pill-btn').forEach((btn, idx) => {
+        if (idx === index) {
+          btn.classList.add('text-black');
+          btn.classList.remove('text-stone-400');
+        } else {
+          btn.classList.remove('text-black');
+          btn.classList.add('text-stone-400');
+        }
+      });
+      document.getElementById('timerDisplayNumber').textContent = `${minutes}:00`;
+    }
+
+    // ── 8. 减少动态效果模拟 ──
+    function toggleReducedMotion(enabled) {
+      if (enabled) {
+        document.body.classList.add('reduced-motion');
+      } else {
+        document.body.classList.remove('reduced-motion');
+      }
+    }
+  </script>
+</body>
+</html>

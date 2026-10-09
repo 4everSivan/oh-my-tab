@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   storageService,
   ClockAppearance,
@@ -18,8 +18,8 @@ import { AppearanceDrawer } from './components/settings/AppearanceDrawer';
 import { AddWidgetModal } from './components/widgets/AddWidgetModal';
 import { WidgetManifest } from './contract/types';
 import { createWidgetInstance } from './contract/widget';
-import { parseHex, chooseFloatingForeground, blend } from './utils/contrast';
 import { planBackgroundRestore } from './utils/background';
+import { useWallpaperContrast } from './hooks/useWallpaperContrast';
 import { SlidersHorizontal, Plus } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -33,6 +33,7 @@ export const App: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const clockContainerRef = useRef<HTMLDivElement>(null);
 
   // Load all configurations on mount
   useEffect(() => {
@@ -73,14 +74,8 @@ export const App: React.FC = () => {
     loadAll();
   }, []);
 
-  // Compute text color dynamically based on background and shade
-  const baseRgb = parseHex(background.color);
-  const shadedRgb = blend(baseRgb, [0, 0, 0], background.shade / 100);
-  const ink = background.type === 'material' && background.name === 'dark'
-    ? { tone: 'light' as const, color: '#ffffff' }
-    : chooseFloatingForeground([shadedRgb]);
-
-  const textColor = ink.color;
+  // Canvas-based geometric luminance sampling and adaptive contrast protection
+  const { textColor, shadowProtection } = useWallpaperContrast(background, clockContainerRef);
 
   // Background style computation
   const getBackgroundStyle = (): React.CSSProperties => {
@@ -213,12 +208,15 @@ export const App: React.FC = () => {
       {/* Main Workbench Area */}
       <main className="flex-1 flex flex-col items-center justify-start w-full px-4 z-0">
         {/* Clock & Date */}
-        <Clock
-          appearance={clock}
-          isCollapsed={isCollapsed}
-          textColor={textColor}
-          onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
-        />
+        <div ref={clockContainerRef} className="w-full">
+          <Clock
+            appearance={clock}
+            isCollapsed={isCollapsed}
+            textColor={textColor}
+            shadowProtection={shadowProtection}
+            onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+          />
+        </div>
 
         {/* Search Bar */}
         <SearchBar
@@ -227,26 +225,29 @@ export const App: React.FC = () => {
           onEngineChange={handleEngineChange}
         />
 
-        {/* Shortcuts Navigation (hidden in collapse mode) */}
-        {!isCollapsed && (
-          <div className="w-full mt-6 animate-fade-in">
+        {/* Collapsible Workspace Container (smooth accordion transition) */}
+        <div
+          className="workspace-container w-full"
+          data-collapsed={isCollapsed ? 'true' : 'false'}
+          aria-hidden={isCollapsed}
+        >
+          {/* Shortcuts Navigation */}
+          <div className="w-full mt-6">
             <Shortcuts
               shortcuts={shortcuts}
               textColor={textColor}
               onChange={handleShortcutsChange}
             />
           </div>
-        )}
 
-        {/* 12-Column Responsive Widgets Area (hidden in collapse mode) */}
-        {!isCollapsed && (
-          <div className="w-full mt-4 animate-fade-in">
+          {/* 12-Column Responsive Widgets Area */}
+          <div className="w-full mt-4">
             <GridContainer
               layout={layout}
               onRemoveWidget={handleRemoveWidget}
             />
           </div>
-        )}
+        </div>
       </main>
 
       {/* Footer / Hint */}
