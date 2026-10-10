@@ -3,7 +3,7 @@
   "id": "C024",
   "title": "修复外部公共代理隐私泄露、假超时及极客脚本源 MV3 CSP 阻断缺陷",
   "type": "BugFix",
-  "status": "verified",
+  "status": "closed",
   "branch": "fix/C024-privacy-and-csp",
   "is_hotfix": false,
   "target": {
@@ -92,7 +92,7 @@
   "sync": {
     "design_pinned": true,
     "changelog": true,
-    "commit": "",
+    "commit": "00226a3",
     "tag": ""
   },
   "gate": {
