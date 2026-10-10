@@ -50,7 +50,8 @@
     "ExtensionDataSources": {
       "design_doc": "docs/devel/design/05-深度扩展与外部数据.md",
       "changes": [
-        "C024"
+        "C024",
+        "C026"
       ]
     },
     "WidgetContract": {
@@ -284,6 +285,14 @@
       "status": "closed",
       "branch": "fix/C025-storage-and-concurrency",
       "topic": "DataPersistenceSync",
+      "created": "2026-10-10"
+    },
+    "C026": {
+      "title": "修复 RSS 刷新删除源复活与新源丢失、阅读状态回滚、空源强制恢复及点击非幂等缺陷",
+      "type": "BugFix",
+      "status": "verified",
+      "branch": "fix/C026-feed-concurrency-and-read-state",
+      "topic": "ExtensionDataSources",
       "created": "2026-10-10"
     }
   }

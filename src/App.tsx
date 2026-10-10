@@ -298,6 +298,11 @@ export const App: React.FC = () => {
     setFeeds(updated);
   };
 
+  const handleMarkFeedRead = async (id: string) => {
+    const updated = await feedService.markItemRead(id);
+    setFeeds(updated);
+  };
+
   const handleMarkAllFeedsRead = async () => {
     const updated = await feedService.markAllRead();
     setFeeds(updated);
@@ -701,6 +706,7 @@ export const App: React.FC = () => {
         isRefreshing={isFeedRefreshing}
         onRefresh={handleRefreshFeeds}
         onToggleRead={handleToggleFeedRead}
+        onMarkRead={handleMarkFeedRead}
         onMarkAllRead={handleMarkAllFeedsRead}
         onAddSource={handleAddFeedSource}
         onToggleSource={handleToggleFeedSource}
