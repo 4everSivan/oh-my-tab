@@ -1,4 +1,18 @@
-# oh-my-tab
+<p align="center">
+  <img src="docs/assets/logo.png" alt="oh-my-tab logo" width="140" height="140" style="border-radius: 28px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);" />
+</p>
+
+<h1 align="center">oh-my-tab</h1>
+
+<p align="center">
+  <strong>轻盈、沉浸、温暖的 Chrome 新标签页与浏览器个人工作台</strong>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Chrome-Extension%20MV3-blue" alt="Chrome Extension MV3" />
+  <img src="https://img.shields.io/badge/Tests-168%20Passing-success" alt="Tests 168 Passing" />
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="License MIT" />
+</p>
 
 一个面向公众发布的 Google Chrome 扩展，提供可高度自定义的新标签页与浏览器启动页，将个人导航、效率工具、全网资讯与视觉氛围整合为一个轻盈沉浸的个人浏览器工作台。
 
@@ -155,10 +169,14 @@ npm test
 │   └── utils/               # 纯函数算法（对比度选色 / 壁纸恢复决策 / 交错延迟计算 / 缩放适配）
 ├── tests/                   # 自动化测试套件（168 项用例，node:test 驱动）
 ├── docs/                    # 完整研发中心（设计基线、架构设计、开发变更卡、部署实况）
+│   ├── assets/              # 官方媒体资源库（logo.png 高清原画等）
 │   ├── devel/design/        # 现行设计基线（00-总体设计 ~ 07-动效系统）
 │   ├── devel/change/        # 变更卡总账（C001 ~ C023）
 │   └── guide/               # 本地部署与环境指南
-├── public/manifest.json     # Chrome Extension Manifest V3 配置文件
+├── public/                  # 静态公共资源
+│   ├── manifest.json        # Chrome Extension Manifest V3 配置文件
+│   ├── favicon.ico          # 网页书签图标
+│   └── icons/               # Chrome 扩展多分辨率图标套件 (16/32/48/128px)
 └── local/                   # 本地运行实况与打包产物（git 隔离保护，仅人工清理）
     ├── dist/                # 编译打包输出目录（加载此目录）
     └── deploy_report.md     # 本地部署实况报告
