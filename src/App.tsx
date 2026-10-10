@@ -132,8 +132,33 @@ export const App: React.FC = () => {
     }
     loadAll();
 
+    // 跨标签页/跨窗口存储变更监听与状态多播 (N01)
+    const unbindStorage = storageService.onSettingsChanged((key, newValue) => {
+      if (!isMounted) return;
+      if (key === 'settings.shortcuts') {
+        if (Array.isArray(newValue)) setShortcuts(newValue);
+      } else if (key === 'settings.shortcutGroups') {
+        if (Array.isArray(newValue)) setShortcutGroups(newValue);
+      } else if (key === 'settings.activeShortcutGroupId') {
+        if (typeof newValue === 'string') setActiveShortcutGroupId(newValue);
+      } else if (key === 'settings.clock') {
+        if (newValue) setClock(newValue);
+      } else if (key === 'settings.search') {
+        if (newValue) setSearch(newValue);
+      } else if (key === 'settings.engine') {
+        if (typeof newValue === 'string') setEngine(newValue);
+      } else if (key === 'settings.background') {
+        if (newValue) setBackground((prev) => ({ ...prev, ...newValue }));
+      } else if (key === 'settings.layout') {
+        if (Array.isArray(newValue)) setLayout(newValue);
+      } else if (key === 'settings.shortcutKeysEnabled') {
+        if (typeof newValue === 'boolean') setShortcutKeysEnabledState(newValue);
+      }
+    });
+
     return () => {
       isMounted = false;
+      unbindStorage();
       if (currentBlobUrlRef.current) {
         URL.revokeObjectURL(currentBlobUrlRef.current);
         currentBlobUrlRef.current = null;

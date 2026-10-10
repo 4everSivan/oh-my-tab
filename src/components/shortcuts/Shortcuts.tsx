@@ -643,10 +643,15 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
     }
   };
 
-  // 导出与导入
+  // 导出与导入 (T14, T15 & C025)
   const handleExport = () => {
-    exportShortcutsToJSON(shortcuts);
-    setToastMessage(`已导出 ${shortcuts.length} 个常用网站与文件夹配置 (JSON)`);
+    if (propGroups && propGroups.length > 0) {
+      exportShortcutsToJSON({ groups: propGroups, activeShortcuts: shortcuts });
+      setToastMessage(`已导出 ${propGroups.length} 个分组全部常用网站与文件夹配置 (JSON)`);
+    } else {
+      exportShortcutsToJSON(shortcuts);
+      setToastMessage(`已导出 ${shortcuts.length} 个常用网站与文件夹配置 (JSON)`);
+    }
   };
 
   const handleImportClick = () => {
@@ -661,15 +666,22 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
     reader.onload = (event) => {
       const text = event.target?.result;
       if (typeof text === 'string') {
-        const { valid, error } = parseShortcutsFromJSON(text);
+        const { valid, groups: importedGroups, error } = parseShortcutsFromJSON(text);
         if (error) {
           setEditError(error);
           return;
         }
 
-        const updated = mergeShortcuts(valid, shortcuts, 'merge');
-        updateShortcuts(updated);
-        setToastMessage(`成功导入 ${valid.length} 项网站与文件夹`);
+        if (importedGroups && importedGroups.length > 0 && onGroupsChange) {
+          // iTab 或多分组配置全量导入闭环 (N02)
+          onGroupsChange(importedGroups);
+          const totalCount = importedGroups.reduce((acc, g) => acc + g.shortcuts.length, 0);
+          setToastMessage(`成功导入 ${importedGroups.length} 个分组共 ${totalCount} 项网站与文件夹`);
+        } else {
+          const updated = mergeShortcuts(valid, shortcuts, 'merge');
+          updateShortcuts(updated);
+          setToastMessage(`成功导入 ${valid.length} 项网站与文件夹`);
+        }
         setEditingShortcut(null);
       }
     };

@@ -161,9 +161,8 @@ export function parseShortcutsFromJSON(jsonText: string): {
     }
 
     if (extractedGroups.length > 0) {
-      // 优先将包含“主页”或第一组的条目作为根列表直出
-      const homeGroup = extractedGroups.find((g) => g.name === '主页') || extractedGroups[0];
-      return { valid: homeGroup.shortcuts, groups: extractedGroups };
+      // 返回所有分组条目及完整分组列表，彻底杜绝非主页分组数据遗漏 (N02)
+      return { valid: allValidShortcuts, groups: extractedGroups };
     }
   }
 

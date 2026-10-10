@@ -43,7 +43,8 @@
     "DataPersistenceSync": {
       "design_doc": "docs/devel/design/04-数据保存与同步.md",
       "changes": [
-        "C001"
+        "C001",
+        "C025"
       ]
     },
     "ExtensionDataSources": {
@@ -275,6 +276,14 @@
       "status": "closed",
       "branch": "fix/C024-privacy-and-csp",
       "topic": "ExtensionDataSources",
+      "created": "2026-10-10"
+    },
+    "C025": {
+      "title": "修复存储并发竞争写丢失、事务假成功、iTab多组导入遗漏与跨标签同步缺陷",
+      "type": "BugFix",
+      "status": "verified",
+      "branch": "fix/C025-storage-and-concurrency",
+      "topic": "DataPersistenceSync",
       "created": "2026-10-10"
     }
   }
