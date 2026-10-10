@@ -3,7 +3,7 @@
   "id": "C025",
   "title": "修复存储并发竞争写丢失、事务假成功、iTab多组导入遗漏与跨标签同步缺陷",
   "type": "BugFix",
-  "status": "verified",
+  "status": "closed",
   "branch": "fix/C025-storage-and-concurrency",
   "is_hotfix": false,
   "target": {
@@ -106,7 +106,7 @@
   "sync": {
     "design_pinned": true,
     "changelog": true,
-    "commit": "",
+    "commit": "6a33a52",
     "tag": ""
   },
   "gate": {
