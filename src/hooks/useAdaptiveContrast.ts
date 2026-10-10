@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { BackgroundConfig, SearchAppearance } from '../services/storage/types';
+import { BackgroundConfig, SearchAppearance, ClockAppearance } from '../services/storage/types';
 import {
   parseHex,
   blend,
@@ -57,7 +57,8 @@ export function useAdaptiveContrast(
   background: BackgroundConfig,
   search: SearchAppearance,
   clockRef?: React.RefObject<HTMLElement | null>,
-  searchRef?: React.RefObject<HTMLElement | null>
+  searchRef?: React.RefObject<HTMLElement | null>,
+  clockConfig?: ClockAppearance
 ): UnifiedContrastResult {
   const [result, setResult] = useState<UnifiedContrastResult>(() =>
     computeInitialAdaptiveContrast(background, search)
@@ -325,6 +326,8 @@ export function useAdaptiveContrast(
     search.transparency,
     clockRef,
     searchRef,
+    clockConfig?.top,
+    clockConfig?.size,
   ]);
 
   return result;

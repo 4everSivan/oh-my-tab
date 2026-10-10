@@ -1,0 +1,98 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C027",
+  "title": "修复快捷键关闭死锁、文件夹模式污染、全局粘贴泄露、计时器重复通知与搜索选词不一致缺陷",
+  "type": "BugFix",
+  "status": "in_progress",
+  "branch": "fix/C027-shortcuts-focus-and-interactions",
+  "is_hotfix": false,
+  "target": {
+    "module": "页面入口与导航",
+    "component": "Shortcuts & AppearanceDrawer & focus-timer & SearchBar & useAdaptiveContrast & transfer",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+  "why": "1) Shortcuts 关闭添加弹窗时只清空 editingShortcut 未复位 isAdding，导致 Command+1~6 快捷键被永久禁用死锁 (N07)；2) Shortcuts 添加文件夹后 addMode 残留在 folder，后续编辑普通网站时 URL 输入框消失 (N08)；3) AppearanceDrawer 未检查 isOpen 注册全局 paste 监听，关闭抽屉后在便签/主页粘贴图片仍误替换壁纸 (N09)；4) focus-timer 挂载加载过期计时器时仅在内存重置未写回存储，导致每次打开新标签页重复触发完成通知 (N10)；5) SearchBar 键盘上下选词触发二次请求导致高亮项与最终回车提交不一致，且缺乏 IME 拼音输入保护 (N06)；6) useAdaptiveContrast 采样未响应布局几何参数变化 (N11)；7) App 首次纯色上传图片未登记 Blob URL 导致重置不回收；transfer 导入重复 ID 导致联动删除。",
+  "precheck": {
+    "description": "检测 Shortcuts 是否存在关闭弹窗未重置 isAdding 以及 AppearanceDrawer 未判断 isOpen 监听 paste",
+    "command": "grep -n 'if (activeTab !== .background.) return;' src/components/settings/AppearanceDrawer.tsx",
+    "expected": "匹配到未限制 isOpen 的全局 paste 监听代码",
+    "is_completed": true,
+    "evidence": "src/components/settings/AppearanceDrawer.tsx 第 106 行仅判断 activeTab 未判断 isOpen"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "node --test tests/*.test.cjs",
+      "./node_modules/.bin/tsc --noEmit",
+      "./node_modules/.bin/vite build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "快捷键焦点生命周期与交互边界治理",
+      "before": "关闭弹窗未重置 isAdding 导致快捷键死锁；addMode 污染网站编辑；关闭抽屉仍监听 paste；过期计时器挂载重复轰炸；搜索方向键导航冲掉候选词且拼音回车误提交；采样忽略几何变化；Blob URL 登记不全；导入重复 ID 联动删除",
+      "after": "模态框统合 handleCloseModal 完全复位状态；handleOpenEdit 依据目标类型显式校准 addMode；paste 严格限定 isOpen；过期计时器挂载立即修正持久化并去重通知；搜索区分导航预览与重查，接入 IME 保护；采样增加几何变化监听；首帧登记新 Blob URL；导入清洗生成唯一 ID",
+      "impact": "Shortcuts, AppearanceDrawer, focus-timer, SearchBar, useAdaptiveContrast, transfer, App"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/01-页面入口与导航.md",
+    "topic": "EntryNavigation",
+    "modified": true,
+    "rule_diff": {
+      "before": "模态框局部变量分散重置，事件监听缺乏可见性守卫，计时器挂载仅内存修正，选词修改主 query",
+      "after": "表单全状态原子复位，事件监听与 DOM 可见性绑定，过期任务持久化闭环，选词解耦二次请求与 IME 保护"
+    }
+  },
+  "verification": {
+    "result": true,
+    "run_id": "local-20261010-04",
+    "user_quote": "",
+    "signoff": "",
+    "checks": [
+      {
+        "item": "关闭添加窗口快捷键复位防死锁 (N07)",
+        "true_if": "取消/关闭添加网站或文件夹弹窗后，isAdding 恢复为 false，快捷键 Command+1~6 恢复可用",
+        "false_if": "关闭添加弹窗后 isAdding 保持 true 导致快捷键被持续禁用",
+        "evidence": "封装 handleCloseModal 集中复位 isAdding 与 editingShortcut，所有关闭/取消与保存完成路径均调用，tests/c027-shortcuts-focus-and-interactions.test.cjs 验证通过",
+        "result": true
+      },
+      {
+        "item": "文件夹模式防污染普通网站编辑 (N08)",
+        "true_if": "添加文件夹后再次点击编辑普通网站，addMode 自动校准为 site，URL 输入框正常呈现",
+        "false_if": "编辑普通网站时 URL 输入框消失并显示文件夹名称框",
+        "evidence": "handleOpenEdit 依据目标对象的 isFolder 状态显式将 addMode 设为 site 或 folder，单测验证通过",
+        "result": true
+      },
+      {
+        "item": "外观抽屉关闭后全局 paste 防泄露 (N09)",
+        "true_if": "抽屉关闭或离开背景标签时注销 paste 监听，在主页或便签粘贴图片不会误替换壁纸",
+        "false_if": "抽屉关闭状态下粘贴图片仍然触发壁纸上传与背景替换",
+        "evidence": "AppearanceDrawer 的 paste 监听增加 !isOpen || activeTab !== 'background' 守卫，抽屉未展开时彻底注销全局 paste，单测验证通过",
+        "result": true
+      },
+      {
+        "item": "过期计时器挂载防重复通知风暴 (N10)",
+        "true_if": "组件挂载发现已过期任务时，立即写回持久化 isRunning: false，多标签或刷新不再重复弹出通知",
+        "false_if": "每次新标签页挂载都重复弹出专注完成通知",
+        "evidence": "focus-timer 挂载检测到已过期任务时立即写回 host.storage.setContent，并维护 notifiedEndTimes 避免多标签重复弹窗，单测验证通过",
+        "result": true
+      },
+      {
+        "item": "搜索键盘选词提交一致性与 IME 保护 (N06)",
+        "true_if": "按上下键浏览联想词不触发新的联想网络请求，回车提交选中的候选词；中文拼音未完成时回车不误提交",
+        "false_if": "上下键选词触发二次请求冲掉列表，或打拼音回车直接触发搜索",
+        "evidence": "引入 isNavigatingRef 阻断上下键导航触发联想重新请求，优先提交高亮候选项；handleInputKeyDown 检查 e.nativeEvent.isComposing 保护中文拼音输入，单测验证通过",
+        "result": true
+      },
+      {
+        "item": "几何自适应采样、Blob URL 回收与导入唯一 ID (N11)",
+        "true_if": "时钟尺寸改变调度重采；纯色首次上传图片登记 Blob URL；导入合并清洗重复 ID",
+        "false_if": "几何移动使用旧字色；首张壁纸重置不 revoke；导入相同 ID 被同时删除",
+        "evidence": "useAdaptiveContrast 纳入 clockConfig 依赖调度重采；handleUpdateBackground 登记首次上传 Blob URL；mergeShortcuts 调用 ensureUniqueShortcutId 分配全局唯一 ID，单测验证通过",
+        "result": true
+      }
+    ]
+  }
+}

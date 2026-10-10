@@ -281,6 +281,15 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
     }
   };
 
+  // 统一关闭并完全复位模态框状态 (防 N07, N08)
+  const handleCloseModal = () => {
+    setEditingShortcut(null);
+    setIsAdding(false);
+    setAddMode('site');
+    setTargetFolderId(null);
+    setEditError('');
+  };
+
   // 打开添加网站/文件夹弹窗
   const handleOpenAdd = (parentFolder?: string) => {
     setIsAdding(true);
@@ -292,9 +301,10 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
     setEditingShortcut({ id: '', name: '', url: '' });
   };
 
-  // 打开编辑网站弹窗
+  // 打开编辑网站弹窗 (依据目标类型显式校准 addMode，防 N08)
   const handleOpenEdit = (shortcut: Shortcut, parentFolderId?: string) => {
     setIsAdding(false);
+    setAddMode(shortcut.isFolder ? 'folder' : 'site');
     setTargetFolderId(parentFolderId || null);
     setEditName(shortcut.name);
     setEditUrl(shortcut.url);
@@ -322,7 +332,7 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
         children: [],
       };
       updateShortcuts([...shortcuts, newFolder]);
-      setEditingShortcut(null);
+      handleCloseModal();
       setToastMessage(`已新建文件夹「${newFolder.name}」`);
       return;
     }
@@ -396,7 +406,7 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
       }
     }
 
-    setEditingShortcut(null);
+    handleCloseModal();
   };
 
   // 移除网站或文件夹
@@ -682,7 +692,7 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
           updateShortcuts(updated);
           setToastMessage(`成功导入 ${valid.length} 项网站与文件夹`);
         }
-        setEditingShortcut(null);
+        handleCloseModal();
       }
     };
     reader.readAsText(file);
@@ -1474,7 +1484,7 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
           <div
             onClick={(e) => {
               if (e.target === e.currentTarget) {
-                setEditingShortcut(null);
+                handleCloseModal();
               }
             }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
@@ -1579,7 +1589,7 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
                 <div className="flex items-center space-x-2">
                   <button
                     type="button"
-                    onClick={() => setEditingShortcut(null)}
+                    onClick={() => handleCloseModal()}
                     className="px-4 py-2 text-xs rounded-xl bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 font-medium transition-colors cursor-pointer"
                   >
                     取消

@@ -232,6 +232,23 @@ export function parseShortcutsFromJSON(jsonText: string): {
 /**
  * 合并或替换导入的常用网站列表
  */
+function ensureUniqueShortcutId(item: Shortcut, seenIds: Set<string>): Shortcut {
+  let uniqueId = item.id;
+  if (!uniqueId || seenIds.has(uniqueId)) {
+    uniqueId = `${item.isFolder ? 'folder' : 'shortcut'}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  }
+  seenIds.add(uniqueId);
+
+  const updated: Shortcut = { ...item, id: uniqueId };
+  if (Array.isArray(item.children)) {
+    updated.children = item.children.map((child) => ensureUniqueShortcutId(child, seenIds));
+  }
+  return updated;
+}
+
+/**
+ * 合并或替换导入的常用网站列表
+ */
 export function mergeShortcuts(
   imported: Shortcut[],
   current: Shortcut[],
@@ -243,12 +260,15 @@ export function mergeShortcuts(
 
   const existingUrls = new Set<string>();
   const folderMap = new Map<string, Shortcut>();
+  const seenIds = new Set<string>();
 
   for (const s of current) {
+    seenIds.add(s.id);
     if (s.isFolder) {
       folderMap.set(s.name.trim().toLowerCase(), s);
       if (Array.isArray(s.children)) {
         for (const c of s.children) {
+          seenIds.add(c.id);
           existingUrls.add(c.url.replace(/\/+$/, '').toLowerCase());
         }
       }
@@ -259,7 +279,8 @@ export function mergeShortcuts(
 
   const result: Shortcut[] = [...current];
 
-  for (const item of imported) {
+  for (const rawItem of imported) {
+    const item = ensureUniqueShortcutId(rawItem, seenIds);
     if (item.isFolder) {
       const folderKey = item.name.trim().toLowerCase();
       if (folderMap.has(folderKey)) {

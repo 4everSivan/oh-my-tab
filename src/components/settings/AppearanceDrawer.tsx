@@ -101,9 +101,9 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
   }, [background.imageBlobUrl, onUpdateBackground]);
 
   // 粘贴通道（webview 无选择器且 OS 拖拽不送达时的第三通道）：
-  // 壁纸 tab 激活期间监听全局 paste，复用同一保存链路
+  // 仅在抽屉展开且壁纸 tab 激活期间监听全局 paste，复用同一保存链路 (防 N09)
   useEffect(() => {
-    if (activeTab !== 'background') return;
+    if (!isOpen || activeTab !== 'background') return;
     const onPaste = (e: ClipboardEvent) => {
       const file = e.clipboardData?.files?.[0];
       if (!file) return;
@@ -112,7 +112,7 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
     };
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
-  }, [activeTab, applyWallpaperFile]);
+  }, [isOpen, activeTab, applyWallpaperFile]);
 
   if (!mounted) return null;
 

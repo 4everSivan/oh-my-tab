@@ -204,12 +204,13 @@ export const App: React.FC = () => {
     };
   }, [handleRefreshFeeds]);
 
-  // 统合采样引擎：时钟与搜索框合并至单离线画布管线，回收 GPU 缓冲 (C015)
+  // 统合采样引擎：时钟与搜索框合并至单离线画布管线，回收 GPU 缓冲 (C015 & C027)
   const { clock: clockContrast, search: searchContrast } = useAdaptiveContrast(
     background,
     search,
     clockContainerRef,
-    searchContainerRef
+    searchContainerRef,
+    clock
   );
   const textColor = clockContrast.textColor;
   const shadowProtection = clockContrast.shadowProtection;
@@ -253,8 +254,10 @@ export const App: React.FC = () => {
   };
 
   const handleUpdateBackground = async (updates: Partial<BackgroundConfig>) => {
-    if (updates.imageBlobUrl && currentBlobUrlRef.current && updates.imageBlobUrl !== currentBlobUrlRef.current) {
-      URL.revokeObjectURL(currentBlobUrlRef.current);
+    if (updates.imageBlobUrl) {
+      if (currentBlobUrlRef.current && updates.imageBlobUrl !== currentBlobUrlRef.current) {
+        URL.revokeObjectURL(currentBlobUrlRef.current);
+      }
       currentBlobUrlRef.current = updates.imageBlobUrl;
     } else if (updates.type === 'color' && currentBlobUrlRef.current) {
       URL.revokeObjectURL(currentBlobUrlRef.current);

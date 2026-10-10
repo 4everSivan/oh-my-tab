@@ -23,7 +23,8 @@
         "C019",
         "C020",
         "C021",
-        "C022"
+        "C022",
+        "C027"
       ]
     },
     "WorkspaceAppearance": {
@@ -293,6 +294,14 @@
       "status": "closed",
       "branch": "fix/C026-feed-concurrency-and-read-state",
       "topic": "ExtensionDataSources",
+      "created": "2026-10-10"
+    },
+    "C027": {
+      "title": "修复快捷键关闭死锁、文件夹模式污染、全局粘贴泄露、计时器重复通知与搜索选词不一致缺陷",
+      "type": "BugFix",
+      "status": "in_progress",
+      "branch": "fix/C027-shortcuts-focus-and-interactions",
+      "topic": "EntryNavigation",
       "created": "2026-10-10"
     }
   }
