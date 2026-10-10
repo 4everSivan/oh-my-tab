@@ -212,23 +212,23 @@ export const FeedSidebar: React.FC<FeedSidebarProps> = ({
     <div
       data-open={open}
       onClick={onClose}
-      className="t-panel-overlay fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-xs"
+      className="t-panel-overlay fixed inset-0 z-50 flex justify-end p-3 sm:p-4 bg-black/25 dark:bg-black/40 backdrop-blur-xs overflow-hidden"
     >
       <div
         data-open={open}
         onClick={(e) => e.stopPropagation()}
-        className="t-panel-slide w-full max-w-[440px] h-full bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-l border-black/10 dark:border-white/10 shadow-2xl flex flex-col select-none"
+        className="t-panel-slide w-full max-w-[440px] h-full bg-white/95 dark:bg-stone-900/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-black/10 dark:border-white/10 shadow-2xl flex flex-col overflow-hidden select-none"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/5">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2.5">
             {currentView === 'sources' ? (
               <button
                 onClick={() => {
                   setCurrentView('timeline');
                   setIsAddingSource(false);
                 }}
-                className="p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-stone-600 dark:text-stone-300 transition-colors cursor-pointer mr-1"
+                className="p-1.5 rounded-lg bg-black/5 dark:bg-white/10 text-stone-600 dark:text-stone-300 hover:bg-black/10 dark:hover:bg-white/20 transition-colors cursor-pointer mr-0.5"
                 title="返回消息流"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -239,15 +239,21 @@ export const FeedSidebar: React.FC<FeedSidebarProps> = ({
               </div>
             )}
 
-            <h2 className="text-sm font-semibold text-stone-800 dark:text-white tracking-wide">
-              {currentView === 'sources' ? '订阅源管理' : '订阅消息'}
-            </h2>
-
-            {currentView === 'timeline' && unreadCount > 0 && (
-              <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-rose-500 text-white animate-pulse shadow-xs">
-                {unreadCount}
-              </span>
-            )}
+            <div>
+              <div className="flex items-center space-x-1.5">
+                <h2 className="text-sm font-semibold text-stone-800 dark:text-white tracking-wide">
+                  {currentView === 'sources' ? '订阅源管理' : '订阅消息'}
+                </h2>
+                {currentView === 'timeline' && unreadCount > 0 && (
+                  <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-rose-500 text-white animate-pulse shadow-xs">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                {currentView === 'sources' ? '管理 RSS 与自定义脚本订阅源' : '全网资讯聚合 · 即时追踪动态'}
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center space-x-1.5">

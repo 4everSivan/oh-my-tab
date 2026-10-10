@@ -111,12 +111,12 @@ test('Todo 勾选改为 aria-checked 驱动的 t-check 描画且新增项入场�
   assert.ok(todoSrc.includes('t-list-enter'), 'Todo 列表项未接入 t-list-enter 入场');
 });
 
-test('AddWidgetModal 经 useDelayedUnmount 支撑退出动画且关闭时延与令牌一致', () => {
-  assert.ok(modalSrc.includes('useDelayedUnmount(isOpen, 150)'), '模态未接入延迟卸载或时延不等于 --modal-close-dur(150ms)');
-  assert.ok(modalSrc.includes('t-modal-overlay') && modalSrc.includes('t-modal'), '模态未使用 t-modal 片段');
-  assert.ok(modalSrc.includes('data-open={open}'), '模态开合未由 data-open 驱动');
+test('AddWidgetModal 侧滑抽屉经 useDelayedUnmount 支撑退出动画且关闭时延与令牌一致', () => {
+  assert.ok(modalSrc.includes('useDelayedUnmount(isOpen, 350)'), '抽屉未接入延迟卸载或时延不等于 --panel-close-dur(350ms)');
+  assert.ok(modalSrc.includes('t-panel-overlay') && modalSrc.includes('t-panel-slide'), '抽屉未使用 t-panel 片段');
+  assert.ok(modalSrc.includes('data-open={open}'), '抽屉开合未由 data-open 驱动');
   assert.ok(modalSrc.includes('stopPropagation'), '卡片点击未阻止冒泡到遮罩关闭');
-  assert.ok(motionCss.includes('--modal-close-dur: 150ms'), '令牌侧 --modal-close-dur 应为 150ms');
+  assert.ok(motionCss.includes('--panel-close-dur: 350ms'), '令牌侧 --panel-close-dur 应为 350ms');
 });
 
 test('AppearanceDrawer 侧滑开合经 useDelayedUnmount 且关闭时延与令牌一致', () => {

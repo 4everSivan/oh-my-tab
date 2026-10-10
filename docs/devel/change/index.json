@@ -32,7 +32,8 @@
         "C002",
         "C003",
         "C010",
-        "C015"
+        "C015",
+        "C023"
       ]
     },
     "ProductivityWidgets": {
@@ -256,6 +257,14 @@
       "status": "closed",
       "branch": "fix/C022-shortcut-keys-current-page",
       "topic": "EntryNavigation",
+      "created": "2026-10-09"
+    },
+    "C023": {
+      "title": "外观设置分栏标题折行优化、顶栏添加组件纯图标化与右侧浮动卡片式抽屉改版",
+      "type": "Enhancement",
+      "status": "closed",
+      "branch": "main",
+      "topic": "WorkspaceAppearance",
       "created": "2026-10-09"
     }
   }

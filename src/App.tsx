@@ -360,16 +360,50 @@ export const App: React.FC = () => {
     },
     onCycleEngine: handleCycleEngine,
     onCloseTopLayer: handleCloseTopLayer,
-    onToggleHelp: () => setIsHelpOpen((prev) => !prev),
+    onToggleHelp: () => {
+      setIsHelpOpen((prev) => {
+        const next = !prev;
+        if (next) {
+          setIsFeedSidebarOpen(false);
+          setIsDrawerOpen(false);
+          setIsAddModalOpen(false);
+        }
+        return next;
+      });
+    },
     onToggleDrawer: () => {
-      setIsDrawerOpen((prev) => !prev);
-      setIsFeedSidebarOpen(false);
+      setIsDrawerOpen((prev) => {
+        const next = !prev;
+        if (next) {
+          setIsFeedSidebarOpen(false);
+          setIsHelpOpen(false);
+          setIsAddModalOpen(false);
+        }
+        return next;
+      });
     },
     onToggleFeedSidebar: () => {
-      setIsFeedSidebarOpen((prev) => !prev);
-      setIsDrawerOpen(false);
+      setIsFeedSidebarOpen((prev) => {
+        const next = !prev;
+        if (next) {
+          setIsDrawerOpen(false);
+          setIsHelpOpen(false);
+          setIsAddModalOpen(false);
+        }
+        return next;
+      });
     },
-    onToggleAddModal: () => setIsAddModalOpen((prev) => !prev),
+    onToggleAddModal: () => {
+      setIsAddModalOpen((prev) => {
+        const next = !prev;
+        if (next) {
+          setIsFeedSidebarOpen(false);
+          setIsDrawerOpen(false);
+          setIsHelpOpen(false);
+        }
+        return next;
+      });
+    },
     onToggleCollapse: () => setIsCollapsed((prev) => !prev),
     searchInputRef,
   });
@@ -460,30 +494,59 @@ export const App: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-2">
+          {/* 快捷键指南 */}
           <button
-            onClick={() => setIsHelpOpen(true)}
-            className="p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer"
-            title="键盘快捷键指南 (?)"
+            onClick={() => {
+              setIsHelpOpen((prev) => !prev);
+              setIsAddModalOpen(false);
+              setIsFeedSidebarOpen(false);
+              setIsDrawerOpen(false);
+            }}
+            className={`relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
+              isHelpOpen ? 'ring-2 ring-stone-400 dark:ring-stone-500 bg-white dark:bg-stone-800' : ''
+            }`}
+            title="快捷键指南 (?)"
+            aria-label="快捷键指南 (?)"
           >
             <Keyboard className="w-3.5 h-3.5" />
+            <span className="topbar-tooltip pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-stone-900/90 dark:bg-stone-800/95 text-white dark:text-stone-100 text-[11px] font-medium rounded-lg shadow-xl backdrop-blur-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 scale-95 group-hover:scale-100 border border-white/10 flex items-center gap-1.5">
+              <span className="tooltip-text">快捷键指南</span>
+              <kbd className="px-1 py-0.2 bg-white/20 dark:bg-white/15 rounded text-[9px] font-mono text-stone-200">?</kbd>
+            </span>
           </button>
+          {/* 添加组件 */}
           <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-xs font-medium text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer"
+            onClick={() => {
+              setIsAddModalOpen((prev) => !prev);
+              setIsHelpOpen(false);
+              setIsFeedSidebarOpen(false);
+              setIsDrawerOpen(false);
+            }}
+            className={`relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
+              isAddModalOpen ? 'ring-2 ring-stone-400 dark:ring-stone-500 bg-white dark:bg-stone-800' : ''
+            }`}
+            title="添加组件 (a)"
+            aria-label="添加组件 (a)"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>添加组件</span>
+            <span className="topbar-tooltip pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-stone-900/90 dark:bg-stone-800/95 text-white dark:text-stone-100 text-[11px] font-medium rounded-lg shadow-xl backdrop-blur-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 scale-95 group-hover:scale-100 border border-white/10 flex items-center gap-1.5">
+              <span className="tooltip-text">添加组件</span>
+              <kbd className="px-1 py-0.2 bg-white/20 dark:bg-white/15 rounded text-[9px] font-mono text-stone-200">a</kbd>
+            </span>
           </button>
           {/* 独立订阅消息胶囊按钮 (T17) */}
           <button
             onClick={() => {
               setIsFeedSidebarOpen((prev) => !prev);
               setIsDrawerOpen(false);
+              setIsHelpOpen(false);
+              setIsAddModalOpen(false);
             }}
-            className={`relative p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
+            className={`relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
               isFeedSidebarOpen ? 'ring-2 ring-stone-400 dark:ring-stone-500 bg-white dark:bg-stone-800' : ''
             }`}
             title={`订阅消息 (${unreadCount} 条未读) (b)`}
+            aria-label={`订阅消息 (${unreadCount} 条未读) (b)`}
           >
             <Bell className="w-3.5 h-3.5" />
             {unreadCount > 0 && (
@@ -491,19 +554,30 @@ export const App: React.FC = () => {
                 {unreadCount}
               </span>
             )}
+            <span className="topbar-tooltip pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-stone-900/90 dark:bg-stone-800/95 text-white dark:text-stone-100 text-[11px] font-medium rounded-lg shadow-xl backdrop-blur-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 scale-95 group-hover:scale-100 border border-white/10 flex items-center gap-1.5">
+              <span className="tooltip-text">订阅消息</span>
+              <kbd className="px-1 py-0.2 bg-white/20 dark:bg-white/15 rounded text-[9px] font-mono text-stone-200">b</kbd>
+            </span>
           </button>
           {/* 外观设置圆形胶囊按钮 */}
           <button
             onClick={() => {
               setIsDrawerOpen((prev) => !prev);
               setIsFeedSidebarOpen(false);
+              setIsHelpOpen(false);
+              setIsAddModalOpen(false);
             }}
-            className={`p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
+            className={`relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
               isDrawerOpen ? 'ring-2 ring-stone-400 dark:ring-stone-500 bg-white dark:bg-stone-800' : ''
             }`}
             title="外观设置 (e)"
+            aria-label="外观设置 (e)"
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span className="topbar-tooltip pointer-events-none absolute top-full mt-2 right-0 px-2.5 py-1 bg-stone-900/90 dark:bg-stone-800/95 text-white dark:text-stone-100 text-[11px] font-medium rounded-lg shadow-xl backdrop-blur-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 scale-95 group-hover:scale-100 border border-white/10 flex items-center gap-1.5">
+              <span className="tooltip-text">外观设置</span>
+              <kbd className="px-1 py-0.2 bg-white/20 dark:bg-white/15 rounded text-[9px] font-mono text-stone-200">e</kbd>
+            </span>
           </button>
         </div>
       </header>
@@ -568,7 +642,12 @@ export const App: React.FC = () => {
 
       {/* Footer / Hint */}
       <footer className="w-full py-4 text-center select-none text-[11px] opacity-40 hover:opacity-70 transition-opacity" style={{ color: textColor }}>
-        {isCollapsed ? '点击时间可展开工作台' : '点击时间进入极简模式'} · 按 <button type="button" onClick={() => setIsHelpOpen(true)} className="underline cursor-pointer hover:opacity-100">?</button> 查看快捷键
+        {isCollapsed ? '点击时间可展开工作台' : '点击时间进入极简模式'} · 按 <button type="button" onClick={() => {
+          setIsHelpOpen(true);
+          setIsDrawerOpen(false);
+          setIsFeedSidebarOpen(false);
+          setIsAddModalOpen(false);
+        }} className="underline cursor-pointer hover:opacity-100">?</button> 查看快捷键
       </footer>
 
       {/* Appearance Settings Drawer */}

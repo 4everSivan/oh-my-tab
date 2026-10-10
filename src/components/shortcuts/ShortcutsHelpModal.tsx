@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, Command, Keyboard } from 'lucide-react';
+import { useDelayedUnmount } from '../../hooks/useDelayedUnmount';
 
 interface ShortcutsHelpModalProps {
   isOpen: boolean;
@@ -17,7 +18,7 @@ const SHORTCUT_LIST: ShortcutItem[] = [
   { group: '搜索与引擎', keyDesc: '`', action: '快速对焦到主页搜索框' },
   { group: '搜索与引擎', keyDesc: 'Tab', action: '顺次切换搜索引擎（必应 / 谷歌 / GitHub / Bilibili）' },
   { group: '搜索与引擎', keyDesc: 'Shift + Tab', action: '逆向切换上一款搜索引擎' },
-  { group: '常用网站', keyDesc: '⌘ + 1~9', action: '快速直达对应网页（长按 ⌘ 显现键位提示）' },
+  { group: '常用网站', keyDesc: '⌘ + 1~6', action: '快速直达当前页对应网页（按住 ⌘ 显现键位提示）' },
   { group: '常用网站', keyDesc: '← / →', action: '切换上一页 / 下一页网站图标' },
   { group: '视图与浮层', keyDesc: 'Esc', action: '级联退出：关掉抽屉设置、弹窗或搜索焦点' },
   { group: '视图与浮层', keyDesc: 'b', action: '打开 / 关闭订阅消息通知侧边栏' },
@@ -28,23 +29,27 @@ const SHORTCUT_LIST: ShortcutItem[] = [
 ];
 
 export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({ isOpen, onClose }) => {
-  if (!isOpen || typeof document === 'undefined') return null;
+  const { mounted, open } = useDelayedUnmount(isOpen, 350);
+
+  if (!mounted || typeof document === 'undefined') return null;
 
   const groups = Array.from(new Set(SHORTCUT_LIST.map((item) => item.group)));
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200"
+      data-open={open}
+      className="t-panel-overlay fixed inset-0 z-50 flex justify-end p-3 sm:p-4 bg-black/25 dark:bg-black/40 backdrop-blur-xs overflow-hidden select-none"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl p-6 select-none animate-in zoom-in-95 duration-200"
+        data-open={open}
+        className="t-panel-slide w-full max-w-md h-full bg-white/95 dark:bg-stone-900/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-black/10 dark:border-white/10 shadow-2xl flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-black/5 dark:border-white/10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/5">
           <div className="flex items-center space-x-2.5">
-            <div className="p-2 rounded-xl bg-black/5 dark:bg-white/10 text-stone-800 dark:text-stone-100">
+            <div className="p-1.5 rounded-lg bg-black/5 dark:bg-white/10 text-stone-800 dark:text-stone-100">
               <Keyboard className="w-4 h-4" />
             </div>
             <div>
@@ -66,17 +71,17 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({ isOpen, 
         </div>
 
         {/* Content list */}
-        <div className="mt-4 space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {groups.map((group) => (
             <div key={group} className="space-y-2">
-              <div className="text-[11px] font-medium text-stone-400 dark:text-stone-500 tracking-wider">
+              <div className="text-[11px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider px-1">
                 {group}
               </div>
               <div className="space-y-1.5">
                 {SHORTCUT_LIST.filter((i) => i.group === group).map((item, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors"
+                    className="flex items-center justify-between py-2 px-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors"
                   >
                     <span className="text-xs text-stone-700 dark:text-stone-300">
                       {item.action}
@@ -101,8 +106,8 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({ isOpen, 
         </div>
 
         {/* Footer tip */}
-        <div className="mt-5 pt-3 border-t border-black/5 dark:border-white/10 flex items-center justify-between text-[11px] text-stone-400 dark:text-stone-500">
-          <span>随时按 <kbd className="font-mono text-stone-600 dark:text-stone-300">Esc</kbd> 退出当前弹层</span>
+        <div className="px-5 py-3 border-t border-black/5 dark:border-white/10 flex items-center justify-between text-[11px] text-stone-400 dark:text-stone-500">
+          <span>随时按 <kbd className="font-mono text-stone-600 dark:text-stone-300">Esc</kbd> 退出当前面板</span>
           <span className="flex items-center space-x-1">
             <Command className="w-3 h-3" />
             <span>oh-my-tab</span>

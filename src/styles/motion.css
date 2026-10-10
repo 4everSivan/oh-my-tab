@@ -178,7 +178,7 @@
   transition: opacity var(--panel-open-dur) var(--panel-ease);
 }
 .t-panel-slide {
-  transform: translateX(100%);
+  transform: translateX(calc(100% + 2rem));
   opacity: 0;
   filter: blur(var(--panel-blur));
   pointer-events: none;

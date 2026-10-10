@@ -8,7 +8,7 @@ import {
   ShadowStyle,
   BackgroundType,
 } from '../../services/storage/types';
-import { X, RotateCcw, Clock, Search, Image as ImageIcon, Upload, Keyboard } from 'lucide-react';
+import { X, RotateCcw, Clock, Search, Image as ImageIcon, Upload, Keyboard, SlidersHorizontal } from 'lucide-react';
 import { wallpaperStorage } from '../../services/storage/wallpaper';
 import { useDelayedUnmount } from '../../hooks/useDelayedUnmount';
 
@@ -136,72 +136,89 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
     <div
       data-open={open}
       onClick={onClose}
-      className="t-panel-overlay fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-xs"
+      className="t-panel-overlay fixed inset-0 z-50 flex justify-end p-3 sm:p-4 bg-black/25 dark:bg-black/40 backdrop-blur-xs overflow-hidden"
     >
       <div
         data-open={open}
         onClick={(e) => e.stopPropagation()}
-        className="t-panel-slide w-full max-w-md h-full bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-l border-black/10 dark:border-white/10 shadow-2xl flex flex-col"
+        className="t-panel-slide w-full max-w-md h-full bg-white/95 dark:bg-stone-900/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-black/10 dark:border-white/10 shadow-2xl flex flex-col overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-black/5 dark:border-white/5">
-          <h2 className="text-sm font-semibold text-stone-800 dark:text-white tracking-wide">
-            工作台外观设置
-          </h2>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/5">
+          <div className="flex items-center space-x-2.5">
+            <div className="p-1.5 rounded-lg bg-black/5 dark:bg-white/10 text-stone-800 dark:text-stone-200">
+              <SlidersHorizontal className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-stone-800 dark:text-white tracking-wide">
+                工作台外观设置
+              </h2>
+              <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                个性化布局与视觉风格 · 实时预览即时生效
+              </p>
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+            className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+            title="关闭 (Esc)"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex border-b border-black/5 dark:border-white/5 px-6">
-          <button
-            onClick={() => setActiveTab('clock')}
-            className={`py-3 px-3 text-xs font-medium flex items-center space-x-1.5 border-b-2 transition-colors ${
-              activeTab === 'clock'
-                ? 'border-stone-900 dark:border-white text-stone-900 dark:text-white'
-                : 'border-transparent text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>时间与日期</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('search')}
-            className={`py-3 px-3 text-xs font-medium flex items-center space-x-1.5 border-b-2 transition-colors ${
-              activeTab === 'search'
-                ? 'border-stone-900 dark:border-white text-stone-900 dark:text-white'
-                : 'border-transparent text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
-            }`}
-          >
-            <Search className="w-3.5 h-3.5" />
-            <span>搜索框</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('background')}
-            className={`py-3 px-3 text-xs font-medium flex items-center space-x-1.5 border-b-2 transition-colors ${
-              activeTab === 'background'
-                ? 'border-stone-900 dark:border-white text-stone-900 dark:text-white'
-                : 'border-transparent text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
-            }`}
-          >
-            <ImageIcon className="w-3.5 h-3.5" />
-            <span>壁纸与背景</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('shortcuts')}
-            className={`py-3 px-3 text-xs font-medium flex items-center space-x-1.5 border-b-2 transition-colors ${
-              activeTab === 'shortcuts'
-                ? 'border-stone-900 dark:border-white text-stone-900 dark:text-white'
-                : 'border-transparent text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
-            }`}
-          >
-            <Keyboard className="w-3.5 h-3.5" />
-            <span>快捷键与导航</span>
-          </button>
+        {/* Tab Navigation (Segmented Control 防折行设计) */}
+        <div className="px-5 pt-3 pb-2 border-b border-black/5 dark:border-white/5">
+          <div className="grid grid-cols-4 p-1 bg-black/5 dark:bg-white/5 rounded-xl gap-1">
+            <button
+              onClick={() => setActiveTab('clock')}
+              className={`py-1.5 px-1.5 text-xs font-medium rounded-lg flex items-center justify-center space-x-1 transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'clock'
+                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-xs font-semibold'
+                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'
+              }`}
+              title="时钟与日期设置"
+            >
+              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>时钟</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('search')}
+              className={`py-1.5 px-1.5 text-xs font-medium rounded-lg flex items-center justify-center space-x-1 transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'search'
+                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-xs font-semibold'
+                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'
+              }`}
+              title="搜索栏外观与圆角"
+            >
+              <Search className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>搜索</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('background')}
+              className={`py-1.5 px-1.5 text-xs font-medium rounded-lg flex items-center justify-center space-x-1 transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'background'
+                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-xs font-semibold'
+                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'
+              }`}
+              title="壁纸、材质与背景"
+            >
+              <ImageIcon className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>壁纸</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('shortcuts')}
+              className={`py-1.5 px-1.5 text-xs font-medium rounded-lg flex items-center justify-center space-x-1 transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'shortcuts'
+                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-xs font-semibold'
+                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'
+              }`}
+              title="网页图标快捷键"
+            >
+              <Keyboard className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>快捷键</span>
+            </button>
+          </div>
         </div>
 
         {/* Tab Contents */}

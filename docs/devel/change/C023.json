@@ -1,0 +1,98 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C023",
+  "title": "外观设置分栏标题折行优化、顶栏添加组件纯图标化与右侧浮动卡片式抽屉改版",
+  "type": "Enhancement",
+  "status": "closed",
+  "branch": "main",
+  "is_hotfix": false,
+  "target": {
+    "module": "工作台布局与外观",
+    "component": "AppearanceDrawer & FeedSidebar & AddWidgetModal & ShortcutsHelpModal & App",
+    "design_doc": "docs/devel/design/02-工作台布局与外观.md",
+    "design_topic": "WorkspaceAppearance"
+  },
+  "why": "1) 工作台外观设置抽屉内 Tab 分栏标题因文字偏长且缺乏空白保护，在抽屉宽度较窄时发生拥挤两行换行（如“时间与日\\n期”），影响视觉品质；需优化为紧凑分段控制器（Segmented Control）与精炼标题；2) 顶栏右侧「添加组件」此前带文字描述，与周围统一的圆形磨砂玻璃胶囊图标不协调；需精简为纯图标圆角胶囊；3) 包含外观设置、订阅消息、添加效率组件以及快捷键指南在内的所有右侧抽屉栏此前呈现割裂或紧贴边缘；需统一重构为右侧带外间距与大圆角的悬浮毛玻璃卡片（Floating Card Drawer）样式，且顶栏 4 大侧栏按钮具备统一互斥与激活高亮圈。",
+  "precheck": {
+    "description": "检测 AppearanceDrawer 中是否仍在使用旧长文本 tab 标题",
+    "command": "grep -q '时间与日期' src/components/settings/AppearanceDrawer.tsx",
+    "expected": "0",
+    "is_completed": true,
+    "evidence": "已确认此前 AppearanceDrawer 使用长文本且无 whitespace-nowrap，导致抽屉内标题发生两行拥挤折行；主页添加组件按钮带文字；右侧抽屉紧贴视口右边缘，添加组件与快捷键为旧居中模态"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm test",
+      "npm run build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "视觉组件 / 界面布局",
+      "before": "AppearanceDrawer Tab 标题为长文本且折行，顶栏「添加组件」带文字，右侧抽屉满屏无间距贴边，添加组件与快捷键为居中弹窗",
+      "after": "Tab 标题采用精炼分段控件与 whitespace-nowrap 防折行，顶栏「添加组件」纯图标化，右侧 4 大抽屉（外观设置、订阅侧边栏、添加组件、快捷键指南）全量统一为带间隙与圆角的悬浮毛玻璃卡片样式且互斥开合",
+      "impact": "外观设置抽屉、订阅消息侧边栏、添加效率组件抽屉、快捷键指南抽屉、主页顶栏工具栏"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/02-工作台布局与外观.md",
+    "topic": "WorkspaceAppearance",
+    "modified": true,
+    "rule_diff": {
+      "before": "右侧抽屉满高紧贴屏幕右边缘；顶栏添加组件带文字；添加组件与快捷键指南居中弹出",
+      "after": "右侧四大侧栏与面板统一为右侧悬浮卡片式抽屉（外层具备 p-3 sm:p-4 边距间隙，卡片具有 rounded-2xl sm:rounded-3xl 大圆角、四周边框与完整投影）；顶栏操作按钮全量统合为纯图标磨砂玻璃圆纽；外观抽屉采用精炼分段控件防折行；4 大抽屉具备互斥开合与激活高亮圈"
+    }
+  },
+  "verification": {
+    "result": "passed",
+    "run_id": "npm test && npm run build",
+    "user_quote": "/commit",
+    "signoff": "confirmed by user with /commit command",
+    "checks": [
+      {
+        "item": "Tab 分栏精简与防折行",
+        "true_if": "AppearanceDrawer Tab 项采用精炼标题与 whitespace-nowrap 分段控制样式，无论抽屉宽度均不发生折行",
+        "false_if": "标题依然折行断字",
+        "evidence": "tests/drawer-card-style.test.cjs 验证通过：采用 grid-cols-4、whitespace-nowrap 与精炼标题（时钟/搜索/壁纸/快捷键），杜绝折行",
+        "result": "passed"
+      },
+      {
+        "item": "顶栏添加组件纯图标化",
+        "true_if": "主页顶栏添加组件按钮变为统一的纯图标磨砂圆形胶囊，移除文字描述",
+        "false_if": "依然保留文字或者破坏按钮尺寸一致性",
+        "evidence": "App.tsx 中按钮已更新为 p-2 rounded-full 纯图标圆钮，title='添加组件 (a)'，移除 span 文本",
+        "result": "passed"
+      },
+      {
+        "item": "四大右侧抽屉统一悬浮圆角卡片样式与互斥开合",
+        "true_if": "外观设置、订阅消息、添加效率组件与快捷键指南均在右侧以大圆角与外边缘间隙呈现悬浮卡片质感，动效平滑进出且开合互斥",
+        "false_if": "仍然紧贴右侧边缘、居中弹出或开合冲突",
+        "evidence": "AppearanceDrawer、FeedSidebar、AddWidgetModal、ShortcutsHelpModal 均接入 p-3 sm:p-4 间距与 rounded-2xl sm:rounded-3xl 大圆角，四周边框及 shadow-2xl；顶栏按钮增加 ring 高亮圈且互相排斥开合",
+        "result": "passed"
+      },
+      {
+        "item": "抽屉标题图标统一与顶栏按钮触碰展示名称",
+        "true_if": "外观设置抽屉标题左侧对齐展示 SlidersHorizontal 图标容器与副标题，顶栏四大按钮触碰/hover 即时弹出名称与快捷键微胶囊提示",
+        "false_if": "外观抽屉缺少图标或顶栏按钮触碰无名称反馈",
+        "evidence": "AppearanceDrawer 标题左侧接入 SlidersHorizontal 独立容器；App.tsx 顶栏 4 纽全量集成 topbar-tooltip（快捷键指南 ?、添加组件 a、订阅消息 b、外观设置 e），tests/drawer-card-style.test.cjs 校验通过",
+        "result": "passed"
+      },
+      {
+        "item": "自动化测试与构建门禁全绿",
+        "true_if": "全量自动化测试通过，npm run build 成功编译到 local/dist/",
+        "false_if": "测试失败或构建错误",
+        "evidence": "npm test 168/168 测试全部通过，npm run build 成功打包至 local/dist/",
+        "result": "passed"
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "2c2b9a0",
+    "tag": ""
+  },
+  "version": null
+}
