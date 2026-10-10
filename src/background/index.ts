@@ -5,11 +5,15 @@
 
 const REQUEST_TIMEOUT_MS = 2000;
 
-async function fetchWithTimeout(url: string, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  timeoutMs = REQUEST_TIMEOUT_MS,
+  init?: RequestInit
+): Promise<Response> {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, { ...init, signal: controller.signal });
     clearTimeout(id);
     return response;
   } catch (error) {
@@ -120,7 +124,13 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
 
     if (message?.type === 'FETCH_FEED') {
       const { url, timeoutMs } = message;
-      fetchWithTimeout(url, timeoutMs || 10000)
+      const effectiveTimeout = Math.max(Number(timeoutMs) || 15000, 15000);
+
+      fetchWithTimeout(url, effectiveTimeout, {
+        headers: {
+          Accept: 'application/atom+xml, application/rss+xml, application/xml, text/xml, application/json, text/plain, */*',
+        },
+      })
         .then(async (res) => {
           if (!res.ok) {
             throw new Error(`HTTP ${res.status}: ${res.statusText}`);
@@ -128,8 +138,20 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
           const text = await res.text();
           sendResponse({ success: true, text });
         })
-        .catch((error) => {
-          sendResponse({ success: false, text: '', error: String(error) });
+        .catch(async (directError) => {
+          // 直连若因网络或云端拦截受阻，后台自动尝试只读代理兜底
+          try {
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+            const proxyRes = await fetchWithTimeout(proxyUrl, 12000);
+            if (proxyRes.ok) {
+              const text = await proxyRes.text();
+              sendResponse({ success: true, text, viaProxy: true });
+              return;
+            }
+          } catch {
+            // 兜底代理亦失败
+          }
+          sendResponse({ success: false, text: '', error: String(directError) });
         });
       return true;
     }

@@ -146,29 +146,56 @@ class FeedService {
   /**
    * 发起跨域或网络抓取请求
    */
-  async fetchUrlText(url: string, timeoutMs = 12000): Promise<string> {
-    // 1. Chrome 扩展环境：优先通过 Background Service Worker 代理 (零 CORS 限制)
-    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-      try {
-        const response: any = await new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage({ type: 'FETCH_FEED', url, timeoutMs }, (res) => {
-            if (chrome.runtime.lastError) {
-              reject(chrome.runtime.lastError);
-            } else {
-              resolve(res);
-            }
-          });
-        });
+  async fetchUrlText(url: string, timeoutMs = 15000): Promise<string> {
+    const isExtension = typeof chrome !== 'undefined' && Boolean(chrome.runtime?.id);
 
-        if (response?.success && typeof response.text === 'string') {
-          return response.text;
+    // 1. Chrome 扩展环境：通过 Background Service Worker 代理 (零 CORS 限制)
+    if (isExtension && chrome.runtime?.sendMessage) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const response: any = await new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage({ type: 'FETCH_FEED', url, timeoutMs }, (res) => {
+              if (chrome.runtime.lastError) {
+                reject(chrome.runtime.lastError);
+              } else {
+                resolve(res);
+              }
+            });
+          });
+
+          if (response?.success && typeof response.text === 'string') {
+            return response.text;
+          }
+          if (response?.error) {
+            console.warn(`[feedService] 后台代理抓取未成功 (${url}):`, response.error);
+          }
+        } catch {
+          if (attempt === 0) {
+            await new Promise((r) => setTimeout(r, 200));
+          }
+        }
+      }
+
+      // 注意：在 Chrome 扩展页面环境下，严禁直接对无 CORS 头的第三方 URL 执行前端直连 fetch(url)！
+      // 否则浏览器控制台必产生红色 Access-Control-Allow-Origin 策略拦截报错。
+      // 后台直连若未响应，前端直接调用公网 HTTPS 只读代理兜底：
+      try {
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        const res = await fetch(proxyUrl, { signal: controller.signal });
+        clearTimeout(timer);
+        if (res.ok) {
+          return await res.text();
         }
       } catch {
-        // 后台通信异常时降级至直接 fetch
+        // 代理兜底亦失败
       }
+
+      throw new Error(`无法连接至订阅源 (${url})，请检查网络或在 chrome://extensions 重新加载扩展`);
     }
 
-    // 2. 直连 Fetch
+    // 2. 非扩展环境（如纯本地 Web 开发服务器 localhost:5173）：
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -178,7 +205,7 @@ class FeedService {
         return await res.text();
       }
     } catch {
-      // 直连失败，可能遇 CORS 拦截
+      // 直连失败
     }
 
     // 3. Web 模式公共只读代理兜底 (保障开发与单机模式可用)
