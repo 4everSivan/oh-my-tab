@@ -1,0 +1,98 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C026",
+  "title": "修复 RSS 刷新删除源复活与新源丢失、阅读状态回滚、空源强制恢复及点击非幂等缺陷",
+  "type": "BugFix",
+  "status": "in_progress",
+  "branch": "fix/C026-feed-concurrency-and-read-state",
+  "is_hotfix": false,
+  "target": {
+    "module": "深度扩展与外部数据",
+    "component": "feedService & FeedSidebar & opmlService",
+    "design_doc": "docs/devel/design/05-深度扩展与外部数据.md",
+    "design_topic": "ExtensionDataSources"
+  },
+  "why": "1) refreshAllFeeds 刷新等待网络期间整体覆盖保存旧 sources 快照，导致并发删除的源复活、新源丢失，且拉取的文章混入已删除源的内容 (N03)；2) 刷新网络请求前快照 readMap，网络返回后继续用旧已读表合并并整表覆写，回滚了用户在刷新期间产生的点击已读/全部已读状态 (N04)；3) localStorage 中 sources 为合法空数组 [] 时被误判为未初始化，强制复活 4 个预置默认源并自动联网 (N16)；4) FeedSidebar 点击卡片阅读文章时无条件调用 toggleRead，重复打开已读文章导致反转为未读，且缺乏幂等 markItemRead (N16)；5) 刷新返回全量未截断条目与持久化 150 条上限产生数量不一致；OPML 导入粗暴 toLowerCase 破坏 URL 大小写敏感路径 (N16)。",
+  "precheck": {
+    "description": "检测 feedService 是否在刷新后保存旧 sources 快照以及是否将空数组判定为未初始化",
+    "command": "grep -n 'if (Array.isArray(parsed) && parsed.length > 0)' src/services/feed/feedService.ts",
+    "expected": "匹配到待修复的空源非法强退回退默认源特征",
+    "is_completed": true,
+    "evidence": "src/services/feed/feedService.ts 第 32 行将 parsed.length === 0 当作未初始化强制写入 DEFAULT_FEED_SOURCES"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "node --test tests/*.test.cjs",
+      "./node_modules/.bin/tsc --noEmit",
+      "./node_modules/.bin/vite build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "RSS 订阅刷新并发与阅读状态一致性",
+      "before": "refreshAllFeeds 网络返回后用旧 sources 和旧 readMap 覆写存储；合法空源被复活；点击卡片阅读无条件 toggle；返回条目与存储上限截断不一致；OPML 大小写敏感 URL 被误合并",
+      "after": "引入 refreshGeneration 代次；增量合并最新 sources 元数据并丢弃已删除源抓取结果；网络返回后重新获取最新已读映射；合法空源保全；卡片点击改为幂等 markItemRead；返回与缓存统一截断 150 条；OPML 保留路径大小写",
+      "impact": "FeedService, FeedSidebar, opmlService, App"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/05-深度扩展与外部数据.md",
+    "topic": "ExtensionDataSources",
+    "modified": true,
+    "rule_diff": {
+      "before": "订阅源与已读状态整表覆盖，空源降级为默认源",
+      "after": "刷新代次与增量元数据合并，阅读状态保全，空源持久化尊严，点击已读幂等性保证"
+    }
+  },
+  "verification": {
+    "result": true,
+    "run_id": "local-20261010-03",
+    "user_quote": "",
+    "signoff": "",
+    "checks": [
+      {
+        "item": "刷新期间删除/新增源防复活与防丢失 (N03)",
+        "true_if": "刷新异步挂起期间用户删除源或新增源，刷新完成后已删源不复活、新源不被覆盖抹除，且已删源的抓取文章被丢弃",
+        "false_if": "刷新完成后旧 sources 覆盖最新 sources，或者已删源文章重新并入列表",
+        "evidence": "refreshAllFeeds 引入 refreshGeneration 代次控制，仅增量写回存续源元数据，以 validSourceIds 过滤文章，tests/c026-feed-concurrency.test.cjs 验证通过",
+        "result": true
+      },
+      {
+        "item": "刷新期间阅读状态保全 (N04)",
+        "true_if": "刷新网络等待期间用户标记文章已读或全部已读，刷新写入后最新已读状态完整保留，不回滚为未读",
+        "false_if": "刷新写入后覆盖了用户刚标记的已读状态",
+        "evidence": "网络请求返回后重新读取最新 cachedItems 构建 latestReadMap，合并时保全用户在此期间标记的已读状态，单测验证通过",
+        "result": true
+      },
+      {
+        "item": "空源合法性与防强制复活 (N16)",
+        "true_if": "用户清空所有订阅源后重新获取，保持空数组 []，不强制注入 4 个默认源",
+        "false_if": "清空后刷新或重载被重置为 DEFAULT_FEED_SOURCES",
+        "evidence": "getSources 仅在 raw === null 时回退默认源，raw 为合法空数组 [] 时保留空源，tests/c026-feed-concurrency.test.cjs 验证通过",
+        "result": true
+      },
+      {
+        "item": "文章阅读点击幂等性 (N16)",
+        "true_if": "点击卡片打开文章使用 markItemRead，已读文章再次点击保持已读且不触发冗余写",
+        "false_if": "重复点击已读文章翻转为未读",
+        "evidence": "新增 markItemRead 幂等方法并在 FeedSidebar handleCardClick 中优先调用，重复点击已读文章保持已读且不触发多余持久化写入，单测验证通过",
+        "result": true
+      },
+      {
+        "item": "条目上限截断一致性与 OPML 规范化 (N16)",
+        "true_if": "refreshAllFeeds 返回的 feeds 数量与写入本地缓存的数量一致受 150 条上限约束；OPML 去重不破坏 URL 路径大小写",
+        "false_if": "返回全量但持久化截断，或大小写敏感 OPML 被误合",
+        "evidence": "refreshAllFeeds 统一按 150 条截断返回与保存；新增 normalizeFeedUrl 保持路径原始大小写，单测验证通过",
+        "result": true
+      }
+    ]
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.2.0",
+    "ran_at": "2026-10-10",
+    "exit_code": 4,
+    "target_status": "verified"
+  }
+}

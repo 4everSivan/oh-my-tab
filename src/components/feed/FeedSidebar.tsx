@@ -33,6 +33,7 @@ export interface FeedSidebarProps {
   isRefreshing?: boolean;
   onRefresh?: () => void;
   onToggleRead: (id: string) => void;
+  onMarkRead?: (id: string) => void;
   onMarkAllRead: () => void;
   onAddSource?: (source: Omit<FeedSource, 'id'>) => Promise<void>;
   onToggleSource?: (id: string, enabled: boolean) => Promise<void>;
@@ -50,6 +51,7 @@ export const FeedSidebar: React.FC<FeedSidebarProps> = ({
   isRefreshing = false,
   onRefresh,
   onToggleRead,
+  onMarkRead,
   onMarkAllRead,
   onAddSource,
   onToggleSource,
@@ -113,7 +115,11 @@ export const FeedSidebar: React.FC<FeedSidebarProps> = ({
   };
 
   const handleCardClick = (feed: FeedItem) => {
-    onToggleRead(feed.id);
+    if (onMarkRead) {
+      onMarkRead(feed.id);
+    } else {
+      onToggleRead(feed.id);
+    }
     if (feed.url && feed.url !== '#') {
       window.open(feed.url, '_blank');
     }
