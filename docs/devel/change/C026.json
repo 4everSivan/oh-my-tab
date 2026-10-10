@@ -3,9 +3,13 @@
   "id": "C026",
   "title": "修复 RSS 刷新删除源复活与新源丢失、阅读状态回滚、空源强制恢复及点击非幂等缺陷",
   "type": "BugFix",
-  "status": "verified",
+  "status": "closed",
   "branch": "fix/C026-feed-concurrency-and-read-state",
   "is_hotfix": false,
+  "sync": {
+    "commit": "83fd8a2712a135f1d4a7a083f3c0e52ee315dee7",
+    "merged_at": "2026-10-10"
+  },
   "target": {
     "module": "深度扩展与外部数据",
     "component": "feedService & FeedSidebar & opmlService",
@@ -93,6 +97,6 @@
     "version": "1.2.0",
     "ran_at": "2026-10-10",
     "exit_code": 0,
-    "target_status": "verified"
+    "target_status": "closed"
   }
 }
