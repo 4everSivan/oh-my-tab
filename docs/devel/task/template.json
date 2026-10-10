@@ -6,12 +6,15 @@
   "status": "pending",
   "branch": "feat/T[01~99]-[short-desc]",
   "depends_on": [],
+
   "target": {
     "module": "模块名",
-    "design_doc": "docs/devel/design/00-系统总体设计.md",
-    "design_topic": "SystemOverview"
+    "design_doc": "docs/devel/design/01-系统核心设计方案.md",
+    "design_topic": "CoreService"
   },
+
   "goal": "说明本任务需要实现的领域能力与核心业务诉求。",
+
   "precheck": {
     "description": "预检当前任务是否已在代码库中实现或已满足完成条件",
     "command": "",
@@ -19,10 +22,17 @@
     "is_completed": false,
     "evidence": ""
   },
+
   "callback": {
-    "before": [],
-    "after": []
+    "before": [
+      "# 任务执行前脚本或流程，如环境预热、分支准备、数据预加载等"
+    ],
+    "after": [
+      "# 任务执行后脚本或流程，如代码格式化、静态检查、构建打包等",
+      "scripts/adflow-verify  # 收口前门禁：Exit 4 禁止置 completed；目标状态预检使用 --card <本卡号> --to <目标状态> --record，仅回写本卡 gate，Exit 0 后再同步状态"
+    ]
   },
+
   "tasks": [
     {
       "id": "T01-1",
@@ -31,6 +41,7 @@
       "done": false
     }
   ],
+
   "acceptance": {
     "result": null,
     "run_id": "",
@@ -51,5 +62,10 @@
       }
     ]
   },
-  "version": null
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.2.0",
+    "ran_at": "",
+    "exit_code": null
+  }
 }

@@ -17,3 +17,6 @@ __pycache__/
 coverage/
 .nyc_output/
 .DS_Store
+
+# ad-flow immutable governance snapshots
+/_adflow_backup/
