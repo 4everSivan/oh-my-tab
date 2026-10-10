@@ -48,7 +48,9 @@
     },
     "ExtensionDataSources": {
       "design_doc": "docs/devel/design/05-深度扩展与外部数据.md",
-      "changes": []
+      "changes": [
+        "C024"
+      ]
     },
     "WidgetContract": {
       "design_doc": "docs/devel/design/06-组件契约与注册.md",
@@ -266,6 +268,14 @@
       "branch": "main",
       "topic": "WorkspaceAppearance",
       "created": "2026-10-09"
+    },
+    "C024": {
+      "title": "修复外部公共代理隐私泄露、假超时及极客脚本源 MV3 CSP 阻断缺陷",
+      "type": "BugFix",
+      "status": "verified",
+      "branch": "fix/C024-privacy-and-csp",
+      "topic": "ExtensionDataSources",
+      "created": "2026-10-10"
     }
   }
 }

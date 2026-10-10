@@ -154,7 +154,12 @@ class FeedService {
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
           const response: any = await new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+              reject(new Error(`请求订阅源超时 (${timeoutMs}ms)`));
+            }, timeoutMs + 1000);
+
             chrome.runtime.sendMessage({ type: 'FETCH_FEED', url, timeoutMs }, (res) => {
+              clearTimeout(timer);
               if (chrome.runtime.lastError) {
                 reject(chrome.runtime.lastError);
               } else {
@@ -168,61 +173,34 @@ class FeedService {
           }
           if (response?.error) {
             console.warn(`[feedService] 后台代理抓取未成功 (${url}):`, response.error);
+            throw new Error(response.error);
           }
-        } catch {
+        } catch (err: any) {
           if (attempt === 0) {
             await new Promise((r) => setTimeout(r, 200));
+          } else {
+            throw err;
           }
         }
       }
 
-      // 注意：在 Chrome 扩展页面环境下，严禁直接对无 CORS 头的第三方 URL 执行前端直连 fetch(url)！
-      // 否则浏览器控制台必产生红色 Access-Control-Allow-Origin 策略拦截报错。
-      // 后台直连若未响应，前端直接调用公网 HTTPS 只读代理兜底：
-      try {
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), timeoutMs);
-        const res = await fetch(proxyUrl, { signal: controller.signal });
-        clearTimeout(timer);
-        if (res.ok) {
-          return await res.text();
-        }
-      } catch {
-        // 代理兜底亦失败
-      }
-
-      throw new Error(`无法连接至订阅源 (${url})，请检查网络或在 chrome://extensions 重新加载扩展`);
+      throw new Error(`无法连接至订阅源 (${url})，请检查网络或订阅地址`);
     }
 
     // 2. 非扩展环境（如纯本地 Web 开发服务器 localhost:5173）：
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
       const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timer);
-      if (res.ok) {
-        return await res.text();
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
-    } catch {
-      // 直连失败
-    }
-
-    // 3. Web 模式公共只读代理兜底 (保障开发与单机模式可用)
-    try {
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      const res = await fetch(proxyUrl, { signal: controller.signal });
+      return await res.text();
+    } catch (err: any) {
+      throw new Error(`无法连接至订阅源 (${url}): ${err?.message || String(err)}`);
+    } finally {
       clearTimeout(timer);
-      if (res.ok) {
-        return await res.text();
-      }
-    } catch {
-      // 最终失败
     }
-
-    throw new Error(`无法连接至订阅源: ${url}`);
   }
 
   /**

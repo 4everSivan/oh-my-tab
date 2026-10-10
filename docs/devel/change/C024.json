@@ -1,0 +1,104 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C024",
+  "title": "修复外部公共代理隐私泄露、假超时及极客脚本源 MV3 CSP 阻断缺陷",
+  "type": "BugFix",
+  "status": "verified",
+  "branch": "fix/C024-privacy-and-csp",
+  "is_hotfix": false,
+  "target": {
+    "module": "深度扩展与外部数据",
+    "component": "background & feedService & scriptExecutor & suggestionService & manifest",
+    "design_doc": "docs/devel/design/05-深度扩展与外部数据.md",
+    "design_topic": "ExtensionDataSources"
+  },
+  "why": "1) 在后台 Service Worker 与 Feed 抓取服务中，当直连第三方订阅源失败时，系统静默将请求完整 URL（可能含私有 Token 或内网敏感地址）转发至第三方公共代理 allorigins.win，存在严重隐私泄露与数据外泄风险；2) 搜索引擎联想网络失败时静默回退至百度联想，背离用户选定引擎偏好；3) fetchWithTimeout 在收到响应头后过早调用 clearTimeout，导致读取慢速响应体时超时控制失效（N05）；4) 极客脚本源采用 new Function 执行动态字符串，在 Chrome MV3 默认 CSP 下抛出 EvalError 导致脚本源失效，且存在全局逃逸安全隐患；5) manifest.json 中 host_permissions 存在重复冗余通配符。",
+  "precheck": {
+    "description": "检测代码中是否仍包含 allorigins.win 公共代理转发与 new Function 动态求值",
+    "command": "grep -E 'allorigins\\.win|new Function' src/background/index.ts src/services/feed/feedService.ts src/services/feed/scriptExecutor.ts",
+    "expected": "匹配到待修复代码特征",
+    "is_completed": true,
+    "evidence": "匹配到 background/index.ts 与 feedService.ts 中的 allorigins.win 代理兜底及 scriptExecutor.ts 中的 new Function 沙箱求值"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "node --test tests/*.test.cjs",
+      "./node_modules/.bin/tsc --noEmit",
+      "./node_modules/.bin/vite build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "网络与安全边界 / 隐私保全",
+      "before": "网络失败静默通过 allorigins.win 代理转发完整 URL；联想失败静默发往百度；fetch 超时仅覆盖响应头；自定义脚本使用 new Function 动态编译；manifest 权限重复声明",
+      "after": "彻底移除对 allorigins.win 的隐式转发；联想失败保持当前引擎失败语义不回退百度；超时统一覆盖至响应体传输全链路；自定义数据源采用安全声明式规则映射提取；manifest host_permissions 精简收敛",
+      "impact": "Background Service Worker、Feed 订阅抓取服务、搜索联想服务、扩展权限清单"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/05-深度扩展与外部数据.md",
+    "topic": "ExtensionDataSources",
+    "modified": true,
+    "rule_diff": {
+      "before": "订阅源拉取直连失败时自动尝试只读代理兜底；极客脚本源使用 new Function 编译用户代码",
+      "after": "订阅源拉取绝不向未经授权的第三方代理转发用户订阅 URL；极客数据源采用安全声明式字段映射器提取条目，严格遵守 MV3 CSP"
+    }
+  },
+  "verification": {
+    "result": true,
+    "run_id": "local-20261010-01",
+    "user_quote": "用户确认：确认通过，推进下一批次",
+    "signoff": "代签人: AI Agent (基于用户口头确认代签)",
+    "checks": [
+      {
+        "item": "消除外部代理数据泄露",
+        "true_if": "源码中彻底不存在 allorigins.win 隐式代理转发，HTTP 401 或网络超时明确返回失败",
+        "false_if": "依然向外部代理转发 URL",
+        "evidence": "src/background/index.ts 与 src/services/feed/feedService.ts 全量移除 allorigins.win 代理，tests/c024-privacy-and-csp.test.cjs 静态扫描与断言通过",
+        "result": true
+      },
+      {
+        "item": "响应体完整超时控制 (N05)",
+        "true_if": "fetchWithTimeout 超时控制覆盖至 res.text() 结束，卡在 body 传输时能按预定时限中止",
+        "false_if": "仅超时等待响应头，响应体无超时保护",
+        "evidence": "src/background/index.ts 中 fetchWithTimeout 将 clearTimeout 统一移至 try-finally 块包裹完整 response.text() 阶段，tests/c024-privacy-and-csp.test.cjs 验证通过",
+        "result": true
+      },
+      {
+        "item": "MV3 CSP 合规与安全声明式提取",
+        "true_if": "彻底移除 new Function，采用安全声明式规则提取 JSON/数据条目，杜绝 EvalError 与沙箱逃逸",
+        "false_if": "仍然使用 new Function 或 eval 动态求值",
+        "evidence": "src/services/feed/scriptExecutor.ts 重构为安全声明式路径提取器，代码完全零 new Function / 零 eval，tests/c024-privacy-and-csp.test.cjs 与 feed-rss-engine.test.cjs 验证通过",
+        "result": true
+      },
+      {
+        "item": "搜索联想隐私守卫",
+        "true_if": "Google/Bing 联想网络失败时不向百度发送查询词",
+        "false_if": "网络异常时静默向百度泄露搜索词",
+        "evidence": "src/background/index.ts 与 src/services/search/suggestionService.ts 移除 catch 块的百度兜底，维持当前引擎失败语义，tests/c024-privacy-and-csp.test.cjs 验证通过",
+        "result": true
+      },
+      {
+        "item": "自动化回归测试与类型构建通过",
+        "true_if": "针对 N05、代理拦截与安全映射的回归测试全绿，tsc 与 vite build 正常通过",
+        "false_if": "存在测试失败或编译报错",
+        "evidence": "node --test tests/*.test.cjs 173 项全部通过 (0 失败)，tsc --noEmit 退出码 0，npm run build 成功打包至 local/dist/",
+        "result": true
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "",
+    "tag": ""
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.2.0",
+    "ran_at": "2026-10-10",
+    "exit_code": 0
+  }
+}

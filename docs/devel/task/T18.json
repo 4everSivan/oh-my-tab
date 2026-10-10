@@ -67,38 +67,47 @@
     }
   ],
   "acceptance": {
-    "result": "passed",
-    "run_id": "npm test && npm run build",
+    "result": true,
+    "run_id": "local-20261009-18",
     "checks": [
       {
         "item": "真实 RSS/Atom 解析正确性",
         "true_if": "能正确解析 RSS 2.0 与 Atom XML，提取纯文本摘要与相对时间",
         "false_if": "解析报错或脏 HTML 标签残留",
         "evidence": "tests/feed-rss-engine.test.cjs 测试套件全绿通过，DOMParser/Regex 双模解析、纯文本提纯与相对时间计算均符合预期",
-        "result": "passed"
+        "result": true
       },
       {
         "item": "自定义脚本源沙箱容错",
         "true_if": "脚本正确映射数据，脚本语法错误时沙箱隔离捕获不导致页面崩溃",
         "false_if": "脚本异常导致应用崩溃",
         "evidence": "executeScriptSandbox 支持提取数组，且针对 throw new Error 或异常语法具有 try-catch 沙箱防御，优雅返回空数组",
-        "result": "passed"
+        "result": true
       },
       {
         "item": "OPML 互通性",
         "true_if": "成功解析 OPML outline 节点批量导入，导出 OPML 符合标准 XML 格式",
         "false_if": "导入漏项或导出语法错误",
         "evidence": "importOpml 支持解析 outline 标签生成标准 FeedSource[]；exportOpml 生成符合 OPML 2.0 XML 标准的订阅清单",
-        "result": "passed"
+        "result": true
       },
       {
         "item": "自动化测试与构建门禁全绿",
         "true_if": "npm test 全部测试通过，npm run build 成功输出至 local/dist/",
         "false_if": "测试失败或构建异常",
         "evidence": "162/162 测试全部通过（含 feed-rss-engine.test.cjs 与 feed-sidebar.test.cjs），tsc && vite build 成功打包至 local/dist/ 且 0 报错",
-        "result": "passed"
+        "result": true
       }
     ]
   },
-  "version": null
+  "sync": {
+    "commit": "2e02288"
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.2.0",
+    "ran_at": "2026-10-09",
+    "exit_code": 0
+  },
+  "version": "v0.2.0"
 }

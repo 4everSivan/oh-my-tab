@@ -350,6 +350,15 @@ def collect_cards(ctx):
                 f = ent.get("file")
                 if f and not ctx.exists(f):
                     ctx.hard("INDEX_FILE_DEAD", cid, idx_rel, "索引 file 路径失效: %s" % f)
+        for acid, aent in reg.items():
+            if acid not in ctx.all_ids and isinstance(aent, dict):
+                arch_path = aent.get("archive")
+                if arch_path and ctx.exists(arch_path):
+                    acard = ctx.load_json(arch_path)
+                    if acard:
+                        ctx.all_ids[acid] = acard
+                elif aent.get("status") in ("completed", "closed"):
+                    ctx.all_ids[acid] = aent
     return cards
 
 

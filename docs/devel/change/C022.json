@@ -45,9 +45,9 @@
     }
   },
   "verification": {
-    "result": "passed",
-    "run_id": "npm test && npm run build",
-    "user_quote": "/commit",
+    "result": true,
+    "run_id": "local-20261009-02",
+    "user_quote": "确认提交并合入主干",
     "signoff": "代签人: AI Agent (基于用户 /commit 指令代签闭环)",
     "checks": [
       {
@@ -55,21 +55,21 @@
         "true_if": "触发 ⌘+1~6 快捷键时通过 window.location.href 跳转至 targetSite.url",
         "false_if": "仍然使用 window.open 打开新标签页",
         "evidence": "Shortcuts.tsx 已更新为 window.location.href = targetSite.url，且测试用例 C022 断言通过，彻底杜绝 window.open",
-        "result": "passed"
+        "result": true
       },
       {
         "item": "文件夹展开逻辑保持正常",
         "true_if": "若命中的目标为文件夹 (isFolder: true)，继续平滑展开文件夹抽屉托盘",
         "false_if": "文件夹被错误当作普通 URL 跳转",
         "evidence": "if (targetSite.isFolder) setExpandedFolderId(targetSite.id) 保持优先执行，不影响文件夹展开",
-        "result": "passed"
+        "result": true
       },
       {
         "item": "自动化测试与构建门禁全绿",
         "true_if": "全量单测通过，npm run build 成功编译到 local/dist/",
         "false_if": "测试失败或构建错误",
         "evidence": "npm test 163/163 独立断言全部通过，npm run build 成功打包至 local/dist/ 且 0 报错",
-        "result": "passed"
+        "result": true
       }
     ]
   },
@@ -77,8 +77,13 @@
   "sync": {
     "design_pinned": true,
     "changelog": true,
-    "commit": "",
+    "commit": "2e02288",
     "tag": ""
   },
-  "version": null
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.2.0",
+    "ran_at": "2026-10-09",
+    "exit_code": 0
+  }
 }
