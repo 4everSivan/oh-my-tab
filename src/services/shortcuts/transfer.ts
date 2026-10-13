@@ -161,9 +161,8 @@ export function parseShortcutsFromJSON(jsonText: string): {
     }
 
     if (extractedGroups.length > 0) {
-      // 优先将包含“主页”或第一组的条目作为根列表直出
-      const homeGroup = extractedGroups.find((g) => g.name === '主页') || extractedGroups[0];
-      return { valid: homeGroup.shortcuts, groups: extractedGroups };
+      // 返回所有分组条目及完整分组列表，彻底杜绝非主页分组数据遗漏 (N02)
+      return { valid: allValidShortcuts, groups: extractedGroups };
     }
   }
 
@@ -233,6 +232,23 @@ export function parseShortcutsFromJSON(jsonText: string): {
 /**
  * 合并或替换导入的常用网站列表
  */
+function ensureUniqueShortcutId(item: Shortcut, seenIds: Set<string>): Shortcut {
+  let uniqueId = item.id;
+  if (!uniqueId || seenIds.has(uniqueId)) {
+    uniqueId = `${item.isFolder ? 'folder' : 'shortcut'}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  }
+  seenIds.add(uniqueId);
+
+  const updated: Shortcut = { ...item, id: uniqueId };
+  if (Array.isArray(item.children)) {
+    updated.children = item.children.map((child) => ensureUniqueShortcutId(child, seenIds));
+  }
+  return updated;
+}
+
+/**
+ * 合并或替换导入的常用网站列表
+ */
 export function mergeShortcuts(
   imported: Shortcut[],
   current: Shortcut[],
@@ -244,12 +260,15 @@ export function mergeShortcuts(
 
   const existingUrls = new Set<string>();
   const folderMap = new Map<string, Shortcut>();
+  const seenIds = new Set<string>();
 
   for (const s of current) {
+    seenIds.add(s.id);
     if (s.isFolder) {
       folderMap.set(s.name.trim().toLowerCase(), s);
       if (Array.isArray(s.children)) {
         for (const c of s.children) {
+          seenIds.add(c.id);
           existingUrls.add(c.url.replace(/\/+$/, '').toLowerCase());
         }
       }
@@ -260,12 +279,13 @@ export function mergeShortcuts(
 
   const result: Shortcut[] = [...current];
 
-  for (const item of imported) {
+  for (const rawItem of imported) {
+    const item = ensureUniqueShortcutId(rawItem, seenIds);
     if (item.isFolder) {
       const folderKey = item.name.trim().toLowerCase();
-      if (folderMap.has(folderKey)) {
+      const existingFolder = folderMap.get(folderKey);
+      if (existingFolder) {
         // 合并进既有同名文件夹
-        const existingFolder = folderMap.get(folderKey)!;
         const currentChildren = existingFolder.children || [];
         existingFolder.children = mergeShortcuts(item.children || [], currentChildren, 'merge');
       } else {
@@ -303,8 +323,8 @@ export function mergeGroups(
 
   for (const imp of importedGroups) {
     const key = imp.name.trim().toLowerCase();
-    if (groupMap.has(key)) {
-      const existing = groupMap.get(key)!;
+    const existing = groupMap.get(key);
+    if (existing) {
       existing.shortcuts = mergeShortcuts(imp.shortcuts, existing.shortcuts, 'merge');
     } else {
       groupMap.set(key, { ...imp });

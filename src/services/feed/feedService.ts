@@ -9,6 +9,18 @@ import { parseFeed, formatRelativeTime } from './feedParser';
 import { executeScriptTransform } from './scriptExecutor';
 import { exportSourcesToOpml, parseOpml, convertOutlineToFeedSource } from './opmlService';
 
+/**
+ * 规范化 Feed URL：协议与域名小写，保留路径与查询参数的原始大小写
+ */
+export function normalizeFeedUrl(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl.trim());
+    return `${parsed.protocol.toLowerCase()}//${parsed.host.toLowerCase()}${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return rawUrl.trim();
+  }
+}
+
 const STORAGE_KEYS = {
   SOURCES: 'oh_my_tab_feed_sources',
   CACHE: 'oh_my_tab_feed_cache',
@@ -18,6 +30,7 @@ const STORAGE_KEYS = {
 class FeedService {
   private sourcesCache: FeedSource[] | null = null;
   private itemsCache: FeedItem[] | null = null;
+  private refreshGeneration = 0;
 
   /**
    * 获取所有订阅源配置
@@ -27,9 +40,10 @@ class FeedService {
 
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.SOURCES);
-      if (raw) {
+      // N16: 只有键不存在 (raw === null) 时才回退默认源；raw 为合法空数组 [] 时保留空源
+      if (raw !== null) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           this.sourcesCache = parsed;
           return parsed;
         }
@@ -153,76 +167,57 @@ class FeedService {
     if (isExtension && chrome.runtime?.sendMessage) {
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
-          const response: any = await new Promise((resolve, reject) => {
-            chrome.runtime.sendMessage({ type: 'FETCH_FEED', url, timeoutMs }, (res) => {
-              if (chrome.runtime.lastError) {
-                reject(chrome.runtime.lastError);
-              } else {
-                resolve(res);
-              }
-            });
-          });
+          const response = await new Promise<{ success?: boolean; text?: string; error?: string } | undefined>(
+            (resolve, reject) => {
+              const timer = setTimeout(() => {
+                reject(new Error(`请求订阅源超时 (${timeoutMs}ms)`));
+              }, timeoutMs + 1000);
+
+              chrome.runtime.sendMessage({ type: 'FETCH_FEED', url, timeoutMs }, (res) => {
+                clearTimeout(timer);
+                if (chrome.runtime.lastError) {
+                  reject(chrome.runtime.lastError);
+                } else {
+                  resolve(res);
+                }
+              });
+            }
+          );
 
           if (response?.success && typeof response.text === 'string') {
             return response.text;
           }
           if (response?.error) {
             console.warn(`[feedService] 后台代理抓取未成功 (${url}):`, response.error);
+            throw new Error(response.error);
           }
-        } catch {
+        } catch (err: unknown) {
           if (attempt === 0) {
             await new Promise((r) => setTimeout(r, 200));
+          } else {
+            throw err;
           }
         }
       }
 
-      // 注意：在 Chrome 扩展页面环境下，严禁直接对无 CORS 头的第三方 URL 执行前端直连 fetch(url)！
-      // 否则浏览器控制台必产生红色 Access-Control-Allow-Origin 策略拦截报错。
-      // 后台直连若未响应，前端直接调用公网 HTTPS 只读代理兜底：
-      try {
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), timeoutMs);
-        const res = await fetch(proxyUrl, { signal: controller.signal });
-        clearTimeout(timer);
-        if (res.ok) {
-          return await res.text();
-        }
-      } catch {
-        // 代理兜底亦失败
-      }
-
-      throw new Error(`无法连接至订阅源 (${url})，请检查网络或在 chrome://extensions 重新加载扩展`);
+      throw new Error(`无法连接至订阅源 (${url})，请检查网络或订阅地址`);
     }
 
     // 2. 非扩展环境（如纯本地 Web 开发服务器 localhost:5173）：
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
       const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timer);
-      if (res.ok) {
-        return await res.text();
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
-    } catch {
-      // 直连失败
-    }
-
-    // 3. Web 模式公共只读代理兜底 (保障开发与单机模式可用)
-    try {
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      const res = await fetch(proxyUrl, { signal: controller.signal });
+      return await res.text();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`无法连接至订阅源 (${url}): ${msg}`);
+    } finally {
       clearTimeout(timer);
-      if (res.ok) {
-        return await res.text();
-      }
-    } catch {
-      // 最终失败
     }
-
-    throw new Error(`无法连接至订阅源: ${url}`);
   }
 
   /**
@@ -248,35 +243,31 @@ class FeedService {
   }
 
   /**
-   * 并发拉取所有启用的订阅源，执行增量合并与去重
+   * 并发拉取所有启用的订阅源，执行增量合并与去重 (防 N03、N04、N16)
    */
   async refreshAllFeeds(_force = false): Promise<{ feeds: FeedItem[]; errors: Record<string, string> }> {
-    const sources = await this.getSources();
-    const enabledSources = sources.filter((s) => s.enabled);
-    const cachedItems = await this.getCachedFeeds();
-
-    // 建立现有已读状态映射表
-    const readMap = new Map<string, boolean>();
-    cachedItems.forEach((item) => {
-      readMap.set(item.id, item.read);
-    });
+    const generation = ++this.refreshGeneration;
+    const initialSources = await this.getSources();
+    const enabledSources = initialSources.filter((s) => s.enabled);
 
     const errors: Record<string, string> = {};
     const newItemsFromAllSources: FeedItem[] = [];
     const now = Date.now();
+    const fetchMetadataMap = new Map<string, { lastFetchedAt: number; itemCount: number; lastError?: string }>();
 
     await Promise.allSettled(
       enabledSources.map(async (source) => {
         try {
           const parsed = await this.fetchSingleSource(source);
-          source.lastFetchedAt = now;
-          source.lastError = undefined;
-          source.itemCount = parsed.length;
+          fetchMetadataMap.set(source.id, {
+            lastFetchedAt: now,
+            itemCount: parsed.length,
+            lastError: undefined,
+          });
 
           parsed.forEach((p, idx) => {
             const timeInfo = formatRelativeTime(p.pubDate);
             const itemId = `${source.id}-${p.id || p.link || idx}`;
-            const isRead = readMap.get(itemId) ?? false;
 
             newItemsFromAllSources.push({
               id: itemId,
@@ -290,39 +281,85 @@ class FeedService {
               timestamp: timeInfo.timestamp,
               summary: p.summary || '点击进入阅读原文...',
               url: p.link || '#',
-              read: isRead,
+              read: false, // 稍后与提交时的最新 readMap 合并
             });
           });
-        } catch (err: any) {
-          const errMsg = err?.message || String(err);
-          source.lastError = errMsg;
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          fetchMetadataMap.set(source.id, {
+            lastFetchedAt: now,
+            itemCount: 0,
+            lastError: errMsg,
+          });
           errors[source.id] = errMsg;
         }
       })
     );
 
-    // 更新源状态
-    await this.saveSources(sources);
+    // 1. 获取最新的源配置 (防 N03: 刷新期间用户删除源或新增源)
+    const latestSources = await this.getSources();
+    const validSourceIds = new Set(latestSources.map((s) => s.id));
 
-    // 将已有条目与新拉取条目去重合并 (按 URL 或 ID)
+    // 仅在当前代次有效时增量写回源元数据，绝不整体覆写旧 sources 数组
+    if (generation === this.refreshGeneration) {
+      const updatedSources = latestSources.map((source) => {
+        const meta = fetchMetadataMap.get(source.id);
+        if (!meta) return source;
+        return {
+          ...source,
+          lastFetchedAt: meta.lastFetchedAt,
+          itemCount: meta.itemCount,
+          lastError: meta.lastError,
+        };
+      });
+      await this.saveSources(updatedSources);
+    }
+
+    // 2. 重新获取最新的文章缓存与已读状态 (防 N04: 刷新期间标记已读被回滚)
+    const latestCachedItems = await this.getCachedFeeds();
+    const latestReadMap = new Map<string, boolean>();
+    latestCachedItems.forEach((item) => {
+      latestReadMap.set(item.id, item.read);
+    });
+
+    // 3. 过滤并合并文章：只保留属于最新有效订阅源 (validSourceIds) 的条目
     const uniqueMap = new Map<string, FeedItem>();
     newItemsFromAllSources.forEach((item) => {
-      uniqueMap.set(item.id, item);
-    });
-    // 保留未被本次覆盖的历史条目
-    cachedItems.forEach((item) => {
-      if (!uniqueMap.has(item.id)) {
+      if (validSourceIds.has(item.sourceId)) {
+        // 继承最新已读状态
+        item.read = latestReadMap.get(item.id) ?? false;
         uniqueMap.set(item.id, item);
       }
     });
 
-    // 按时间倒序排序
-    const sortedFeeds = Array.from(uniqueMap.values()).sort(
-      (a, b) => b.timestamp - a.timestamp
-    );
+    // 4. 保留未被本次覆盖的历史条目 (同样过滤已删除源)
+    latestCachedItems.forEach((item) => {
+      if (validSourceIds.has(item.sourceId) && !uniqueMap.has(item.id)) {
+        uniqueMap.set(item.id, item);
+      }
+    });
+
+    // 5. 按时间倒序排序并截断至 150 条 (防 N16: 统一返回与保存的集合)
+    const sortedFeeds = Array.from(uniqueMap.values())
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 150);
 
     await this.saveCachedFeeds(sortedFeeds);
     return { feeds: sortedFeeds, errors };
+  }
+
+  /**
+   * 标记指定文章为已读 (幂等：已读时不触发冗余存储写入与广播，防 N16)
+   */
+  async markItemRead(id: string): Promise<FeedItem[]> {
+    const cached = await this.getCachedFeeds();
+    const target = cached.find((f) => f.id === id);
+    if (!target || target.read) {
+      return cached;
+    }
+    const updated = cached.map((f) => (f.id === id ? { ...f, read: true } : f));
+    await this.saveCachedFeeds(updated);
+    return updated;
   }
 
   /**
@@ -346,7 +383,7 @@ class FeedService {
   }
 
   /**
-   * 导入 OPML 订阅单
+   * 导入 OPML 订阅单 (使用 normalizeFeedUrl 避免破坏大小写敏感路径，防 N16)
    */
   async importOpml(xmlText: string): Promise<{ added: number; sources: FeedSource[] }> {
     const outlines = parseOpml(xmlText);
@@ -355,13 +392,14 @@ class FeedService {
     }
 
     const currentSources = await this.getSources();
-    const existingUrls = new Set(currentSources.map((s) => s.url.toLowerCase().trim()));
+    const existingUrls = new Set(currentSources.map((s) => normalizeFeedUrl(s.url)));
 
     const newSources: FeedSource[] = [];
     outlines.forEach((o) => {
-      if (!existingUrls.has(o.xmlUrl.toLowerCase().trim())) {
+      const norm = normalizeFeedUrl(o.xmlUrl);
+      if (!existingUrls.has(norm)) {
         newSources.push(convertOutlineToFeedSource(o));
-        existingUrls.add(o.xmlUrl.toLowerCase().trim());
+        existingUrls.add(norm);
       }
     });
 

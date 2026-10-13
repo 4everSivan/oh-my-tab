@@ -64,7 +64,7 @@
   ],
   "acceptance": {
     "result": true,
-    "run_id": "test-t16-verify-01",
+    "run_id": "local-20261009-16",
     "checks": [
       {
         "item": "按住 Command 徽标浮现与收起",
@@ -88,6 +88,15 @@
         "result": true
       }
     ]
+  },
+  "sync": {
+    "commit": "2e02288"
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.2.0",
+    "ran_at": "2026-10-09",
+    "exit_code": 0
   },
   "version": "v0.2.0"
 }

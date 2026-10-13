@@ -17,12 +17,9 @@ async function fetchWithTimeout(url: string, timeoutMs = REQUEST_TIMEOUT_MS): Pr
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    return await fetch(url, { signal: controller.signal });
+  } finally {
     clearTimeout(id);
-    return response;
-  } catch (error) {
-    clearTimeout(id);
-    throw error;
   }
 }
 
@@ -107,20 +104,7 @@ async function fetchDirectSuggestions(query: string, engineId: string): Promise<
     }
     return [];
   } catch {
-    // 降级尝试备选通用接口
-    try {
-      const backupUrl = useDevProxy
-        ? `/api/suggest-baidu/su?wd=${encodeURIComponent(trimmed)}&action=opensearch`
-        : `https://suggestion.baidu.com/su?wd=${encodeURIComponent(trimmed)}&action=opensearch`;
-      const res = await fetchWithTimeout(backupUrl);
-      if (!res.ok) return [];
-      const data = await res.json();
-      if (Array.isArray(data) && Array.isArray(data[1])) {
-        return data[1].slice(0, 8);
-      }
-    } catch {
-      // 静默失败，返回空
-    }
+    // 遵从用户选择，不静默向未选定的百度等第三方接口发送查询词
     return [];
   }
 }

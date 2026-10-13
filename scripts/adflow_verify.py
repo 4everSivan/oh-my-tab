@@ -5,7 +5,7 @@
 把 ad-flow 的不变量与双轨卡片 SOP 从"散文要求"变成"可机械判定"的门禁：
   * 流程门禁（默认）：状态感知地扫描活跃卡（docs/devel/change、docs/devel/task），
     按每张卡当前的 status 只校验"该状态此刻应成立的前提"（P1-P14）。
-  * 初始化 DoD（--mode init）：一次性核对 23 个基础治理文件、禁占位、版本标签。
+  * 初始化 DoD（--mode init）：核对基础文件、已登记代码规范、禁占位、版本标签。
 
 设计原则：
   * 仅用标准库，栈无关——可在任意目标工程里运行。
@@ -40,20 +40,35 @@ PATH_KEYS = {"files", "file", "paths", "file_path", "filepath", "sources"}
 TERMINAL = {"verified", "closed", "completed"}
 CLOSED = {"closed", "completed"}
 TRANSITIONS = {"change": {"verified", "closed"}, "task": {"completed"}}
+STATUSES = {"change": {"draft", "pending", "in_progress", "rejected", "verified", "closed"},
+            "task": {"pending", "in_progress", "completed"}}
 
-# workflow.yaml Step 8 的 23 个基础治理文件
+# Templates and coding standards use root-index registration; legacy layouts stay valid.
 BASE_FILES = [
     "AGENTS.md", "CHANGELOG.md",
     "docs/README.md", "docs/index.json", "docs/assets/README.md",
     "docs/guide/README.md", "docs/guide/index.json", "docs/guide/01-本地部署指南.md",
     "docs/devel/README.md", "docs/devel/index.json", "docs/devel/design/README.md",
-    "docs/devel/change/README.md", "docs/devel/change/index.json", "docs/devel/change/template.json",
-    "docs/devel/task/README.md", "docs/devel/task/index.json", "docs/devel/task/template.json",
+    "docs/devel/change/README.md", "docs/devel/change/index.json",
+    "docs/devel/task/README.md", "docs/devel/task/index.json",
     "docs/devel/todo/README.md", "docs/devel/todo/now.md", "docs/devel/todo/future.md",
     "docs/devel/env/README.md", "docs/devel/env/01-环境缓存与依赖清理指南.md",
     "docs/archive/README.md",
 ]
 PLACEHOLDER = "docs/devel/design/01-系统设计方案.md"
+TOOL_FILES = ["scripts/adflow_verify.py", "scripts/adflow-verify"]
+STANDARD_FILES = {
+    "coding": "docs/standards/coding.json",
+    "task_template": "docs/standards/task-template.json",
+    "change_template": "docs/standards/change-template.json",
+}
+LEGACY_FILES = {
+    "docs/guide/01-本地部署指南.md": "docs/guide/01-local-deployment.md",
+    "docs/devel/env/01-环境缓存与依赖清理指南.md": "docs/devel/env/01-cache-and-dependency-cleanup.md",
+    "docs/standards/task-template.json": "docs/devel/task/template.json",
+    "docs/standards/change-template.json": "docs/devel/change/template.json",
+    "docs/standards/coding.json": "docs/devel/coding-standards.json",
+}
 
 
 class Ctx:
@@ -66,12 +81,13 @@ class Ctx:
         self._text_cache = {}
         self._git = None            # None=未知, True/False
         self.proposed_id = None
+        self.record_ids = set()
 
     # ---- 基础读取 ----
     def read_text(self, rel):
         if rel not in self._text_cache:
             p = self.root / rel
-            self._text_cache[rel] = p.read_text(encoding="utf-8") if p.exists() else None
+            self._text_cache[rel] = p.read_text(encoding="utf-8") if p.is_file() else None
         return self._text_cache[rel]
 
     def load_json(self, rel):
@@ -81,14 +97,18 @@ class Ctx:
                 self._json_cache[rel] = None
             else:
                 try:
-                    self._json_cache[rel] = json.loads(p.read_text(encoding="utf-8"))
+                    data = json.loads(p.read_text(encoding="utf-8"))
+                    if not isinstance(data, dict):
+                        self.hard("JSON_TYPE", None, rel, "JSON 顶层必须为对象")
+                        data = None
+                    self._json_cache[rel] = data
                 except Exception as e:  # noqa: BLE001
                     self.add("ERROR", "JSON_PARSE", None, rel, "JSON 解析失败: %s" % e)
                     self._json_cache[rel] = None
         return self._json_cache[rel]
 
     def exists(self, rel):
-        return (self.root / rel).exists()
+        return (self.root / rel).is_file()
 
     def topics_in(self, rel):
         txt = self.read_text(rel)
@@ -151,6 +171,48 @@ def runid_ok(rid):
     return bool(RUNID_RE.match(rid)) and "http" not in rid and "://" not in rid
 
 
+def check_card_shape(ctx, card, cid, rel, full=True):
+    """仅校验后续读取必需的类型；归档卡只读取身份和状态。"""
+    valid = True
+
+    def require(ok, field, kind):
+        nonlocal valid
+        if not ok:
+            ctx.hard("JSON_TYPE", cid, rel, "%s 必须为%s" % (field, kind))
+            valid = False
+
+    require(isinstance(cid, str), "id", "字符串")
+    require(isinstance(card.get("status"), str), "status", "字符串")
+    if not full:
+        return valid
+    for field in ("target", "verification", "acceptance", "sync", "gate", "design"):
+        value = card.get(field)
+        require(value is None or isinstance(value, dict), field, "对象或 null")
+        if isinstance(value, dict):
+            for key in (("design_doc", "design_topic") if field == "target" else
+                        ("doc",) if field == "design" else ()):
+                require(value.get(key) is None or isinstance(value[key], str),
+                        "%s.%s" % (field, key), "字符串或 null")
+            if field in ("verification", "acceptance"):
+                checks = value.get("checks")
+                require(checks is None or (isinstance(checks, list) and
+                        all(isinstance(c, dict) for c in checks)),
+                        field + ".checks", "对象数组或 null")
+    deps = card.get("depends_on")
+    require(deps is None or (isinstance(deps, list) and all(isinstance(d, str) for d in deps)),
+            "depends_on", "字符串数组或 null")
+    rejections = card.get("rejections")
+    require(rejections is None or (isinstance(rejections, list) and
+            all(isinstance(r, dict) for r in rejections)), "rejections", "对象数组或 null")
+    return valid
+
+
+def check_status(ctx, card, cid, rel, track):
+    status = card.get("status")
+    if not isinstance(status, str) or status not in STATUSES[track]:
+        ctx.hard("STATUS_INVALID", cid, rel, "%s 轨不支持状态 %r" % (track, status))
+
+
 # ---- 单卡结构校验（与终态无关，任何 status 都查）----
 def check_structural(ctx, card, cid, rel):
     t = card.get("target", {}) or {}
@@ -166,6 +228,9 @@ def check_structural(ctx, card, cid, rel):
         ctx.hard("DESIGN_DOC_MISSING", cid, rel, "设计文档不存在: %s" % doc)
     elif topic and topic not in ctx.topics_in(doc):
         ctx.hard("TOPIC_ANCHOR_MISSING", cid, rel, "@%s 锚标未出现在 %s" % (topic, doc))
+    design_doc = (card.get("design") or {}).get("doc")
+    if design_doc and is_readme(design_doc):
+        ctx.hard("NO_README_AS_DESIGN_DOC", cid, rel, "design.doc 指向 README: %s" % design_doc)
 
     # P5 二值契约对称
     for c in checks_of(card):
@@ -254,7 +319,7 @@ def check_state(ctx, card, cid, rel, track):
         ctx.soft("HOTFIX_OPEN", cid, rel, "hotfix 卡仍未闭环，需在故障恢复后 24h 内补票")
 
     # P3 gate 追责 + 证伪
-    if status in CLOSED and cid != ctx.proposed_id:
+    if status in CLOSED and cid != ctx.proposed_id and cid not in ctx.record_ids:
         gate = card.get("gate", {}) or {}
         if gate.get("exit_code") != 0:
             ctx.hard("GATE_EXIT_NONZERO", cid, rel,
@@ -266,7 +331,7 @@ def check_card(ctx, card, cid, rel, track):
     check_structural(ctx, card, cid, rel)
     check_state(ctx, card, cid, rel, track)
     # gate 证伪：声称已过门禁但实测有硬违规 → 追责
-    if (cid != ctx.proposed_id and card.get("status") in CLOSED
+    if (cid != ctx.proposed_id and cid not in ctx.record_ids and card.get("status") in CLOSED
             and (card.get("gate", {}) or {}).get("exit_code") == 0):
         after = [f for f in ctx.findings if f["card"] == cid and f["sev"] == "ERROR"]
         if len(after) > before:
@@ -287,25 +352,25 @@ def check_globals(ctx):
                     ctx.hard("ZERO_SEDIMENT_VIOLATION", m, "%s:%d" % (todo, i),
                              "todo 残留已建卡事项 %s（落地建卡即应物理删除）" % m)
 
-    # P14 版本一致
-    am = ctx.read_text("AGENTS.md") or ""
-    tag = TAG_RE.search(am)
-    idx = ctx.load_json("docs/index.json") or {}
-    ver = idx.get("adflow_version")
-    if not tag or not tag.group(1):
-        ctx.hard("TAG_MISSING", None, "AGENTS.md", "缺少 <!-- @ad-flow: initialized vX.Y.Z --> 标签")
-    elif ver and tag.group(1) != str(ver):
-        ctx.hard("VERSION_DRIFT", None, "AGENTS.md",
-                 "AGENTS.md 标签 v%s 与 docs/index.json adflow_version=%s 不一致" % (tag.group(1), ver))
+    check_version(ctx)
 
     # index.topics 的 design_doc 也不得指向 README / 必须存在 / 含锚标
     for idx_rel in ("docs/devel/change/index.json", "docs/devel/task/index.json"):
         data = ctx.load_json(idx_rel) or {}
-        for topic, tinfo in (data.get("topics", {}) or {}).items():
-            d = (tinfo or {}).get("design_doc")
+        topics = data.get("topics", {})
+        if not isinstance(topics, dict):
+            ctx.hard("JSON_TYPE", None, idx_rel, "topics 必须为对象")
+            continue
+        for topic, tinfo in topics.items():
+            if not isinstance(tinfo, dict):
+                ctx.hard("JSON_TYPE", None, idx_rel, "topics[%s] 必须为对象" % topic)
+                continue
+            d = tinfo.get("design_doc")
             if not d:
                 continue
-            if is_readme(d):
+            if not isinstance(d, str):
+                ctx.hard("JSON_TYPE", None, idx_rel, "topics[%s].design_doc 必须为字符串" % topic)
+            elif is_readme(d):
                 ctx.hard("INDEX_TOPIC_README", None, idx_rel, "topics[%s].design_doc 指向 README: %s" % (topic, d))
             elif not ctx.exists(d):
                 ctx.hard("DESIGN_DOC_MISSING", None, idx_rel, "topics[%s].design_doc 不存在: %s" % (topic, d))
@@ -313,16 +378,91 @@ def check_globals(ctx):
                 ctx.hard("TOPIC_ANCHOR_MISSING", None, idx_rel, "topics[%s] 锚标未出现在 %s" % (topic, d))
 
 
+def check_version(ctx, required=False):
+    # P14 版本一致；初始化还要求路由元数据明确声明版本。
+    am = ctx.read_text("AGENTS.md") or ""
+    tag = TAG_RE.search(am)
+    idx = ctx.load_json("docs/index.json") or {}
+    ver = idx.get("adflow_version")
+    if not tag or not tag.group(1):
+        ctx.hard("TAG_MISSING", None, "AGENTS.md", "缺少 <!-- @ad-flow: initialized vX.Y.Z --> 标签")
+    if required and not ver:
+        ctx.hard("VERSION_MISSING", None, "docs/index.json", "缺少 adflow_version")
+    elif ver is not None and not isinstance(ver, str):
+        ctx.hard("JSON_TYPE", None, "docs/index.json", "adflow_version 必须为字符串")
+    elif tag and tag.group(1) and ver and tag.group(1) != ver:
+        ctx.hard("VERSION_DRIFT", None, "AGENTS.md",
+                 "AGENTS.md 标签 v%s 与 docs/index.json adflow_version=%s 不一致" % (tag.group(1), ver))
+
+
 # ---- 采集活跃卡 ----
 def collect_cards(ctx):
     ctx.all_ids = {}
     cards = []  # (rel, dict, cid)
+    seen_paths = set()
+
+    def register(rel, card, cid, active):
+        if rel in seen_paths:
+            return
+        seen_paths.add(rel)
+        if cid in ctx.all_ids:
+            ctx.hard("ID_DUPLICATE", cid, rel, "卡号重复；不可用后一张卡覆盖前一张卡进行依赖判定")
+        else:
+            ctx.all_ids[cid] = card
+        if active:
+            cards.append((rel, card, cid))
+
     for sub in ("docs/devel/change", "docs/devel/task"):
+        track = "task" if sub.endswith("/task") else "change"
         idx_rel = sub + "/index.json"
+        if not ctx.exists(idx_rel):
+            ctx.hard("INDEX_MISSING", None, idx_rel, "缺少卡片总账索引")
         idx = ctx.load_json(idx_rel) or {}
         # 任务模板使用 tasks；兼容已经使用 cards 的项目，不迁移其索引结构。
-        reg = idx.get("tasks", idx.get("cards", {})) if sub.endswith("/task") else idx.get("cards", {})
-        reg = reg or {}
+        reg = idx.get("tasks", idx.get("cards", {})) if track == "task" else idx.get("cards", {})
+        if not isinstance(reg, dict):
+            ctx.hard("JSON_TYPE", None, idx_rel, "卡片登记表必须为对象")
+            reg = {}
+        # 总账是路由真理源：先核对每个登记，再解析归档卡供依赖判定。
+        for cid, ent in reg.items():
+            if not isinstance(ent, dict):
+                ctx.hard("JSON_TYPE", cid, idx_rel, "卡片登记条目必须为对象")
+                continue
+            f = ent.get("file")
+            if not isinstance(f, str) or not f.strip():
+                ctx.hard("INDEX_FILE_MISSING", cid, idx_rel, "索引缺少非空 file 路径")
+                continue
+            try:
+                rel = str((ctx.root / f).resolve().relative_to(ctx.root))
+            except ValueError:
+                ctx.hard("INDEX_FILE_INVALID", cid, idx_rel, "索引 file 必须位于目标项目内: %s" % f)
+                continue
+            archived = Path(rel).parts[:2] == ("docs", "archive")
+            if ((archived and (len(Path(rel).parts) < 5 or Path(rel).parent.name != track)) or
+                    (not archived and str(Path(rel).parent) != sub)):
+                ctx.hard("INDEX_FILE_INVALID", cid, idx_rel,
+                         "索引 file 必须指向所属活跃卡池或归档轨道: %s" % f)
+                continue
+            if not ctx.exists(rel):
+                ctx.hard("INDEX_FILE_DEAD", cid, idx_rel, "索引 file 路径失效: %s" % f)
+                continue
+            card = ctx.load_json(rel)
+            if card is None:
+                continue
+            actual_id = card.get("id", Path(rel).stem)
+            if not check_card_shape(ctx, card, actual_id, rel, full=not archived):
+                continue
+            check_status(ctx, card, actual_id, rel, track)
+            if actual_id != cid:
+                ctx.hard("INDEX_ID_DRIFT", cid, idx_rel,
+                         "索引 %s 指向了身份为 %s 的卡片: %s" % (cid, actual_id, f))
+                continue
+            if ent.get("status") != card.get("status"):
+                ctx.hard("INDEX_STATUS_DRIFT", cid, idx_rel,
+                         "索引状态 %r 与卡片 %r 不一致" % (ent.get("status"), card.get("status")))
+            register(rel, card, cid, active=not archived)
+
+        # 保留物理扫描，发现未登记、错误路由，以及与归档卡撞号的活跃卡。
         d = ctx.root / sub
         if not d.exists():
             continue
@@ -330,26 +470,28 @@ def collect_cards(ctx):
             if jf.name in ("index.json", "template.json"):
                 continue
             rel = str(jf.relative_to(ctx.root))
+            if rel in seen_paths:
+                continue
             card = ctx.load_json(rel)
             if card is None:
                 continue
-            cid = str(card.get("id", jf.stem))
-            cards.append((rel, card, cid))
-            if cid in ctx.all_ids:
-                ctx.hard("ID_DUPLICATE", cid, rel, "卡号重复；不可用后一张卡覆盖前一张卡进行依赖判定")
-            else:
-                ctx.all_ids[cid] = card
+            cid = card.get("id", jf.stem)
+            if not check_card_shape(ctx, card, cid, rel):
+                continue
+            check_status(ctx, card, cid, rel, track)
+            register(rel, card, cid, active=True)
             # P2 中枢对齐
             ent = reg.get(cid)
             if ent is None:
                 ctx.hard("INDEX_MISSING_CARD", cid, rel, "卡片未登记到 %s" % idx_rel)
-            else:
+            elif isinstance(ent, dict):
                 if ent.get("status") != card.get("status"):
                     ctx.hard("INDEX_STATUS_DRIFT", cid, idx_rel,
                              "索引状态 %r 与卡片 %r 不一致" % (ent.get("status"), card.get("status")))
                 f = ent.get("file")
-                if f and not ctx.exists(f):
-                    ctx.hard("INDEX_FILE_DEAD", cid, idx_rel, "索引 file 路径失效: %s" % f)
+                if isinstance(f, str) and (ctx.root / f).resolve() != jf.resolve():
+                    ctx.hard("INDEX_FILE_DRIFT", cid, idx_rel,
+                             "索引 file 未指向该活跃卡: %s（实际 %s）" % (f, rel))
     return cards
 
 
@@ -411,14 +553,40 @@ def propose_state(ctx, cards, cid, status):
 
 # ---- 初始化 DoD ----
 def run_init(ctx):
-    for f in BASE_FILES:
+    def require_file(f, allow_legacy=False):
+        if allow_legacy and not ctx.exists(f) and ctx.exists(LEGACY_FILES.get(f, f)):
+            f = LEGACY_FILES[f]
         if not ctx.exists(f):
-            ctx.hard("BASE_FILE_MISSING", None, f, "缺少基础治理文件（应 >=23）")
+            ctx.hard("BASE_FILE_MISSING", None, f, "缺少基础治理文件或已登记规范")
+        elif f.endswith(".json"):
+            ctx.load_json(f)
+
+    for f in BASE_FILES + TOOL_FILES:
+        require_file(f, allow_legacy=True)
+    docs_index = ctx.load_json("docs/index.json") or {}
+    devel_index = ctx.load_json("docs/devel/index.json") or {}
+    if "standards" in docs_index:
+        routes = docs_index["standards"]
+        if not isinstance(routes, dict):
+            ctx.hard("STANDARD_ROUTE", None, "docs/index.json", "standards 必须为对象")
+            routes = {}
+        for key, rel in STANDARD_FILES.items():
+            if routes.get(key) != rel:
+                ctx.hard("STANDARD_ROUTE", None, "docs/index.json", "规范路径不匹配: %s" % key)
+            require_file(rel)
+    else:
+        for key in ("task_template", "change_template"):
+            require_file(STANDARD_FILES[key], allow_legacy=True)
+        legacy_coding = LEGACY_FILES[STANDARD_FILES["coding"]]
+        if devel_index.get("coding_standards") == legacy_coding:
+            require_file(legacy_coding)
+    # Even unregistered policy documents must be readable; never rewrite their contents.
+    for rel in (STANDARD_FILES["coding"], LEGACY_FILES[STANDARD_FILES["coding"]]):
+        if ctx.exists(rel):
+            ctx.load_json(rel)
     if ctx.exists(PLACEHOLDER):
         ctx.hard("PLACEHOLDER_DESIGN_EXISTS", None, PLACEHOLDER, "存在禁用占位设计文档")
-    am = ctx.read_text("AGENTS.md") or ""
-    if not TAG_RE.search(am):
-        ctx.hard("TAG_MISSING", None, "AGENTS.md", "缺少 @ad-flow 初始化版本标签")
+    check_version(ctx, required=True)
 
 
 # ---- --record：把本次真实结果回写进卡片 gate 块 ----
@@ -495,6 +663,8 @@ def main(argv=None):
         run_init(ctx)
     else:
         cards = collect_cards(ctx)
+        if args.record:
+            ctx.record_ids = {cid for _, _, cid in cards if args.card is None or cid == args.card}
         if args.card and not any(cid == args.card for _, _, cid in cards):
             ctx.hard("TRANSITION_CARD", args.card, "-", "目标卡不存在于活跃卡池")
         if args.to:

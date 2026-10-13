@@ -2,6 +2,7 @@
   "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
   "id": "C[001~999]",
   "title": "简述变更核心要义",
+  "version": "",
   "type": "BugFix",
   "status": "draft",
   "branch": "fix/C[001~999]-[short-desc]",

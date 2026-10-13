@@ -45,9 +45,9 @@
     }
   },
   "verification": {
-    "result": "passed",
-    "run_id": "npm test && npm run build",
-    "user_quote": "/commit",
+    "result": true,
+    "run_id": "local-20261009-03",
+    "user_quote": "确认提交并合入主干",
     "signoff": "confirmed by user with /commit command",
     "checks": [
       {
@@ -55,35 +55,35 @@
         "true_if": "AppearanceDrawer Tab 项采用精炼标题与 whitespace-nowrap 分段控制样式，无论抽屉宽度均不发生折行",
         "false_if": "标题依然折行断字",
         "evidence": "tests/drawer-card-style.test.cjs 验证通过：采用 grid-cols-4、whitespace-nowrap 与精炼标题（时钟/搜索/壁纸/快捷键），杜绝折行",
-        "result": "passed"
+        "result": true
       },
       {
         "item": "顶栏添加组件纯图标化",
         "true_if": "主页顶栏添加组件按钮变为统一的纯图标磨砂圆形胶囊，移除文字描述",
         "false_if": "依然保留文字或者破坏按钮尺寸一致性",
         "evidence": "App.tsx 中按钮已更新为 p-2 rounded-full 纯图标圆钮，title='添加组件 (a)'，移除 span 文本",
-        "result": "passed"
+        "result": true
       },
       {
         "item": "四大右侧抽屉统一悬浮圆角卡片样式与互斥开合",
         "true_if": "外观设置、订阅消息、添加效率组件与快捷键指南均在右侧以大圆角与外边缘间隙呈现悬浮卡片质感，动效平滑进出且开合互斥",
         "false_if": "仍然紧贴右侧边缘、居中弹出或开合冲突",
         "evidence": "AppearanceDrawer、FeedSidebar、AddWidgetModal、ShortcutsHelpModal 均接入 p-3 sm:p-4 间距与 rounded-2xl sm:rounded-3xl 大圆角，四周边框及 shadow-2xl；顶栏按钮增加 ring 高亮圈且互相排斥开合",
-        "result": "passed"
+        "result": true
       },
       {
         "item": "抽屉标题图标统一与顶栏按钮触碰展示名称",
         "true_if": "外观设置抽屉标题左侧对齐展示 SlidersHorizontal 图标容器与副标题，顶栏四大按钮触碰/hover 即时弹出名称与快捷键微胶囊提示",
         "false_if": "外观抽屉缺少图标或顶栏按钮触碰无名称反馈",
         "evidence": "AppearanceDrawer 标题左侧接入 SlidersHorizontal 独立容器；App.tsx 顶栏 4 纽全量集成 topbar-tooltip（快捷键指南 ?、添加组件 a、订阅消息 b、外观设置 e），tests/drawer-card-style.test.cjs 校验通过",
-        "result": "passed"
+        "result": true
       },
       {
         "item": "自动化测试与构建门禁全绿",
         "true_if": "全量自动化测试通过，npm run build 成功编译到 local/dist/",
         "false_if": "测试失败或构建错误",
         "evidence": "npm test 168/168 测试全部通过，npm run build 成功打包至 local/dist/",
-        "result": "passed"
+        "result": true
       }
     ]
   },
@@ -91,8 +91,13 @@
   "sync": {
     "design_pinned": true,
     "changelog": true,
-    "commit": "2c2b9a0",
+    "commit": "60d12de",
     "tag": ""
   },
-  "version": null
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.2.0",
+    "ran_at": "2026-10-09",
+    "exit_code": 0
+  }
 }

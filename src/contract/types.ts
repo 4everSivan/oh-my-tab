@@ -16,8 +16,8 @@ export interface SettingField {
   key: string;
   label: string;
   type: 'string' | 'number' | 'boolean' | 'select';
-  defaultValue: any;
-  options?: { label: string; value: any }[];
+  defaultValue: unknown;
+  options?: { label: string; value: unknown }[];
   description?: string;
 }
 
@@ -45,7 +45,7 @@ export interface WidgetManifest {
 export interface WidgetInstance {
   instanceId: string;
   typeId: string;
-  settings: Record<string, any>;
+  settings: Record<string, unknown>;
   visible: boolean;
   span: number;
   order: number;

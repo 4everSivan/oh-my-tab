@@ -132,8 +132,33 @@ export const App: React.FC = () => {
     }
     loadAll();
 
+    // 跨标签页/跨窗口存储变更监听与状态多播 (N01)
+    const unbindStorage = storageService.onSettingsChanged((key, newValue) => {
+      if (!isMounted) return;
+      if (key === 'settings.shortcuts') {
+        if (Array.isArray(newValue)) setShortcuts(newValue as Shortcut[]);
+      } else if (key === 'settings.shortcutGroups') {
+        if (Array.isArray(newValue)) setShortcutGroups(newValue as ShortcutGroup[]);
+      } else if (key === 'settings.activeShortcutGroupId') {
+        if (typeof newValue === 'string') setActiveShortcutGroupId(newValue);
+      } else if (key === 'settings.clock') {
+        if (newValue && typeof newValue === 'object') setClock(newValue as ClockAppearance);
+      } else if (key === 'settings.search') {
+        if (newValue && typeof newValue === 'object') setSearch(newValue as SearchAppearance);
+      } else if (key === 'settings.engine') {
+        if (typeof newValue === 'string') setEngine(newValue);
+      } else if (key === 'settings.background') {
+        if (newValue && typeof newValue === 'object') setBackground((prev) => ({ ...prev, ...(newValue as Partial<BackgroundConfig>) }));
+      } else if (key === 'settings.layout') {
+        if (Array.isArray(newValue)) setLayout(newValue as LayoutItem[]);
+      } else if (key === 'settings.shortcutKeysEnabled') {
+        if (typeof newValue === 'boolean') setShortcutKeysEnabledState(newValue);
+      }
+    });
+
     return () => {
       isMounted = false;
+      unbindStorage();
       if (currentBlobUrlRef.current) {
         URL.revokeObjectURL(currentBlobUrlRef.current);
         currentBlobUrlRef.current = null;
@@ -179,12 +204,13 @@ export const App: React.FC = () => {
     };
   }, [handleRefreshFeeds]);
 
-  // 统合采样引擎：时钟与搜索框合并至单离线画布管线，回收 GPU 缓冲 (C015)
+  // 统合采样引擎：时钟与搜索框合并至单离线画布管线，回收 GPU 缓冲 (C015 & C027)
   const { clock: clockContrast, search: searchContrast } = useAdaptiveContrast(
     background,
     search,
     clockContainerRef,
-    searchContainerRef
+    searchContainerRef,
+    clock
   );
   const textColor = clockContrast.textColor;
   const shadowProtection = clockContrast.shadowProtection;
@@ -228,8 +254,10 @@ export const App: React.FC = () => {
   };
 
   const handleUpdateBackground = async (updates: Partial<BackgroundConfig>) => {
-    if (updates.imageBlobUrl && currentBlobUrlRef.current && updates.imageBlobUrl !== currentBlobUrlRef.current) {
-      URL.revokeObjectURL(currentBlobUrlRef.current);
+    if (updates.imageBlobUrl) {
+      if (currentBlobUrlRef.current && updates.imageBlobUrl !== currentBlobUrlRef.current) {
+        URL.revokeObjectURL(currentBlobUrlRef.current);
+      }
       currentBlobUrlRef.current = updates.imageBlobUrl;
     } else if (updates.type === 'color' && currentBlobUrlRef.current) {
       URL.revokeObjectURL(currentBlobUrlRef.current);
@@ -270,6 +298,11 @@ export const App: React.FC = () => {
 
   const handleToggleFeedRead = async (id: string) => {
     const updated = await feedService.toggleRead(id);
+    setFeeds(updated);
+  };
+
+  const handleMarkFeedRead = async (id: string) => {
+    const updated = await feedService.markItemRead(id);
     setFeeds(updated);
   };
 
@@ -676,6 +709,7 @@ export const App: React.FC = () => {
         isRefreshing={isFeedRefreshing}
         onRefresh={handleRefreshFeeds}
         onToggleRead={handleToggleFeedRead}
+        onMarkRead={handleMarkFeedRead}
         onMarkAllRead={handleMarkAllFeedsRead}
         onAddSource={handleAddFeedSource}
         onToggleSource={handleToggleFeedSource}

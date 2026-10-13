@@ -1,27 +1,68 @@
 # 变更与核验卡池 (change/)
 
-> **created**: 2026-10-07 ｜ **last-change**: 2026-10-10 ｜ **status**: active
+> **created**: 2026-10-07 ｜ **last-change**: 2026-10-13 ｜ **status**: active
 
 ## 1. 简介
 
-管理缺陷修复、功能回调与契约微调，记录规则对照、真实证据与人工核验。当前没有实际变更卡。
+C 卡承载缺陷修复、功能回调、参数或契约调整及重构，记录原因、前后差异、影响范围和验证证据。阶段能力建设按 [T 任务轨](../task/README.md) 执行。
+
+日常直接使用本项目的模板和工具。共同路径、授权、校验结果与修复边界见 [文档中心](../../README.md)。
 
 ## 2. 索引
 
-- [卡片模板](template.json)
-- [变更总账](index.json)
-- [设计中心](../design/README.md)
+| 入口 | 用途 | 维护时机 |
+|---|---|---|
+| [变更卡模板](../../standards/change-template.json) | 复制生成真实 C 卡 | 建卡时替换示例字段 |
+| [index.json](index.json) | `cards` 保存卡片路由，`topics` 关联设计主题 | 建卡、转状态、闭环和归档时 |
+| [设计中心](../design/README.md) | 定位具体设计正文与主题 | 建卡前及规则回写时 |
+| [待办池](../todo/README.md) | 接收尚未入轨事项 | 建卡登记后移出对应行 |
+| [归档库](../../archive/README.md) | 本批次发布封箱 | 卡片 `closed` 且满足发布条件后 |
 
-## 3. 规范
+## 3. 建卡与状态规则
 
-卡号按总账递增。target.design_doc 与 design.doc 指向真实设计文档及匹配 Topic，禁止 README。填写 branch、precheck、callback、true_if / false_if 和证据；无证据的结果保持 null。
+卡号从总账已有最大编号继续递增，如 `C001`；包含历史归档登记，跨版本不重置。最大号 +1 不是原子预占，并行合入须结合 `ID_DUPLICATE` 和 Git 冲突检查；撞号先修正卡号及引用，不得覆盖另一事项。
 
-## 4. 执行与闭环
+| 字段组 | 建卡时写什么 | 收口时补什么 |
+|---|---|---|
+| 身份与上下文 | `id`、`title`、真实发布批次 `version`、执行分支 `branch` | 与总账保持一致 |
+| `target` / `design` | 模块、组件、具体设计正文及匹配主题，是否改变设计规则 | 必要时回写正文及 `rule_diff` |
+| `why` / `changes` | 现象、原因、前后差异和影响 | 以实际修复校正描述 |
+| `precheck` / `callback` | 实际适用的预检与前后回调命令 | 保存预检结果，按授权执行回调 |
+| `verification` | 预定义各项 `true_if` / `false_if`，结果先留 `null` | 真实 `evidence`、`run_id`、结果、人工原话及 `signoff` |
+| `sync` / `gate` | 保留模板默认值 | 真实提交、回写情况及工具记录的门禁结果 |
 
-登记待办 → 创建 Cxxx 并注册 → 从 todo 移出 → 预检与前置回调 → 修复并补测 → 后置回调 → 汇报证据 → 人类明确确认后记录 user_quote 并 verified → 合入后回写设计、CHANGELOG 和索引，标记 closed。
+`target.design_doc` 和 `design.doc` 使用项目根目录相对路径，指向具体设计正文，不能指向 README；主题与正文的 `<!-- @topic: TopicName -->` 一致。命令使用必要路径不违反源码影响范围脱钩规则。
 
-日常按本项目规范执行，无需再次调用 `$ad-flow`。在已有授权范围内运行预检和回调；卡片中的命令文本不单独授权清理、部署或推送。
+| 状态 | 含义 |
+|---|---|
+| `draft` / `pending` | 正在定义或等待执行 |
+| `in_progress` | 正在修复与取证 |
+| `rejected` | 人工明确驳回，保留审计并同卡返工 |
+| `verified` | 业务核验与人工确认完成，目标状态预检通过 |
+| `closed` | 合入、必要设计回写及 CHANGELOG 记账完成，关闭预检通过 |
 
-转 `verified` 前，取得真实人工确认后运行 `scripts/adflow-verify --card Cxxx --to verified --record`。转 `closed` 前先回填真实 `sync.commit` 并完成基线/CHANGELOG 回写，再以 `--to closed` 预检。工具只在内存评估目标状态并回写本卡 `gate`，不修改卡片或索引状态。Exit 0 后才同步状态，再运行普通校验确认落盘一致。
+## 4. 执行与收口
 
-Exit 4 阻断；原有 Exit 6 需列明事实并补证，正式收口仍须 Exit 0。新增 `ADVISORY` 不增加硬门槛。结构校验不能证明业务行为或人工验收；按证据核对语义。按具体发现局部修复最多 3 轮，相同阻断连续两次或需要新授权/事实时停止相关操作并汇报。
+1. **建卡登记**：复制模板，填写目标和验收契约，在 `index.json.cards` 登记路径及同一状态；来自 todo 的事项同时删除原行。
+2. **预检与修复**：在授权范围内运行 `precheck.command`。若已修复，保存证据并跳过重复编码，仍执行后续核验；否则运行适用回调、修复并补针对性回归。
+3. **实测与确认**：逐项比对验收条件，记录命令、实际输出及 `local-YYYYMMDD-HH` 或纯数字 `run_id`。所有业务验收项满足后汇报结果，人工明确确认后摘录真实 `user_quote` 与 `signoff`，不得用测试输出代替确认。
+4. **预检 `verified`**：保持当前卡片及索引状态，执行下列命令；Exit 0 后再同步两处状态为 `verified`，运行普通检查复核。
+
+以下以 `C001` 为例，执行时使用当前真实卡号；命令均在项目根目录运行：
+
+```bash
+scripts/adflow-verify --card C001 --to verified --record
+```
+
+5. **合入与回写**：在合入已获授权的前提下完成合入，填写真实 `sync.commit` 并核对其为当前 HEAD 祖先。设计规则变化时回写正文，更新根目录 CHANGELOG 的 `[Unreleased]` 条目及总账主题关联；如实更新 `sync.design_pinned`、`sync.changelog`。
+6. **预检 `closed`**：完成上述前提后执行下列命令；Exit 0 后同步卡片及索引为 `closed`，再普通复核。尚未实际打 Tag 时不虚填 `sync.tag`。
+
+```bash
+scripts/adflow-verify --card C001 --to closed --record
+```
+
+每次预检 Exit 0 后，同步状态再运行 `scripts/adflow-verify --json`。`--record` 只回写本卡真实 `gate`，不会变更卡片或索引状态；结构通过仍需人工核对业务证据。失败处理沿用 [共同校验规则](../../README.md#4-校验与收口)，不手改 gate 消除失败。
+
+**驳回**：人工明确驳回后，同步卡片与索引为 `rejected`，在 `rejections` 追加日期、`reason` 和返工动作；继续同卡修复、重新取证与确认，不占新号或退回 todo。
+
+**Hotfix**：S1/P0 故障可在明确授权范围内先修后补，补卡标记 `is_hotfix: true`；故障恢复后 24 小时内补齐卡片、核验、必要设计回写与 CHANGELOG。紧急性不扩大部署、推送或代签权限。

@@ -64,7 +64,19 @@ export function updateBootCache(patch: Partial<BootCache>): void {
   }
 }
 
+class AsyncMutex {
+  private queue: Promise<void> = Promise.resolve();
+
+  run<T>(task: () => Promise<T>): Promise<T> {
+    const res = this.queue.then(task, task);
+    this.queue = res.then(() => {}, () => {});
+    return res;
+  }
+}
+
 export class StorageService {
+  private mutex = new AsyncMutex();
+
   constructor(
     private adapter: IStorageAdapter = chromeStorageAdapter,
     public wallpaper: WallpaperStorage = wallpaperStorage
@@ -100,23 +112,49 @@ export class StorageService {
     return { clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout, shortcutKeysEnabled };
   }
 
+  /**
+   * 监听跨标签/跨窗口设置变更并广播多播 (N01)
+   */
+  onSettingsChanged(callback: (key: string, newValue: unknown) => void): () => void {
+    if (!this.adapter.onChanged) return () => {};
+    return this.adapter.onChanged((changes) => {
+      for (const [key, change] of Object.entries(changes)) {
+        if (key === STORAGE_KEYS.CLOCK) updateBootCache({ clock: change.newValue as ClockAppearance });
+        else if (key === STORAGE_KEYS.SEARCH) updateBootCache({ search: change.newValue as SearchAppearance });
+        else if (key === STORAGE_KEYS.ENGINE) updateBootCache({ engine: change.newValue as string });
+        else if (key === STORAGE_KEYS.BACKGROUND) updateBootCache({ background: change.newValue as BackgroundConfig });
+        else if (key === STORAGE_KEYS.SHORTCUTS) updateBootCache({ shortcuts: change.newValue as Shortcut[] });
+        else if (key === STORAGE_KEYS.SHORTCUT_GROUPS) updateBootCache({ shortcutGroups: change.newValue as ShortcutGroup[] });
+        else if (key === STORAGE_KEYS.ACTIVE_SHORTCUT_GROUP_ID) updateBootCache({ activeShortcutGroupId: change.newValue as string });
+        else if (key === STORAGE_KEYS.LAYOUT) updateBootCache({ layout: change.newValue as LayoutItem[] });
+        else if (key === STORAGE_KEYS.SHORTCUT_KEYS_ENABLED) updateBootCache({ shortcutKeysEnabled: change.newValue as boolean });
+
+        callback(key, change.newValue);
+      }
+    });
+  }
+
   // Clock
   async getClock(): Promise<ClockAppearance> {
     return this.adapter.get<ClockAppearance>(STORAGE_KEYS.CLOCK, DEFAULT_CLOCK_APPEARANCE);
   }
 
   async setClock(clock: Partial<ClockAppearance>): Promise<ClockAppearance> {
-    const current = await this.getClock();
-    const updated: ClockAppearance = { ...current, ...clock };
-    await this.adapter.set(STORAGE_KEYS.CLOCK, updated);
-    updateBootCache({ clock: updated });
-    return updated;
+    return this.mutex.run(async () => {
+      const current = await this.getClock();
+      const updated: ClockAppearance = { ...current, ...clock };
+      await this.adapter.set(STORAGE_KEYS.CLOCK, updated);
+      updateBootCache({ clock: updated });
+      return updated;
+    });
   }
 
   async resetClock(): Promise<ClockAppearance> {
-    await this.adapter.set(STORAGE_KEYS.CLOCK, DEFAULT_CLOCK_APPEARANCE);
-    updateBootCache({ clock: DEFAULT_CLOCK_APPEARANCE });
-    return DEFAULT_CLOCK_APPEARANCE;
+    return this.mutex.run(async () => {
+      await this.adapter.set(STORAGE_KEYS.CLOCK, DEFAULT_CLOCK_APPEARANCE);
+      updateBootCache({ clock: DEFAULT_CLOCK_APPEARANCE });
+      return DEFAULT_CLOCK_APPEARANCE;
+    });
   }
 
   // Search
@@ -125,17 +163,21 @@ export class StorageService {
   }
 
   async setSearch(search: Partial<SearchAppearance>): Promise<SearchAppearance> {
-    const current = await this.getSearch();
-    const updated: SearchAppearance = { ...current, ...search };
-    await this.adapter.set(STORAGE_KEYS.SEARCH, updated);
-    updateBootCache({ search: updated });
-    return updated;
+    return this.mutex.run(async () => {
+      const current = await this.getSearch();
+      const updated: SearchAppearance = { ...current, ...search };
+      await this.adapter.set(STORAGE_KEYS.SEARCH, updated);
+      updateBootCache({ search: updated });
+      return updated;
+    });
   }
 
   async resetSearch(): Promise<SearchAppearance> {
-    await this.adapter.set(STORAGE_KEYS.SEARCH, DEFAULT_SEARCH_APPEARANCE);
-    updateBootCache({ search: DEFAULT_SEARCH_APPEARANCE });
-    return DEFAULT_SEARCH_APPEARANCE;
+    return this.mutex.run(async () => {
+      await this.adapter.set(STORAGE_KEYS.SEARCH, DEFAULT_SEARCH_APPEARANCE);
+      updateBootCache({ search: DEFAULT_SEARCH_APPEARANCE });
+      return DEFAULT_SEARCH_APPEARANCE;
+    });
   }
 
   // Engine
@@ -144,8 +186,10 @@ export class StorageService {
   }
 
   async setEngine(engine: string): Promise<void> {
-    await this.adapter.set(STORAGE_KEYS.ENGINE, engine);
-    updateBootCache({ engine });
+    return this.mutex.run(async () => {
+      await this.adapter.set(STORAGE_KEYS.ENGINE, engine);
+      updateBootCache({ engine });
+    });
   }
 
   // Background
@@ -154,17 +198,21 @@ export class StorageService {
   }
 
   async setBackground(bg: Partial<BackgroundConfig>): Promise<BackgroundConfig> {
-    const current = await this.getBackground();
-    const updated: BackgroundConfig = { ...current, ...bg };
-    await this.adapter.set(STORAGE_KEYS.BACKGROUND, updated);
-    updateBootCache({ background: updated });
-    return updated;
+    return this.mutex.run(async () => {
+      const current = await this.getBackground();
+      const updated: BackgroundConfig = { ...current, ...bg };
+      await this.adapter.set(STORAGE_KEYS.BACKGROUND, updated);
+      updateBootCache({ background: updated });
+      return updated;
+    });
   }
 
   async resetBackground(): Promise<BackgroundConfig> {
-    await this.adapter.set(STORAGE_KEYS.BACKGROUND, DEFAULT_BACKGROUND_CONFIG);
-    updateBootCache({ background: DEFAULT_BACKGROUND_CONFIG });
-    return DEFAULT_BACKGROUND_CONFIG;
+    return this.mutex.run(async () => {
+      await this.adapter.set(STORAGE_KEYS.BACKGROUND, DEFAULT_BACKGROUND_CONFIG);
+      updateBootCache({ background: DEFAULT_BACKGROUND_CONFIG });
+      return DEFAULT_BACKGROUND_CONFIG;
+    });
   }
 
   // Shortcuts
@@ -173,8 +221,10 @@ export class StorageService {
   }
 
   async setShortcuts(shortcuts: Shortcut[]): Promise<void> {
-    await this.adapter.set(STORAGE_KEYS.SHORTCUTS, shortcuts);
-    updateBootCache({ shortcuts });
+    return this.mutex.run(async () => {
+      await this.adapter.set(STORAGE_KEYS.SHORTCUTS, shortcuts);
+      updateBootCache({ shortcuts });
+    });
   }
 
   // Shortcut Groups (T15)
@@ -199,14 +249,17 @@ export class StorageService {
   }
 
   async setShortcutGroups(groups: ShortcutGroup[]): Promise<void> {
-    await this.adapter.set(STORAGE_KEYS.SHORTCUT_GROUPS, groups);
-    updateBootCache({ shortcutGroups: groups });
-    // 保持 legacy shortcuts 键与活动分组同步，确保向下兼容
-    if (groups.length > 0) {
-      const activeId = await this.getActiveShortcutGroupId();
-      const activeGroup = groups.find((g) => g.id === activeId) || groups[0];
-      await this.setShortcuts(activeGroup.shortcuts);
-    }
+    return this.mutex.run(async () => {
+      await this.adapter.set(STORAGE_KEYS.SHORTCUT_GROUPS, groups);
+      updateBootCache({ shortcutGroups: groups });
+      // 保持 legacy shortcuts 键与活动分组同步，确保向下兼容
+      if (groups.length > 0) {
+        const activeId = await this.getActiveShortcutGroupId();
+        const activeGroup = groups.find((g) => g.id === activeId) || groups[0];
+        await this.adapter.set(STORAGE_KEYS.SHORTCUTS, activeGroup.shortcuts);
+        updateBootCache({ shortcuts: activeGroup.shortcuts });
+      }
+    });
   }
 
   async getActiveShortcutGroupId(): Promise<string> {
@@ -214,8 +267,10 @@ export class StorageService {
   }
 
   async setActiveShortcutGroupId(groupId: string): Promise<void> {
-    await this.adapter.set(STORAGE_KEYS.ACTIVE_SHORTCUT_GROUP_ID, groupId);
-    updateBootCache({ activeShortcutGroupId: groupId });
+    return this.mutex.run(async () => {
+      await this.adapter.set(STORAGE_KEYS.ACTIVE_SHORTCUT_GROUP_ID, groupId);
+      updateBootCache({ activeShortcutGroupId: groupId });
+    });
   }
 
   // Layout
@@ -224,8 +279,10 @@ export class StorageService {
   }
 
   async setLayout(layout: LayoutItem[]): Promise<void> {
-    await this.adapter.set(STORAGE_KEYS.LAYOUT, layout);
-    updateBootCache({ layout });
+    return this.mutex.run(async () => {
+      await this.adapter.set(STORAGE_KEYS.LAYOUT, layout);
+      updateBootCache({ layout });
+    });
   }
 
   // Namespaced Widget Content: widgets/<instanceId>/content
@@ -250,9 +307,11 @@ export class StorageService {
   }
 
   async setShortcutKeysEnabled(enabled: boolean): Promise<boolean> {
-    await this.adapter.set(STORAGE_KEYS.SHORTCUT_KEYS_ENABLED, enabled);
-    updateBootCache({ shortcutKeysEnabled: enabled });
-    return enabled;
+    return this.mutex.run(async () => {
+      await this.adapter.set(STORAGE_KEYS.SHORTCUT_KEYS_ENABLED, enabled);
+      updateBootCache({ shortcutKeysEnabled: enabled });
+      return enabled;
+    });
   }
 }
 

@@ -80,14 +80,43 @@ export function parseJsonFeed(jsonText: string): ParsedFeedItem[] {
     const data = JSON.parse(jsonText);
     if (!data || !Array.isArray(data.items)) return [];
 
-    return data.items.map((item: any) => ({
-      id: String(item.id || item.url || ''),
-      title: cleanHtmlText(item.title || '无标题', 100),
-      link: item.url || item.external_url || '',
-      pubDate: item.date_published || item.date_modified,
-      summary: cleanHtmlText(item.summary || item.content_text || item.content_html || '', 140),
-      author: item.author?.name || item.authors?.[0]?.name,
-    }));
+    return data.items.map((item: unknown) => {
+      const rec = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+      const authorObj = rec.author && typeof rec.author === 'object' ? (rec.author as Record<string, unknown>) : null;
+      const authorsArr =
+        Array.isArray(rec.authors) && rec.authors.length > 0 && typeof rec.authors[0] === 'object'
+          ? (rec.authors[0] as Record<string, unknown>)
+          : null;
+      const authorName =
+        typeof authorObj?.name === 'string'
+          ? authorObj.name
+          : typeof authorsArr?.name === 'string'
+          ? authorsArr.name
+          : undefined;
+
+      return {
+        id: String(rec.id || rec.url || ''),
+        title: cleanHtmlText(typeof rec.title === 'string' ? rec.title : '无标题', 100),
+        link: typeof rec.url === 'string' ? rec.url : typeof rec.external_url === 'string' ? rec.external_url : '',
+        pubDate:
+          typeof rec.date_published === 'string'
+            ? rec.date_published
+            : typeof rec.date_modified === 'string'
+            ? rec.date_modified
+            : undefined,
+        summary: cleanHtmlText(
+          typeof rec.summary === 'string'
+            ? rec.summary
+            : typeof rec.content_text === 'string'
+            ? rec.content_text
+            : typeof rec.content_html === 'string'
+            ? rec.content_html
+            : '',
+          140
+        ),
+        author: authorName,
+      };
+    });
   } catch {
     return [];
   }

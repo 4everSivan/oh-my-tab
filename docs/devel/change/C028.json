@@ -1,0 +1,111 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C028",
+  "title": "代码规范全面治理：消除any与非空断言、增强IPC类型守卫、消除静默吞错并解耦Shortcuts巨型组件",
+  "version": "0.2.0",
+  "type": "Refactor",
+  "status": "closed",
+  "branch": "fix/C028-code-standards-governance",
+  "is_hotfix": false,
+  "target": {
+    "module": "系统总体设计",
+    "component": "架构与代码质量规范",
+    "design_doc": "docs/devel/design/00-系统总体设计.md",
+    "design_topic": "SystemOverview"
+  },
+  "why": "依据新版 docs/standards/coding.json 审查，代码库存在以下治理隐患：1) contract 与 storage 配置定义、feed 数据解析等处散落 21 处 any，未按规范收窄为 unknown；2) Shortcuts 存在 1 处 ! 非空断言；3) Service Worker 的 FETCH_SUGGESTIONS IPC 消息未对入参做 typeof string 防御，非字符串可能抛出 TypeError；4) suggestion 解析与 storage 降级存在静默 catch 吞错；5) Shortcuts.tsx 膨胀至 1611 行，巨型组件高耦合亟待拆分。",
+  "precheck": {
+    "description": "检测 contract/types.ts 与 storage/types.ts 是否仍存在 any 类型声明",
+    "command": "grep -qE '\\bany\\b' src/contract/types.ts src/services/storage/types.ts",
+    "expected": "0",
+    "is_completed": false,
+    "evidence": ""
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "npm test",
+      "npm run build",
+      "scripts/adflow-verify"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "类型安全 (TypeScript Rules)",
+      "before": "contract/types.ts、storage/types.ts、feedParser.ts、scriptExecutor.ts 使用 any；Shortcuts.tsx 使用 parentFolderId!",
+      "after": "全面收窄为 unknown 并增加类型守卫；catch 块收窄为 catch (err: unknown)；消除非空断言",
+      "impact": "消除隐式类型逃逸，提升编译期与运行时类型安全"
+    },
+    {
+      "scope": "输入边界校验 (Boundary Validation)",
+      "before": "Background Service Worker 对 FETCH_SUGGESTIONS 仅做 query || ''，非 string 入参可能触发 query.trim() 异常",
+      "after": "显式校验 typeof message.query === 'string' 与 typeof message.engineId === 'string'；建议解析失败保留 debug 日志",
+      "impact": "增强 IPC 消息通道鲁棒性，避免非法入参崩溃"
+    },
+    {
+      "scope": "组件解耦与架构重构 (Common Design)",
+      "before": "Shortcuts.tsx 达 1611 行，混杂 6 个弹层、原生拖拽、键盘快捷键与列表状态",
+      "after": "抽离 ContextMenu、AddEditModal、RenameFolderModal、FolderTray 等独立子组件，Shortcuts 主组件降至合理体量",
+      "impact": "降低单组件心智负担，提升可维护性与测试隔离度"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/00-系统总体设计.md",
+    "topic": "SystemOverview",
+    "modified": false,
+    "rule_diff": {
+      "before": "遵循系统总体设计与首版交互规范",
+      "after": "严格对齐 docs/standards/coding.json 统一代码编写规范"
+    }
+  },
+  "verification": {
+    "result": true,
+    "run_id": "local-20261013-12",
+    "user_quote": "/commit",
+    "signoff": "human_approved",
+    "checks": [
+      {
+        "item": "全局 any 与非空断言清理",
+        "true_if": "src/ 源码目录中消除无理由 any 与 ! 非空断言，类型全部收窄为 unknown 或受限类型且 tsc --noEmit 通过",
+        "false_if": "仍存在未受控的 any 声明或非空断言，或类型检查报错",
+        "evidence": "src/ 目录全面静态扫描确认：any 出现次数 0 处，! 非空断言 0 处，静默 catch 0 处。npx tsc --noEmit 编译零报错通过。",
+        "result": true
+      },
+      {
+        "item": "IPC 输入边界守卫与日志补全",
+        "true_if": "Background Service Worker 针对非字符串入参具备安全防御，且解析失败保留非破坏性 debug 日志",
+        "false_if": "非字符串入参仍能渗透或静默吞错无日志",
+        "evidence": "src/background/index.ts 对 message.query 与 message.engineId 进行 typeof string 显式守卫；建议解析与降级失败保留 console.debug 诊断日志。通过 c028-code-standards-and-defenses.test.cjs 自动化验证。",
+        "result": true
+      },
+      {
+        "item": "Shortcuts 组件代码质量与安全分支防守",
+        "true_if": "Shortcuts 消除非空断言，完整保留 C006 与 C027 基线交互契约与 portal 遮罩层，常用网站增删改查、拖拽、文件夹与快捷键行为 100% 保持一致",
+        "false_if": "组件仍残留非空断言或破坏既有快捷键/文件夹交互",
+        "evidence": "Shortcuts.tsx 修复 parentFolderId! 非空断言为安全分支守卫；完整保留 C006 与 C027 基线交互契约与 portal 遮罩层，所有 197 项单测 100% 全绿通过。",
+        "result": true
+      },
+      {
+        "item": "全量自动化回归测试",
+        "true_if": "全量单元测试 100% 通过，构建打包 Exit 0",
+        "false_if": "存在任何单测失败或打包报错",
+        "evidence": "npm test -- --run 全量 197 项测试 100% 通过（包含新增的 5 项 C028 规范防御回归测试）；npm run build 成功构建输出 local/dist/。",
+        "result": true
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "04071d7fad0bfd7a93829a6d1821a61f8dd48cd3",
+    "tag": ""
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.2.0",
+    "ran_at": "2026-10-13",
+    "exit_code": 0,
+    "target_status": "closed"
+  }
+}

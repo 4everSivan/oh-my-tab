@@ -53,7 +53,7 @@ export interface ShortcutGroup {
 export interface LayoutItem {
   instanceId: string;
   typeId: string;
-  settings?: Record<string, any>;
+  settings?: Record<string, unknown>;
   span: number;
   order: number;
   visible: boolean;

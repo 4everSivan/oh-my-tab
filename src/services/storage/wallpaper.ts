@@ -49,20 +49,22 @@ export class WallpaperStorage {
     }
     if (!this.dbPromise) {
       this.dbPromise = (async () => {
-        const db = await this.openDatabase();
-        if (!db) return null;
-        // 空库自愈（C001）：库已存在但缺 wallpapers 表时，onupgradeneeded 不会再触发
-        // （如被无版本 open 的外部脚本创建过），删除重建以恢复建表升级路径
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.close();
-          await this.deleteDatabase();
-          return this.openDatabase();
+        try {
+          const db = await this.openDatabase();
+          if (!db) return null;
+          // 空库自愈（C001）：库已存在但缺 wallpapers 表时，删除重建以恢复建表升级路径
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.close();
+            await this.deleteDatabase();
+            return await this.openDatabase();
+          }
+          return db;
+        } catch (error) {
+          // IndexedDB 受限或打开失败时，平滑降级至 memoryStore (N14)
+          this.dbPromise = null;
+          return null;
         }
-        return db;
-      })().catch((error) => {
-        this.dbPromise = null;
-        throw error;
-      });
+      })();
     }
     return this.dbPromise;
   }
@@ -86,7 +88,10 @@ export class WallpaperStorage {
       const transaction = db.transaction(STORE_NAME, 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
       const request = store.put(record);
-      request.onsuccess = () => resolve();
+      // 严格在事务真正提交完成 (oncomplete) 时 resolve，杜绝事务中止假成功 (N13)
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error || request.error);
+      transaction.onabort = () => reject(transaction.error || new Error('IndexedDB transaction aborted'));
       request.onerror = () => reject(request.error);
     });
   }
@@ -103,6 +108,7 @@ export class WallpaperStorage {
       const request = store.get(id);
       request.onsuccess = () => resolve(request.result || null);
       request.onerror = () => reject(request.error);
+      transaction.onerror = () => reject(transaction.error);
     });
   }
 
@@ -117,7 +123,10 @@ export class WallpaperStorage {
       const transaction = db.transaction(STORE_NAME, 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
       const request = store.delete(id);
-      request.onsuccess = () => resolve();
+      // 严格在事务真正提交完成 (oncomplete) 时 resolve (N13)
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error || request.error);
+      transaction.onabort = () => reject(transaction.error || new Error('IndexedDB transaction aborted'));
       request.onerror = () => reject(request.error);
     });
   }

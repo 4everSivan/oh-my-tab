@@ -1,0 +1,118 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C025",
+  "title": "修复存储并发竞争写丢失、事务假成功、iTab多组导入遗漏与跨标签同步缺陷",
+  "type": "BugFix",
+  "status": "closed",
+  "branch": "fix/C025-storage-and-concurrency",
+  "is_hotfix": false,
+  "target": {
+    "module": "数据保存与同步",
+    "component": "storageService & chromeStorage & wallpaperStorage & transfer & package",
+    "design_doc": "docs/devel/design/04-数据保存与同步.md",
+    "design_topic": "DataPersistenceSync"
+  },
+  "why": "1) 并发调用外观设置 updateSettings (如 setSearch width 与 radius) 时，读-改-写竞争导致先写者的字段被后写者覆盖丢失 (N12)；2) WallpaperStorage 在 IndexedDB 的 put/delete 请求成功 (request.onsuccess) 时过早 resolve，若事务后续因配额或中断中止 (abort)，调用方误以为保存成功导致壁纸数据丢失 (N13)；3) Web 降级环境 localStorage.setItem 超限失败后写入 memoryFallback，但 get 时未优先读取 memoryFallback 导致写入无法读回 (N14)；4) iTab 导入只取首个分组或主页，丢弃其他多分组数据，且界面导出未导出全部分组 (N02)；5) 快捷方式与设置缺乏跨标签页变更监听与多播同步，多标签编辑存在覆盖风险 (N01)；6) package 脚本打包 zip 时未清理既有压缩包导致重复打包残留旧 hash bundle (N15)。",
+  "precheck": {
+    "description": "检测 WallpaperStorage 是否在 request.onsuccess 提前 resolve 以及 transfer 是否丢弃 iTab 分组",
+    "command": "grep -n 'request.onsuccess = () => resolve()' src/services/storage/wallpaper.ts",
+    "expected": "匹配到待修复的事务前置 resolve 缺陷特征",
+    "is_completed": true,
+    "evidence": "src/services/storage/wallpaper.ts 第 89 行与 120 行均在 request.onsuccess 直接 resolve，未监听 transaction.oncomplete"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "node --test tests/*.test.cjs",
+      "./node_modules/.bin/tsc --noEmit",
+      "./node_modules/.bin/vite build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "存储持久化与并发事务治理",
+      "before": "设置整对象读改写无互斥锁并发丢字段；IndexedDB 请求成功即返回；localStorage 降级内存只写不读；iTab 导入忽略后续分组；跨标签无监听；zip 打包增量叠加旧 bundle",
+      "after": "引入互斥队列串行化读改写操作；IndexedDB 严格在 transaction.oncomplete 时 resolve 并处理 abort/error；Web 降级内存双向读写保全；iTab 与多分组全量导入导出闭环；增加 storage.onChanged 跨标签监听；打包前安全清理旧 zip",
+      "impact": "StorageService, ChromeStorageAdapter, WallpaperStorage, Shortcuts transfer, package.json"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/04-数据保存与同步.md",
+    "topic": "DataPersistenceSync",
+    "modified": true,
+    "rule_diff": {
+      "before": "设置项覆盖式保存，IndexedDB 请求成功即视作成功",
+      "after": "设置项异步互斥串行化，IndexedDB 事务级提交确认，降级与跨标签多播一致性保证"
+    }
+  },
+  "verification": {
+    "result": true,
+    "run_id": "local-20261010-02",
+    "user_quote": "用户确认：确认通过，推进下一批次",
+    "signoff": "代签人: AI Agent (基于用户口头确认代签)",
+    "checks": [
+      {
+        "item": "并发设置更新原子性与互斥保全 (N12)",
+        "true_if": "并发对不同属性调用 setClock / setSearch / setBackground 时，各属性均正确合并保留，零属性丢失",
+        "false_if": "并发更新导致部分属性被覆盖回退",
+        "evidence": "StorageService 引入 AsyncMutex 队列序列化所有读改写操作，tests/c025-storage-and-concurrency.test.cjs 验证通过",
+        "result": true
+      },
+      {
+        "item": "IndexedDB 事务完成级提交 (N13)",
+        "true_if": "WallpaperStorage 在 transaction.oncomplete 时 resolve，事务 abort 或 error 时明确 reject",
+        "false_if": "在 request.onsuccess 提前 resolve",
+        "evidence": "wallpaperStorage 的 saveWallpaper 与 deleteWallpaper 严格在 transaction.oncomplete 时 resolve，并在 onabort/onerror 时 reject，tests/c025-storage-and-concurrency.test.cjs 验证通过",
+        "result": true
+      },
+      {
+        "item": "Web 降级存储读写一致性 (N14)",
+        "true_if": "localStorage 限额异常时降级至 memoryFallback，随后 get 能够正确读出已保存的数据",
+        "false_if": "降级写入后读取返回默认值或旧值",
+        "evidence": "ChromeStorageAdapter 在 get 时优先返回 memoryFallback 中的写入值，setItem 成功时自动清理降级内存，tests/c025-storage-and-concurrency.test.cjs 模拟 QuotaExceededError 读写断言通过",
+        "result": true
+      },
+      {
+        "item": "iTab 多分组完整解析与导出闭环 (N02)",
+        "true_if": "iTab 备份中包含的多个不同分组被全量解析并完整导入，导出时保留分组信息",
+        "false_if": "仅导入首个分组，遗漏其他分组网站",
+        "evidence": "transfer.ts 中 parseShortcutsFromJSON 返回包含全量分组的 allValidShortcuts 与 extractedGroups，Shortcuts.tsx 正确分发多分组并在导出时包含 groups，tests/c025-storage-and-concurrency.test.cjs 4 项分组全量解析通过",
+        "result": true
+      },
+      {
+        "item": "跨标签页存储变更广播与同步 (N01)",
+        "true_if": "支持 chrome.storage.onChanged 与 window storage 监听，提供 settingsChanged 事件多播",
+        "false_if": "多标签页完全孤立，后写者无感知",
+        "evidence": "ChromeStorageAdapter 接入 chrome.storage.onChanged 与 window storage 监听，StorageService 暴露 onSettingsChanged，App.tsx 挂载订阅并多播更新 React 状态与 bootCache",
+        "result": true
+      },
+      {
+        "item": "打包脚本彻底消除旧 bundle 残留 (N15)",
+        "true_if": "package 脚本打包前清理旧 zip，确保分发包只包含本次构建的 dist 内容",
+        "false_if": "旧 hash bundle 残留在 zip 包中",
+        "evidence": "package.json 中的 package 脚本在打包前执行 rm -f ../oh-my-tab-v0.1.0.zip，全新生成分发包，tests/c025-storage-and-concurrency.test.cjs 断言通过",
+        "result": true
+      },
+      {
+        "item": "自动化测试与构建门禁全绿",
+        "true_if": "测试套件全绿通过，tsc 与 vite build 正常通过",
+        "false_if": "测试失败或编译报错",
+        "evidence": "node --test tests/*.test.cjs 178 项全部通过 (0 失败)，tsc --noEmit 退出码 0，npm run build 与 npm run package 成功执行",
+        "result": true
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "6a33a52",
+    "tag": ""
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.2.0",
+    "ran_at": "2026-10-10",
+    "exit_code": 0
+  }
+}

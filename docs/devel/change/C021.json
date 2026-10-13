@@ -45,8 +45,8 @@
     }
   },
   "verification": {
-    "result": "passed",
-    "run_id": "npm-test-152-pass",
+    "result": true,
+    "run_id": "local-20261009-01",
     "user_quote": "先落实这两个设计 / 1 2 确认，不要3",
     "signoff": "代签人: AI Agent (人工口头确认)",
     "checks": [
@@ -55,21 +55,21 @@
         "true_if": "在任何分页（第 1 页、第 2 页等）长按 ⌘，当前页可见图标下方均稳定呈现 ⌘1 ~ ⌘6 键帽",
         "false_if": "翻页后显示 ⌘7~⌘9 或缺失键帽提示",
         "evidence": "Shortcuts.tsx 中已切换为 localIndex < PAGE_SIZE 且渲染 ⌘{localIndex + 1}，单排 6 槽位翻页后每一页均稳定展示 ⌘1~⌘6",
-        "result": "passed"
+        "result": true
       },
       {
         "item": "快捷键直达当前活动页目标",
         "true_if": "在第 2 页按下 ⌘1 时秒开第 2 页第 1 个网站，并带有触感下压反馈",
         "false_if": "误触发打开第 1 页或其他页面的网站",
         "evidence": "handleKeyDown 从 pageShortcuts[num] 检索目标，并在 useEffect 依赖中注入 pageShortcuts，翻至第 2 页按 ⌘1 准确触发第 2 页首项",
-        "result": "passed"
+        "result": true
       },
       {
         "item": "回归测试全绿",
         "true_if": "自动化测试全部通过，无报错",
         "false_if": "测试失败或语法错误",
         "evidence": "npm test 全部 152 个测试 100% 通过（包含 C021 页面切片局部映射专项测试），tsc && vite build 成功打包至 local/dist/",
-        "result": "passed"
+        "result": true
       }
     ]
   },
@@ -77,8 +77,13 @@
   "sync": {
     "design_pinned": true,
     "changelog": true,
-    "commit": "",
+    "commit": "2e02288",
     "tag": ""
   },
-  "version": null
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.2.0",
+    "ran_at": "2026-10-09",
+    "exit_code": 0
+  }
 }

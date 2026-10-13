@@ -27,6 +27,7 @@ export const focusManifest: WidgetManifest = {
 };
 
 const PRESETS = [15, 25, 45];
+const notifiedEndTimes = new Set<number>();
 
 export const FocusTimerWidget: React.FC<WidgetComponentProps> = ({ host }) => {
   const [durationMinutes, setDurationMinutes] = useState(25);
@@ -59,11 +60,20 @@ export const FocusTimerWidget: React.FC<WidgetComponentProps> = ({ host }) => {
             setTargetEndTime(saved.targetEndTime);
             setIsRunning(true);
           } else {
-            // Timer expired while page was away
+            // Timer expired while page was away (防 N10: 立即持久化写回并按截止时间去重通知)
             setRemainingSeconds(dur * 60);
             setIsRunning(false);
             setTargetEndTime(null);
-            host.notify?.send('专注结束', `恭喜完成 ${dur} 分钟专注！`);
+            void host.storage.setContent<FocusState>({
+              durationMinutes: dur,
+              targetEndTime: null,
+              remainingSeconds: dur * 60,
+              isRunning: false,
+            });
+            if (!notifiedEndTimes.has(saved.targetEndTime)) {
+              notifiedEndTimes.add(saved.targetEndTime);
+              host.notify?.send('专注结束', `恭喜完成 ${dur} 分钟专注！`);
+            }
           }
         } else {
           setRemainingSeconds(typeof saved.remainingSeconds === 'number' ? saved.remainingSeconds : dur * 60);

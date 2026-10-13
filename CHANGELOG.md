@@ -1,10 +1,14 @@
 # 变更日志 (CHANGELOG)
 
-> **created**: 2026-10-07 ｜ **last-change**: 2026-10-09 ｜ **status**: active
+> **created**: 2026-10-07 ｜ **last-change**: 2026-10-13 ｜ **status**: active
 
 遵循 Keep a Changelog 与项目统一 SemVer。
 
 ## [Unreleased]
+
+### Refactored
+
+- **代码规范全面治理与输入边界防守 (C028)**：全面对齐新版 ad-flow 代码编写规范（`docs/standards/coding.json`）：1) 全局清理类型逃逸：在 contract、storage、feed 解析器等模块中彻底清除全部 21 处 `any` 注解与断言，收窄为 `unknown` / `Record<string, unknown>` 搭配严格守卫；2) 彻底消除非空断言：修复常用网站与传输服务中的 3 处 `!` 断言，替换为安全分支防御；3) Service Worker IPC 边界防御：`FETCH_SUGGESTIONS` 消息处理增加 `typeof query === 'string'` 与 `typeof engineId === 'string'` 显式类型校验，杜绝非法入参抛错；4) 消除静默异常吞错：联想解析与 LocalStorage 降级逻辑补充 `console.debug` 诊断日志；5) 常用网站安全分支加固与测试契约保持：消除 `parentFolderId!`，严格保全既有 192 项单测并新增 5 项自动化规范断言测试。
 
 ### Added
 
@@ -15,6 +19,9 @@
 
 ### Fixed
 
+- **订阅刷新并发防源复活、阅读状态保全、空源保全与点击幂等 (C026)**：1) refreshAllFeeds 引入 refreshGeneration 代次控制；刷新等待网络期间用户删除源或新增源时，网络返回后仅增量合并最新有效源元数据，严禁旧 sources 快照整体覆盖导致已删除源复活或新源丢失 (N03)；2) 引入 validSourceIds 过滤机制，刷新期间被用户删除的源，其抓取的文章被彻底丢弃；3) 网络返回后重新读取最新文章缓存构建 latestReadMap，保全用户在网络等待期间标记的已读/全部已读状态，杜绝已读状态回滚为未读 (N04)；4) getSources 仅在存储键不存在时回退默认源，用户清空后的空数组 [] 属于合法配置予以完整保留，不再强制复活默认源并自动联网 (N16)；5) FeedSidebar 卡片点击改为 markItemRead 幂等调用，重复打开已读文章不再翻转为未读，且不触发冗余写 (N16)；6) 刷新返回文章条目与缓存统一受 150 条上限截断；新增 normalizeFeedUrl 避免 OPML 导入误合并大小写敏感 URL (N16)。
+- **存储并发写丢失、事务假成功、iTab多组导入遗漏与跨标签同步治理 (C025)**：1) StorageService 引入 AsyncMutex 异步互斥队列，对设置项（时钟、搜索、壁纸、快捷键）的部分更新串行化处理，彻底杜绝并发读-改-写竞争导致的属性丢失 (N12)；2) WallpaperStorage 在 IndexedDB 的 put/delete 严格在 transaction.oncomplete 时 resolve，并在 onerror/onabort 时正确抛错，消除了请求级假成功与壁纸 Blob 丢失隐患 (N13)；3) Web 降级存储 ChromeStorageAdapter 保证 memoryFallback 双向读写对称，localStorage 限额超限后优先从降级内存读回最新写入 (N14)；4) Shortcuts 常用网站导入导出与 transfer 彻底打通多分组链路，全量解析并合并 iTab 备份中的所有分组，消除非主页网站遗漏并支持多分组完整导出 (N02)；5) 存储层接入 chrome.storage.onChanged 与 window storage 监听，App.tsx 实时多播更新状态，防止跨标签编辑覆盖 (N01)；6) package 脚本打包前安全清理既有压缩包，杜绝历史 hash bundle 残留分发 (N15)。
+- **外部公共代理隐私移除、完整响应体超时与极客脚本源 MV3 CSP 声明式提取引擎 (C024)**：1) 彻底移除后台 Service Worker 与 Feed 抓取服务中向外部公共代理 allorigins.win 的隐式转发，杜绝私有订阅源 URL、访问令牌与内网敏感地址外泄；2) 搜索联想网络或解析异常时移除向百度联想的静默 fallback，保全选定引擎失败语义与用户搜索词隐私；3) fetchWithTimeout 将 clearTimeout 统一移入 try-finally 块，确保超时守护覆盖至 response.text() 读取全过程，彻底杜绝慢速响应体卡死挂起 (N05)；4) 自定义数据源废除违背 Chrome MV3 默认 CSP 的 new Function 动态求值，重构为安全声明式对象路径与 JSON 映射提取引擎，消除 EvalError 与沙箱逃逸隐患；5) 收敛 public/manifest.json 中的重复通配符权限。
 - **常用网站 Command+数字键跳转行为调整为当前页面直接打开 (C022)**：修复此前按 ⌘+1~6 快捷键选取常用网站时误调用了 `window.open(targetSite.url, '_blank')` 导致在新标签页打开、破坏沉浸式连续浏览体验的缺陷。现已统一为 `window.location.href = targetSite.url` 在当前页面直接导航，与鼠标直接点击网站图标及搜索框回车提交的跳转行为保持高度一致。
 - **常用网站快捷键与按键提示按当前活动页局部映射 (C021)**：修复网页图标快捷键与提示徽标此前按全局列表绝对下标（`globalIndex`）线性分配，导致单排 6 图标翻至第 2 页时图标下方呈现 `⌘7` ~ `⌘9` 且后续图标无提示、且按 `⌘1` 错开第 1 页隐匿网站的缺陷。现重构为按当前活动页局部切片 `pageShortcuts` 与 `localIndex` 分配 `⌘1` ~ `⌘6` 徽标，并在按键事件分发中通过 `pageShortcuts[num]` 精确命中当前可见的对应槽位网站，无论翻至第几页均稳定呈现 `⌘1` ~ `⌘6` 并支持按键直达。
 

@@ -116,6 +116,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   const rawQueryRef = useRef('');
+  const isNavigatingRef = useRef(false);
 
   const currentEngine = SEARCH_ENGINES.find((e) => e.id === engineId) || SEARCH_ENGINES[0];
 
@@ -130,15 +131,22 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       return;
     }
 
+    // 键盘上下键浏览导航时仅临时预览候选词，不触发二次网络联想，防 N06
+    if (isNavigatingRef.current) {
+      return;
+    }
+
     const timer = setTimeout(async () => {
       try {
         const results = await fetchSuggestions(query, currentEngine.id);
         if (!isCancelled) {
           setSuggestions(results);
+          setSelectedIndex(-1);
         }
       } catch {
         if (!isCancelled) {
           setSuggestions([]);
+          setSelectedIndex(-1);
         }
       }
     }, 150);
@@ -202,6 +210,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    isNavigatingRef.current = false;
     if (selectedIndex >= 0 && suggestions[selectedIndex]) {
       executeSearch(suggestions[selectedIndex].text);
     } else {
@@ -210,6 +219,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    isNavigatingRef.current = false;
     const val = e.target.value;
     rawQueryRef.current = val;
     setQuery(val);
@@ -223,11 +233,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   const handleSelectSuggestion = (text: string) => {
+    isNavigatingRef.current = false;
     executeSearch(text);
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // 保护中文输入法 IME 拼音组合状态：拼音确认期间不拦截 Enter、上下箭头等键
+    if (e.nativeEvent.isComposing || e.key === 'Process') {
+      return;
+    }
+
     if (e.key === 'Tab') {
+      isNavigatingRef.current = false;
       e.preventDefault();
       e.stopPropagation();
       setShowSuggestions(false);
@@ -243,6 +260,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     } else if (e.key === 'ArrowDown') {
       if (suggestions.length > 0) {
         e.preventDefault();
+        isNavigatingRef.current = true;
         setShowSuggestions(true);
         const next = selectedIndex + 1 < suggestions.length ? selectedIndex + 1 : 0;
         setSelectedIndex(next);
@@ -251,6 +269,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     } else if (e.key === 'ArrowUp') {
       if (suggestions.length > 0) {
         e.preventDefault();
+        isNavigatingRef.current = true;
         setShowSuggestions(true);
         if (selectedIndex > 0) {
           const prev = selectedIndex - 1;
@@ -266,6 +285,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         }
       }
     } else if (e.key === 'Escape') {
+      isNavigatingRef.current = false;
       setShowSuggestions(false);
       setSelectedIndex(-1);
       e.currentTarget.blur();

@@ -9,26 +9,32 @@ async function fetchWithTimeout(
   url: string,
   timeoutMs = REQUEST_TIMEOUT_MS,
   init?: RequestInit
-): Promise<Response> {
+): Promise<{ ok: boolean; status: number; statusText: string; text: string }> {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, { ...init, signal: controller.signal });
+    if (!response.ok) {
+      return { ok: false, status: response.status, statusText: response.statusText, text: '' };
+    }
+    const text = await response.text();
+    return { ok: true, status: response.status, statusText: response.statusText, text };
+  } finally {
     clearTimeout(id);
-    return response;
-  } catch (error) {
-    clearTimeout(id);
-    throw error;
   }
 }
 
 async function fetchBingSuggestions(query: string): Promise<string[]> {
   const url = `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}`;
   const res = await fetchWithTimeout(url);
-  if (!res.ok) return [];
-  const data = await res.json();
-  if (Array.isArray(data) && Array.isArray(data[1])) {
-    return data[1].slice(0, 8);
+  if (!res.ok || !res.text) return [];
+  try {
+    const data = JSON.parse(res.text);
+    if (Array.isArray(data) && Array.isArray(data[1])) {
+      return data[1].slice(0, 8);
+    }
+  } catch (err: unknown) {
+    console.debug('[ServiceWorker] Failed to parse Bing suggestions:', err);
   }
   return [];
 }
@@ -36,10 +42,14 @@ async function fetchBingSuggestions(query: string): Promise<string[]> {
 async function fetchGoogleSuggestions(query: string): Promise<string[]> {
   const url = `https://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(query)}`;
   const res = await fetchWithTimeout(url);
-  if (!res.ok) return [];
-  const data = await res.json();
-  if (Array.isArray(data) && Array.isArray(data[1])) {
-    return data[1].slice(0, 8);
+  if (!res.ok || !res.text) return [];
+  try {
+    const data = JSON.parse(res.text);
+    if (Array.isArray(data) && Array.isArray(data[1])) {
+      return data[1].slice(0, 8);
+    }
+  } catch (err: unknown) {
+    console.debug('[ServiceWorker] Failed to parse Google suggestions:', err);
   }
   return [];
 }
@@ -47,10 +57,14 @@ async function fetchGoogleSuggestions(query: string): Promise<string[]> {
 async function fetchBilibiliSuggestions(query: string): Promise<string[]> {
   const url = `https://s.search.bilibili.com/main/suggest?term=${encodeURIComponent(query)}`;
   const res = await fetchWithTimeout(url);
-  if (!res.ok) return [];
-  const data = await res.json();
-  if (data?.result?.tag && Array.isArray(data.result.tag)) {
-    return data.result.tag.map((item: { value: string }) => item.value).slice(0, 8);
+  if (!res.ok || !res.text) return [];
+  try {
+    const data = JSON.parse(res.text);
+    if (data?.result?.tag && Array.isArray(data.result.tag)) {
+      return data.result.tag.map((item: { value: string }) => item.value).slice(0, 8);
+    }
+  } catch (err: unknown) {
+    console.debug('[ServiceWorker] Failed to parse Bilibili suggestions:', err);
   }
   return [];
 }
@@ -58,10 +72,14 @@ async function fetchBilibiliSuggestions(query: string): Promise<string[]> {
 async function fetchBaiduSuggestions(query: string): Promise<string[]> {
   const url = `https://suggestion.baidu.com/su?wd=${encodeURIComponent(query)}&action=opensearch`;
   const res = await fetchWithTimeout(url);
-  if (!res.ok) return [];
-  const data = await res.json();
-  if (Array.isArray(data) && Array.isArray(data[1])) {
-    return data[1].slice(0, 8);
+  if (!res.ok || !res.text) return [];
+  try {
+    const data = JSON.parse(res.text);
+    if (Array.isArray(data) && Array.isArray(data[1])) {
+      return data[1].slice(0, 8);
+    }
+  } catch (err: unknown) {
+    console.debug('[ServiceWorker] Failed to parse Baidu suggestions:', err);
   }
   return [];
 }
@@ -82,6 +100,7 @@ function getGitHubSuggestions(query: string): string[] {
 }
 
 export async function fetchEngineSuggestions(query: string, engineId: string): Promise<string[]> {
+  if (typeof query !== 'string') return [];
   const trimmed = query.trim();
   if (!trimmed) return [];
 
@@ -95,15 +114,24 @@ export async function fetchEngineSuggestions(query: string, engineId: string): P
         return await fetchBilibiliSuggestions(trimmed);
       case 'github':
         return getGitHubSuggestions(trimmed);
+      case 'baidu':
+        return await fetchBaiduSuggestions(trimmed);
       default:
         return await fetchBingSuggestions(trimmed);
     }
+  } catch (err: unknown) {
+    // 遵从用户选择，不静默向未选定的第三方引擎泄露搜索词
+    console.debug('[ServiceWorker] Engine suggestion request failed:', err);
+    return [];
+  }
+}
+
+function isValidHttpUrl(targetUrl: string): boolean {
+  try {
+    const parsed = new URL(targetUrl);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
   } catch {
-    try {
-      return await fetchBaiduSuggestions(trimmed);
-    } catch {
-      return [];
-    }
+    return false;
   }
 }
 
@@ -111,12 +139,14 @@ export async function fetchEngineSuggestions(query: string, engineId: string): P
 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type === 'FETCH_SUGGESTIONS') {
-      const { query, engineId } = message;
-      fetchEngineSuggestions(query || '', engineId || 'bing')
+      const query = typeof message.query === 'string' ? message.query : '';
+      const engineId = typeof message.engineId === 'string' ? message.engineId : 'bing';
+      fetchEngineSuggestions(query, engineId)
         .then((suggestions) => {
           sendResponse({ success: true, suggestions });
         })
-        .catch((error) => {
+        .catch((error: unknown) => {
+          console.warn('[ServiceWorker] Suggestion fetch error:', error);
           sendResponse({ success: false, suggestions: [], error: String(error) });
         });
       return true;
@@ -124,6 +154,11 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
 
     if (message?.type === 'FETCH_FEED') {
       const { url, timeoutMs } = message;
+      if (!url || typeof url !== 'string' || !isValidHttpUrl(url)) {
+        sendResponse({ success: false, text: '', error: '无效或不支持的请求地址协议' });
+        return true;
+      }
+
       const effectiveTimeout = Math.max(Number(timeoutMs) || 15000, 15000);
 
       fetchWithTimeout(url, effectiveTimeout, {
@@ -131,26 +166,15 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
           Accept: 'application/atom+xml, application/rss+xml, application/xml, text/xml, application/json, text/plain, */*',
         },
       })
-        .then(async (res) => {
+        .then((res) => {
           if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            sendResponse({ success: false, text: '', error: `HTTP ${res.status}: ${res.statusText}` });
+            return;
           }
-          const text = await res.text();
-          sendResponse({ success: true, text });
+          sendResponse({ success: true, text: res.text });
         })
-        .catch(async (directError) => {
-          // 直连若因网络或云端拦截受阻，后台自动尝试只读代理兜底
-          try {
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-            const proxyRes = await fetchWithTimeout(proxyUrl, 12000);
-            if (proxyRes.ok) {
-              const text = await proxyRes.text();
-              sendResponse({ success: true, text, viaProxy: true });
-              return;
-            }
-          } catch {
-            // 兜底代理亦失败
-          }
+        .catch((directError) => {
+          // 消除向公共代理的静默外传，保全用户私有源与 token 安全
           sendResponse({ success: false, text: '', error: String(directError) });
         });
       return true;

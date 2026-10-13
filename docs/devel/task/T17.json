@@ -63,7 +63,7 @@
   ],
   "acceptance": {
     "result": true,
-    "run_id": "test-t17-verify-01",
+    "run_id": "local-20261009-17",
     "checks": [
       {
         "item": "顶栏按钮与抽屉彻底解耦",
@@ -87,6 +87,15 @@
         "result": true
       }
     ]
+  },
+  "sync": {
+    "commit": "2e02288"
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.2.0",
+    "ran_at": "2026-10-09",
+    "exit_code": 0
   },
   "version": "v0.2.0"
 }
