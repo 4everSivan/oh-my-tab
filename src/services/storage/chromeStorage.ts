@@ -3,7 +3,7 @@
  */
 
 export interface StorageChangeMap {
-  [key: string]: { oldValue?: any; newValue?: any };
+  [key: string]: { oldValue?: unknown; newValue?: unknown };
 }
 
 export interface IStorageAdapter {
@@ -16,12 +16,12 @@ export interface IStorageAdapter {
 
 export class ChromeStorageAdapter implements IStorageAdapter {
   private isExtension = typeof chrome !== 'undefined' && !!chrome.storage?.local;
-  private memoryFallback = new Map<string, any>();
+  private memoryFallback = new Map<string, unknown>();
 
   async get<T>(key: string, fallback: T): Promise<T> {
     // 若降级内存中存有最新写入（如 localStorage 异常或限额），优先读出降级内存 (N14)
     if (this.memoryFallback.has(key)) {
-      return this.memoryFallback.get(key);
+      return this.memoryFallback.get(key) as T;
     }
 
     if (this.isExtension) {
@@ -41,7 +41,8 @@ export class ChromeStorageAdapter implements IStorageAdapter {
         const item = localStorage.getItem(key);
         if (item === null) return fallback;
         return JSON.parse(item);
-      } catch {
+      } catch (err: unknown) {
+        console.warn(`[ChromeStorage] localStorage.getItem 解析失败，使用回退值: ${key}`, err);
         return fallback;
       }
     }
@@ -67,8 +68,9 @@ export class ChromeStorageAdapter implements IStorageAdapter {
         localStorage.setItem(key, JSON.stringify(value));
         this.memoryFallback.delete(key);
         return;
-      } catch {
-        // localStorage 超限或被禁用，优雅回退至内存存储 (N14)
+      } catch (err) {
+        // localStorage 超限或被禁用，保留诊断警告并优雅回退至内存存储 (N14)
+        console.warn(`[ChromeStorage] localStorage.setItem 失败，回退至内存缓存: ${key}`, err);
       }
     }
 
@@ -87,8 +89,8 @@ export class ChromeStorageAdapter implements IStorageAdapter {
     if (typeof localStorage !== 'undefined') {
       try {
         localStorage.removeItem(key);
-      } catch {
-        // ignore
+      } catch (err) {
+        console.warn(`[ChromeStorage] localStorage.removeItem 失败: ${key}`, err);
       }
     }
   }
@@ -105,8 +107,8 @@ export class ChromeStorageAdapter implements IStorageAdapter {
     if (typeof localStorage !== 'undefined') {
       try {
         localStorage.clear();
-      } catch {
-        // ignore
+      } catch (err) {
+        console.warn('[ChromeStorage] localStorage.clear 失败', err);
       }
     }
   }
@@ -136,8 +138,8 @@ export class ChromeStorageAdapter implements IStorageAdapter {
             const oldValue = e.oldValue ? JSON.parse(e.oldValue) : undefined;
             const newValue = e.newValue ? JSON.parse(e.newValue) : undefined;
             callback({ [e.key]: { oldValue, newValue } });
-          } catch {
-            // ignore
+          } catch (err: unknown) {
+            console.debug('[ChromeStorage] window.storage 事件反序列化失败:', err);
           }
         }
       };

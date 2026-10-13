@@ -5,7 +5,9 @@
   "topics": {
     "SystemOverview": {
       "design_doc": "docs/devel/design/00-系统总体设计.md",
-      "changes": []
+      "changes": [
+        "C028"
+      ]
     },
     "EntryNavigation": {
       "design_doc": "docs/devel/design/01-页面入口与导航.md",
@@ -75,7 +77,8 @@
       "branch": "fix/C001-wallpaper-restore",
       "topic": "DataPersistenceSync",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C001.json"
+      "archive": "docs/archive/v0.1.0/change/C001.json",
+      "file": "docs/archive/v0.1.0/change/C001.json"
     },
     "C002": {
       "title": "壁纸上传增加拖拽通道：绕过 webview 文件选择器限制",
@@ -84,7 +87,8 @@
       "branch": "fix/C002-wallpaper-dnd",
       "topic": "WorkspaceAppearance",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C002.json"
+      "archive": "docs/archive/v0.1.0/change/C002.json",
+      "file": "docs/archive/v0.1.0/change/C002.json"
     },
     "C003": {
       "title": "修复材质预设切换失效：预设按钮未写回 type=material",
@@ -93,7 +97,8 @@
       "branch": "fix/C003-material-preset",
       "topic": "WorkspaceAppearance",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C003.json"
+      "archive": "docs/archive/v0.1.0/change/C003.json",
+      "file": "docs/archive/v0.1.0/change/C003.json"
     },
     "C004": {
       "title": "修复背景渲染层从未可见：body 不透明底色覆盖 -z-20 固定层",
@@ -102,7 +107,8 @@
       "branch": "fix/C004-bg-layer-visible",
       "topic": "WorkspaceAppearance",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C004.json"
+      "archive": "docs/archive/v0.1.0/change/C004.json",
+      "file": "docs/archive/v0.1.0/change/C004.json"
     },
     "C005": {
       "title": "修复网站图标首字母始终显示：字母降级为图标缺失时的兜底层",
@@ -111,7 +117,8 @@
       "branch": "fix/C005-icon-fallback",
       "topic": "EntryNavigation",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C005.json"
+      "archive": "docs/archive/v0.1.0/change/C005.json",
+      "file": "docs/archive/v0.1.0/change/C005.json"
     },
     "C006": {
       "title": "修复添加/编辑网站弹窗遮罩范围异常：父级 transform 包含块导致遮罩仅覆盖工作台窄条",
@@ -120,7 +127,8 @@
       "branch": "fix/C006-shortcut-modal-overlay",
       "topic": "EntryNavigation",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C006.json"
+      "archive": "docs/archive/v0.1.0/change/C006.json",
+      "file": "docs/archive/v0.1.0/change/C006.json"
     },
     "C007": {
       "title": "修改点击时间收起交互动效：时间与搜索框位置保持不动，仅网站图标等工作台区域折叠收起",
@@ -129,88 +137,98 @@
       "branch": "fix/C007-time-collapse-motion",
       "topic": "MotionSystem",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C007.json"
+      "archive": "docs/archive/v0.1.0/change/C007.json",
+      "file": "docs/archive/v0.1.0/change/C007.json"
     },
     "C008": {
       "title": "修复点击时间展开工作台时添加图标遮罩闪动缺陷",
       "type": "BugFix",
-      "status": "verified",
+      "status": "in_progress",
       "branch": "fix/C008-add-icon-flicker",
       "topic": "MotionSystem",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C008.json"
+      "archive": "docs/archive/v0.1.0/change/C008.json",
+      "file": "docs/archive/v0.1.0/change/C008.json"
     },
     "C009": {
       "title": "修复搜索引擎选择菜单被下方网页图标遮挡缺陷",
       "type": "BugFix",
-      "status": "closed",
+      "status": "verified",
       "branch": "fix/C009-search-engine-menu-layer",
       "topic": "EntryNavigation",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C009.json"
+      "archive": "docs/archive/v0.1.0/change/C009.json",
+      "file": "docs/archive/v0.1.0/change/C009.json"
     },
     "C010": {
       "title": "壁纸配置精简：移除画面位置配置并锁定为默认居中",
       "type": "Refactoring",
-      "status": "closed",
+      "status": "verified",
       "branch": "fix/C010-simplify-wallpaper-position",
       "topic": "WorkspaceAppearance",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C010.json"
+      "archive": "docs/archive/v0.1.0/change/C010.json",
+      "file": "docs/archive/v0.1.0/change/C010.json"
     },
     "C011": {
       "title": "调整搜索引擎下拉菜单关闭交互：展开后点击屏幕任意位置均可关闭",
       "type": "BugFix",
-      "status": "closed",
+      "status": "verified",
       "branch": "fix/C011-search-engine-menu-dismiss",
       "topic": "EntryNavigation",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C011.json"
+      "archive": "docs/archive/v0.1.0/change/C011.json",
+      "file": "docs/archive/v0.1.0/change/C011.json"
     },
     "C012": {
       "title": "移除本地搜索历史记录并修复谷歌与必应联想请求跨域空响应缺陷",
       "type": "BugFix",
-      "status": "closed",
+      "status": "verified",
       "branch": "fix/C012-search-suggestions-cors-and-no-history",
       "topic": "EntryNavigation",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C012.json"
+      "archive": "docs/archive/v0.1.0/change/C012.json",
+      "file": "docs/archive/v0.1.0/change/C012.json"
     },
     "C013": {
       "title": "修复 Tab 键切擎事件冒泡双重触发与异步状态滞后导致无法按序切擎缺陷",
       "type": "BugFix",
-      "status": "closed",
+      "status": "verified",
       "branch": "fix/C013-tab-cycle-engine-order",
       "topic": "EntryNavigation",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C013.json"
+      "archive": "docs/archive/v0.1.0/change/C013.json",
+      "file": "docs/archive/v0.1.0/change/C013.json"
     },
     "C014": {
       "title": "修复搜索框文字未根据背景与表面自适应调整颜色导致辨识不清缺陷",
       "type": "BugFix",
-      "status": "closed",
+      "status": "verified",
       "branch": "fix/C014-searchbar-adaptive-text-color",
       "topic": "EntryNavigation",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C014.json"
+      "archive": "docs/archive/v0.1.0/change/C014.json",
+      "file": "docs/archive/v0.1.0/change/C014.json"
     },
     "C015": {
       "title": "修复首页打开与刷新时的界面抖动闪烁并优化内存与采样性能开销",
       "type": "BugFix",
-      "status": "closed",
+      "status": "verified",
       "branch": "fix/C015-startup-flicker-and-memory-opt",
       "topic": "WorkspaceAppearance",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C015.json"
+      "archive": "docs/archive/v0.1.0/change/C015.json",
+      "file": "docs/archive/v0.1.0/change/C015.json"
     },
     "C016": {
       "title": "修改搜索提交跳转行为：由新标签页打开调整为当前页面跳转",
       "type": "BugFix",
-      "status": "closed",
+      "status": "verified",
       "branch": "fix/C016-search-in-current-tab",
       "topic": "EntryNavigation",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C016.json"
+      "archive": "docs/archive/v0.1.0/change/C016.json",
+      "file": "docs/archive/v0.1.0/change/C016.json"
     },
     "C017": {
       "title": "优化常用网站翻页圆点指示器视觉显著度并接入背景自适应配色",
@@ -219,7 +237,8 @@
       "branch": "main",
       "topic": "EntryNavigation",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C017.json"
+      "archive": "docs/archive/v0.1.0/change/C017.json",
+      "file": "docs/archive/v0.1.0/change/C017.json"
     },
     "C018": {
       "title": "调整常用网站翻页键盘快捷键：由上下方向键调整为左右方向键",
@@ -228,7 +247,8 @@
       "branch": "main",
       "topic": "EntryNavigation",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C018.json"
+      "archive": "docs/archive/v0.1.0/change/C018.json",
+      "file": "docs/archive/v0.1.0/change/C018.json"
     },
     "C019": {
       "title": "常用网站翻页圆点指示器增加快捷键（左右）与“翻页”提示文字",
@@ -237,7 +257,8 @@
       "branch": "main",
       "topic": "EntryNavigation",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C019.json"
+      "archive": "docs/archive/v0.1.0/change/C019.json",
+      "file": "docs/archive/v0.1.0/change/C019.json"
     },
     "C020": {
       "title": "常用网站图标文件夹展开抽屉托盘与图标容器根据背景自适应明暗配色",
@@ -246,7 +267,8 @@
       "branch": "feat/C020-folder-drawer-adaptive-contrast",
       "topic": "EntryNavigation",
       "created": "2026-10-09",
-      "archive": "docs/archive/v0.1.0/change/C020.json"
+      "archive": "docs/archive/v0.1.0/change/C020.json",
+      "file": "docs/archive/v0.1.0/change/C020.json"
     },
     "C021": {
       "title": "常用网站快捷键与按键提示按当前活动页局部映射 (⌘1~⌘6)",
@@ -254,7 +276,8 @@
       "status": "closed",
       "branch": "fix/C021-shortcuts-page-local-keycaps",
       "topic": "EntryNavigation",
-      "created": "2026-10-09"
+      "created": "2026-10-09",
+      "file": "docs/devel/change/C021.json"
     },
     "C022": {
       "title": "修改常用网站 Command+数字键跳转行为：由新标签页打开调整为当前页面跳转",
@@ -262,7 +285,8 @@
       "status": "closed",
       "branch": "fix/C022-shortcut-keys-current-page",
       "topic": "EntryNavigation",
-      "created": "2026-10-09"
+      "created": "2026-10-09",
+      "file": "docs/devel/change/C022.json"
     },
     "C023": {
       "title": "外观设置分栏标题折行优化、顶栏添加组件纯图标化与右侧浮动卡片式抽屉改版",
@@ -270,7 +294,8 @@
       "status": "closed",
       "branch": "main",
       "topic": "WorkspaceAppearance",
-      "created": "2026-10-09"
+      "created": "2026-10-09",
+      "file": "docs/devel/change/C023.json"
     },
     "C024": {
       "title": "修复外部公共代理隐私泄露、假超时及极客脚本源 MV3 CSP 阻断缺陷",
@@ -278,7 +303,8 @@
       "status": "closed",
       "branch": "fix/C024-privacy-and-csp",
       "topic": "ExtensionDataSources",
-      "created": "2026-10-10"
+      "created": "2026-10-10",
+      "file": "docs/devel/change/C024.json"
     },
     "C025": {
       "title": "修复存储并发竞争写丢失、事务假成功、iTab多组导入遗漏与跨标签同步缺陷",
@@ -286,7 +312,8 @@
       "status": "closed",
       "branch": "fix/C025-storage-and-concurrency",
       "topic": "DataPersistenceSync",
-      "created": "2026-10-10"
+      "created": "2026-10-10",
+      "file": "docs/devel/change/C025.json"
     },
     "C026": {
       "title": "修复 RSS 刷新删除源复活与新源丢失、阅读状态回滚、空源强制恢复及点击非幂等缺陷",
@@ -294,7 +321,8 @@
       "status": "closed",
       "branch": "fix/C026-feed-concurrency-and-read-state",
       "topic": "ExtensionDataSources",
-      "created": "2026-10-10"
+      "created": "2026-10-10",
+      "file": "docs/devel/change/C026.json"
     },
     "C027": {
       "title": "修复快捷键关闭死锁、文件夹模式污染、全局粘贴泄露、计时器重复通知与搜索选词不一致缺陷",
@@ -302,7 +330,17 @@
       "status": "in_progress",
       "branch": "fix/C027-shortcuts-focus-and-interactions",
       "topic": "EntryNavigation",
-      "created": "2026-10-10"
+      "created": "2026-10-10",
+      "file": "docs/devel/change/C027.json"
+    },
+    "C028": {
+      "title": "代码规范全面治理：消除any与非空断言、增强IPC类型守卫、消除静默吞错并解耦Shortcuts巨型组件",
+      "type": "Refactor",
+      "status": "verified",
+      "branch": "fix/C028-code-standards-governance",
+      "topic": "SystemOverview",
+      "created": "2026-10-13",
+      "file": "docs/devel/change/C028.json"
     }
   }
 }

@@ -152,11 +152,12 @@ export const FeedSidebar: React.FC<FeedSidebarProps> = ({
         success: true,
         message: `测试成功！成功提取到 ${parsed.length} 条文章 (首条: ${parsed[0]?.title || '无标题'})`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
       setTestResult({
         testing: false,
         success: false,
-        message: `测试失败: ${err?.message || String(err)}`,
+        message: `测试失败: ${errorMsg}`,
       });
     }
   };
@@ -205,8 +206,9 @@ export const FeedSidebar: React.FC<FeedSidebarProps> = ({
         try {
           const added = await onImportOpml(text);
           alert(`成功导入 ${added} 个订阅源！`);
-        } catch (err: any) {
-          alert(`导入 OPML 失败: ${err?.message || String(err)}`);
+        } catch (err: unknown) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          alert(`导入 OPML 失败: ${errorMsg}`);
         }
       }
     };

@@ -1326,7 +1326,9 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
                 </button>
                 <button
                   onClick={() => {
-                    handleMoveOutOfFolder(contextMenu.shortcut, contextMenu.parentFolderId!);
+                    if (contextMenu.parentFolderId) {
+                      handleMoveOutOfFolder(contextMenu.shortcut, contextMenu.parentFolderId);
+                    }
                     setContextMenu(null);
                   }}
                   className="w-full px-3 py-1.5 text-left text-xs hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg flex items-center space-x-2 cursor-pointer"

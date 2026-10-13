@@ -1,10 +1,14 @@
 # 变更日志 (CHANGELOG)
 
-> **created**: 2026-10-07 ｜ **last-change**: 2026-10-10 ｜ **status**: active
+> **created**: 2026-10-07 ｜ **last-change**: 2026-10-13 ｜ **status**: active
 
 遵循 Keep a Changelog 与项目统一 SemVer。
 
 ## [Unreleased]
+
+### Refactored
+
+- **代码规范全面治理与输入边界防守 (C028)**：全面对齐新版 ad-flow 代码编写规范（`docs/standards/coding.json`）：1) 全局清理类型逃逸：在 contract、storage、feed 解析器等模块中彻底清除全部 21 处 `any` 注解与断言，收窄为 `unknown` / `Record<string, unknown>` 搭配严格守卫；2) 彻底消除非空断言：修复常用网站与传输服务中的 3 处 `!` 断言，替换为安全分支防御；3) Service Worker IPC 边界防御：`FETCH_SUGGESTIONS` 消息处理增加 `typeof query === 'string'` 与 `typeof engineId === 'string'` 显式类型校验，杜绝非法入参抛错；4) 消除静默异常吞错：联想解析与 LocalStorage 降级逻辑补充 `console.debug` 诊断日志；5) 常用网站安全分支加固与测试契约保持：消除 `parentFolderId!`，严格保全既有 192 项单测并新增 5 项自动化规范断言测试。
 
 ### Added
 

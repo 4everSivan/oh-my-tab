@@ -16,13 +16,13 @@ export interface ScriptExecutionResult {
 /**
  * 安全解析对象深层路径（例如 "user.profile.name" 或 "items"）
  */
-function getByPath(obj: any, path: string): any {
+function getByPath(obj: unknown, path: string): unknown {
   if (!obj || typeof obj !== 'object' || !path) return undefined;
   const parts = path.split('.').map((p) => p.trim()).filter(Boolean);
-  let curr = obj;
+  let curr: unknown = obj;
   for (const part of parts) {
     if (curr == null || typeof curr !== 'object') return undefined;
-    curr = curr[part];
+    curr = (curr as Record<string, unknown>)[part];
   }
   return curr;
 }
@@ -101,14 +101,15 @@ export async function executeScriptTransform(
   }
 
   // 1. 预先解析 JSON
-  let jsonData: any = null;
+  let jsonData: unknown = null;
   try {
     jsonData = JSON.parse(rawText);
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
     return {
       success: false,
       items: [],
-      error: `接口返回的内容非合法 JSON 格式: ${err?.message || String(err)}`,
+      error: `接口返回的内容非合法 JSON 格式: ${msg}`,
     };
   }
 
@@ -116,19 +117,29 @@ export async function executeScriptTransform(
     const rule = parseMappingRule(trimmedScript);
 
     // 2. 定位列表数据
-    let rawItems: any[] = [];
+    let rawItems: unknown[] = [];
+    const itemsFromPath = rule.itemsPath ? getByPath(jsonData, rule.itemsPath) : undefined;
     if (Array.isArray(jsonData)) {
       rawItems = jsonData;
-    } else if (rule.itemsPath && Array.isArray(getByPath(jsonData, rule.itemsPath))) {
-      rawItems = getByPath(jsonData, rule.itemsPath);
-    } else if (Array.isArray(jsonData.items)) {
-      rawItems = jsonData.items;
-    } else if (Array.isArray(jsonData.data)) {
-      rawItems = jsonData.data;
-    } else if (Array.isArray(jsonData.results)) {
-      rawItems = jsonData.results;
-    } else if (Array.isArray(jsonData.list)) {
-      rawItems = jsonData.list;
+    } else if (Array.isArray(itemsFromPath)) {
+      rawItems = itemsFromPath;
+    } else if (jsonData && typeof jsonData === 'object') {
+      const obj = jsonData as Record<string, unknown>;
+      if (Array.isArray(obj.items)) {
+        rawItems = obj.items;
+      } else if (Array.isArray(obj.data)) {
+        rawItems = obj.data;
+      } else if (Array.isArray(obj.results)) {
+        rawItems = obj.results;
+      } else if (Array.isArray(obj.list)) {
+        rawItems = obj.list;
+      } else {
+        return {
+          success: false,
+          items: [],
+          error: '未在数据中识别到数组列表（请确保返回内容包含 items / data / results 数组或为顶层数组）',
+        };
+      }
     } else {
       return {
         success: false,
@@ -138,7 +149,7 @@ export async function executeScriptTransform(
     }
 
     // 3. 安全映射为 ParsedFeedItem 数组（至多保留 30 条）
-    const normalizedItems: ParsedFeedItem[] = rawItems.slice(0, 30).map((item: any, idx: number) => {
+    const normalizedItems: ParsedFeedItem[] = rawItems.slice(0, 30).map((item: unknown, idx: number) => {
       if (!item || typeof item !== 'object') {
         return {
           id: `script-item-${idx}`,
@@ -149,67 +160,71 @@ export async function executeScriptTransform(
         };
       }
 
+      const record = item as Record<string, unknown>;
+      const userObj = record.user && typeof record.user === 'object' ? (record.user as Record<string, unknown>) : undefined;
+      const ownerObj = record.owner && typeof record.owner === 'object' ? (record.owner as Record<string, unknown>) : undefined;
+
       // ID
       const rawId =
-        (rule.idField && getByPath(item, rule.idField)) ||
-        item.id ||
-        item.link ||
-        item.html_url ||
-        item.url ||
+        (rule.idField && getByPath(record, rule.idField)) ||
+        record.id ||
+        record.link ||
+        record.html_url ||
+        record.url ||
         `script-item-${idx}`;
 
       // 标题
       let rawTitle =
-        (rule.titleField && getByPath(item, rule.titleField)) ||
-        item.title ||
-        item.full_name ||
-        item.name ||
+        (rule.titleField && getByPath(record, rule.titleField)) ||
+        record.title ||
+        record.full_name ||
+        record.name ||
         '无标题';
 
       // 若为 GitHub 仓库形态，附带展示星标
-      if (item.stargazers_count !== undefined && !String(rawTitle).includes('★')) {
-        rawTitle = `${rawTitle} ★ ${Number(item.stargazers_count).toLocaleString()}`;
+      if (record.stargazers_count !== undefined && !String(rawTitle).includes('★')) {
+        rawTitle = `${rawTitle} ★ ${Number(record.stargazers_count).toLocaleString()}`;
       }
 
       // 链接
       const rawLink =
-        (rule.linkField && getByPath(item, rule.linkField)) ||
-        item.link ||
-        item.html_url ||
-        item.url ||
+        (rule.linkField && getByPath(record, rule.linkField)) ||
+        record.link ||
+        record.html_url ||
+        record.url ||
         '';
 
       // 摘要
       const rawSummary =
-        (rule.summaryField && getByPath(item, rule.summaryField)) ||
-        item.summary ||
-        item.description ||
-        item.body ||
-        item.content ||
+        (rule.summaryField && getByPath(record, rule.summaryField)) ||
+        record.summary ||
+        record.description ||
+        record.body ||
+        record.content ||
         '';
 
       // 时间
       const rawDate =
-        (rule.pubDateField && getByPath(item, rule.pubDateField)) ||
-        item.pubDate ||
-        item.pushed_at ||
-        item.updated_at ||
-        item.created_at ||
-        item.date ||
+        (rule.pubDateField && getByPath(record, rule.pubDateField)) ||
+        record.pubDate ||
+        record.pushed_at ||
+        record.updated_at ||
+        record.created_at ||
+        record.date ||
         Date.now();
 
       // 作者
       const rawAuthor =
-        (rule.authorField && getByPath(item, rule.authorField)) ||
-        item.author ||
-        item.user?.login ||
-        item.owner?.login;
+        (rule.authorField && getByPath(record, rule.authorField)) ||
+        record.author ||
+        userObj?.login ||
+        ownerObj?.login;
 
       return {
         id: String(rawId),
         title: cleanHtmlText(String(rawTitle), 100),
         link: String(rawLink),
-        pubDate: rawDate,
+        pubDate: (typeof rawDate === 'number' || typeof rawDate === 'string' || rawDate instanceof Date) ? (rawDate as string | number | Date) : Date.now(),
         summary: cleanHtmlText(String(rawSummary), 140),
         author: rawAuthor ? String(rawAuthor) : undefined,
       };
@@ -219,11 +234,12 @@ export async function executeScriptTransform(
       success: true,
       items: normalizedItems,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
     return {
       success: false,
       items: [],
-      error: `数据安全解析异常: ${err?.message || String(err)}`,
+      error: `数据安全解析异常: ${errorMsg}`,
     };
   }
 }

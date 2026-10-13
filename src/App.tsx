@@ -136,21 +136,21 @@ export const App: React.FC = () => {
     const unbindStorage = storageService.onSettingsChanged((key, newValue) => {
       if (!isMounted) return;
       if (key === 'settings.shortcuts') {
-        if (Array.isArray(newValue)) setShortcuts(newValue);
+        if (Array.isArray(newValue)) setShortcuts(newValue as Shortcut[]);
       } else if (key === 'settings.shortcutGroups') {
-        if (Array.isArray(newValue)) setShortcutGroups(newValue);
+        if (Array.isArray(newValue)) setShortcutGroups(newValue as ShortcutGroup[]);
       } else if (key === 'settings.activeShortcutGroupId') {
         if (typeof newValue === 'string') setActiveShortcutGroupId(newValue);
       } else if (key === 'settings.clock') {
-        if (newValue) setClock(newValue);
+        if (newValue && typeof newValue === 'object') setClock(newValue as ClockAppearance);
       } else if (key === 'settings.search') {
-        if (newValue) setSearch(newValue);
+        if (newValue && typeof newValue === 'object') setSearch(newValue as SearchAppearance);
       } else if (key === 'settings.engine') {
         if (typeof newValue === 'string') setEngine(newValue);
       } else if (key === 'settings.background') {
-        if (newValue) setBackground((prev) => ({ ...prev, ...newValue }));
+        if (newValue && typeof newValue === 'object') setBackground((prev) => ({ ...prev, ...(newValue as Partial<BackgroundConfig>) }));
       } else if (key === 'settings.layout') {
-        if (Array.isArray(newValue)) setLayout(newValue);
+        if (Array.isArray(newValue)) setLayout(newValue as LayoutItem[]);
       } else if (key === 'settings.shortcutKeysEnabled') {
         if (typeof newValue === 'boolean') setShortcutKeysEnabledState(newValue);
       }

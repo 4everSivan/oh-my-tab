@@ -33,8 +33,8 @@ async function fetchBingSuggestions(query: string): Promise<string[]> {
     if (Array.isArray(data) && Array.isArray(data[1])) {
       return data[1].slice(0, 8);
     }
-  } catch {
-    // ignore
+  } catch (err: unknown) {
+    console.debug('[ServiceWorker] Failed to parse Bing suggestions:', err);
   }
   return [];
 }
@@ -48,8 +48,8 @@ async function fetchGoogleSuggestions(query: string): Promise<string[]> {
     if (Array.isArray(data) && Array.isArray(data[1])) {
       return data[1].slice(0, 8);
     }
-  } catch {
-    // ignore
+  } catch (err: unknown) {
+    console.debug('[ServiceWorker] Failed to parse Google suggestions:', err);
   }
   return [];
 }
@@ -63,8 +63,8 @@ async function fetchBilibiliSuggestions(query: string): Promise<string[]> {
     if (data?.result?.tag && Array.isArray(data.result.tag)) {
       return data.result.tag.map((item: { value: string }) => item.value).slice(0, 8);
     }
-  } catch {
-    // ignore
+  } catch (err: unknown) {
+    console.debug('[ServiceWorker] Failed to parse Bilibili suggestions:', err);
   }
   return [];
 }
@@ -78,8 +78,8 @@ async function fetchBaiduSuggestions(query: string): Promise<string[]> {
     if (Array.isArray(data) && Array.isArray(data[1])) {
       return data[1].slice(0, 8);
     }
-  } catch {
-    // ignore
+  } catch (err: unknown) {
+    console.debug('[ServiceWorker] Failed to parse Baidu suggestions:', err);
   }
   return [];
 }
@@ -100,6 +100,7 @@ function getGitHubSuggestions(query: string): string[] {
 }
 
 export async function fetchEngineSuggestions(query: string, engineId: string): Promise<string[]> {
+  if (typeof query !== 'string') return [];
   const trimmed = query.trim();
   if (!trimmed) return [];
 
@@ -118,8 +119,9 @@ export async function fetchEngineSuggestions(query: string, engineId: string): P
       default:
         return await fetchBingSuggestions(trimmed);
     }
-  } catch {
+  } catch (err: unknown) {
     // 遵从用户选择，不静默向未选定的第三方引擎泄露搜索词
+    console.debug('[ServiceWorker] Engine suggestion request failed:', err);
     return [];
   }
 }
@@ -137,12 +139,14 @@ function isValidHttpUrl(targetUrl: string): boolean {
 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type === 'FETCH_SUGGESTIONS') {
-      const { query, engineId } = message;
-      fetchEngineSuggestions(query || '', engineId || 'bing')
+      const query = typeof message.query === 'string' ? message.query : '';
+      const engineId = typeof message.engineId === 'string' ? message.engineId : 'bing';
+      fetchEngineSuggestions(query, engineId)
         .then((suggestions) => {
           sendResponse({ success: true, suggestions });
         })
-        .catch((error) => {
+        .catch((error: unknown) => {
+          console.warn('[ServiceWorker] Suggestion fetch error:', error);
           sendResponse({ success: false, suggestions: [], error: String(error) });
         });
       return true;

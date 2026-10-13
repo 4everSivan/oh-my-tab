@@ -283,9 +283,9 @@ export function mergeShortcuts(
     const item = ensureUniqueShortcutId(rawItem, seenIds);
     if (item.isFolder) {
       const folderKey = item.name.trim().toLowerCase();
-      if (folderMap.has(folderKey)) {
+      const existingFolder = folderMap.get(folderKey);
+      if (existingFolder) {
         // 合并进既有同名文件夹
-        const existingFolder = folderMap.get(folderKey)!;
         const currentChildren = existingFolder.children || [];
         existingFolder.children = mergeShortcuts(item.children || [], currentChildren, 'merge');
       } else {
@@ -323,8 +323,8 @@ export function mergeGroups(
 
   for (const imp of importedGroups) {
     const key = imp.name.trim().toLowerCase();
-    if (groupMap.has(key)) {
-      const existing = groupMap.get(key)!;
+    const existing = groupMap.get(key);
+    if (existing) {
       existing.shortcuts = mergeShortcuts(imp.shortcuts, existing.shortcuts, 'merge');
     } else {
       groupMap.set(key, { ...imp });

@@ -167,20 +167,22 @@ class FeedService {
     if (isExtension && chrome.runtime?.sendMessage) {
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
-          const response: any = await new Promise((resolve, reject) => {
-            const timer = setTimeout(() => {
-              reject(new Error(`请求订阅源超时 (${timeoutMs}ms)`));
-            }, timeoutMs + 1000);
+          const response = await new Promise<{ success?: boolean; text?: string; error?: string } | undefined>(
+            (resolve, reject) => {
+              const timer = setTimeout(() => {
+                reject(new Error(`请求订阅源超时 (${timeoutMs}ms)`));
+              }, timeoutMs + 1000);
 
-            chrome.runtime.sendMessage({ type: 'FETCH_FEED', url, timeoutMs }, (res) => {
-              clearTimeout(timer);
-              if (chrome.runtime.lastError) {
-                reject(chrome.runtime.lastError);
-              } else {
-                resolve(res);
-              }
-            });
-          });
+              chrome.runtime.sendMessage({ type: 'FETCH_FEED', url, timeoutMs }, (res) => {
+                clearTimeout(timer);
+                if (chrome.runtime.lastError) {
+                  reject(chrome.runtime.lastError);
+                } else {
+                  resolve(res);
+                }
+              });
+            }
+          );
 
           if (response?.success && typeof response.text === 'string') {
             return response.text;
@@ -189,7 +191,7 @@ class FeedService {
             console.warn(`[feedService] 后台代理抓取未成功 (${url}):`, response.error);
             throw new Error(response.error);
           }
-        } catch (err: any) {
+        } catch (err: unknown) {
           if (attempt === 0) {
             await new Promise((r) => setTimeout(r, 200));
           } else {
@@ -210,8 +212,9 @@ class FeedService {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
       return await res.text();
-    } catch (err: any) {
-      throw new Error(`无法连接至订阅源 (${url}): ${err?.message || String(err)}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`无法连接至订阅源 (${url}): ${msg}`);
     } finally {
       clearTimeout(timer);
     }
@@ -281,8 +284,8 @@ class FeedService {
               read: false, // 稍后与提交时的最新 readMap 合并
             });
           });
-        } catch (err: any) {
-          const errMsg = err?.message || String(err);
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err);
           fetchMetadataMap.set(source.id, {
             lastFetchedAt: now,
             itemCount: 0,

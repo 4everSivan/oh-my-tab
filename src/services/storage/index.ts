@@ -115,19 +115,19 @@ export class StorageService {
   /**
    * 监听跨标签/跨窗口设置变更并广播多播 (N01)
    */
-  onSettingsChanged(callback: (key: string, newValue: any) => void): () => void {
+  onSettingsChanged(callback: (key: string, newValue: unknown) => void): () => void {
     if (!this.adapter.onChanged) return () => {};
     return this.adapter.onChanged((changes) => {
       for (const [key, change] of Object.entries(changes)) {
-        if (key === STORAGE_KEYS.CLOCK) updateBootCache({ clock: change.newValue });
-        else if (key === STORAGE_KEYS.SEARCH) updateBootCache({ search: change.newValue });
-        else if (key === STORAGE_KEYS.ENGINE) updateBootCache({ engine: change.newValue });
-        else if (key === STORAGE_KEYS.BACKGROUND) updateBootCache({ background: change.newValue });
-        else if (key === STORAGE_KEYS.SHORTCUTS) updateBootCache({ shortcuts: change.newValue });
-        else if (key === STORAGE_KEYS.SHORTCUT_GROUPS) updateBootCache({ shortcutGroups: change.newValue });
-        else if (key === STORAGE_KEYS.ACTIVE_SHORTCUT_GROUP_ID) updateBootCache({ activeShortcutGroupId: change.newValue });
-        else if (key === STORAGE_KEYS.LAYOUT) updateBootCache({ layout: change.newValue });
-        else if (key === STORAGE_KEYS.SHORTCUT_KEYS_ENABLED) updateBootCache({ shortcutKeysEnabled: change.newValue });
+        if (key === STORAGE_KEYS.CLOCK) updateBootCache({ clock: change.newValue as ClockAppearance });
+        else if (key === STORAGE_KEYS.SEARCH) updateBootCache({ search: change.newValue as SearchAppearance });
+        else if (key === STORAGE_KEYS.ENGINE) updateBootCache({ engine: change.newValue as string });
+        else if (key === STORAGE_KEYS.BACKGROUND) updateBootCache({ background: change.newValue as BackgroundConfig });
+        else if (key === STORAGE_KEYS.SHORTCUTS) updateBootCache({ shortcuts: change.newValue as Shortcut[] });
+        else if (key === STORAGE_KEYS.SHORTCUT_GROUPS) updateBootCache({ shortcutGroups: change.newValue as ShortcutGroup[] });
+        else if (key === STORAGE_KEYS.ACTIVE_SHORTCUT_GROUP_ID) updateBootCache({ activeShortcutGroupId: change.newValue as string });
+        else if (key === STORAGE_KEYS.LAYOUT) updateBootCache({ layout: change.newValue as LayoutItem[] });
+        else if (key === STORAGE_KEYS.SHORTCUT_KEYS_ENABLED) updateBootCache({ shortcutKeysEnabled: change.newValue as boolean });
 
         callback(key, change.newValue);
       }
