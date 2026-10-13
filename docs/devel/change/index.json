@@ -336,7 +336,7 @@
     "C028": {
       "title": "代码规范全面治理：消除any与非空断言、增强IPC类型守卫、消除静默吞错并解耦Shortcuts巨型组件",
       "type": "Refactor",
-      "status": "verified",
+      "status": "closed",
       "branch": "fix/C028-code-standards-governance",
       "topic": "SystemOverview",
       "created": "2026-10-13",

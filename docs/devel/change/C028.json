@@ -4,7 +4,7 @@
   "title": "代码规范全面治理：消除any与非空断言、增强IPC类型守卫、消除静默吞错并解耦Shortcuts巨型组件",
   "version": "0.2.0",
   "type": "Refactor",
-  "status": "verified",
+  "status": "closed",
   "branch": "fix/C028-code-standards-governance",
   "is_hotfix": false,
   "target": {
@@ -98,7 +98,7 @@
   "sync": {
     "design_pinned": true,
     "changelog": true,
-    "commit": "",
+    "commit": "04071d7fad0bfd7a93829a6d1821a61f8dd48cd3",
     "tag": ""
   },
   "gate": {
@@ -106,6 +106,6 @@
     "version": "1.2.0",
     "ran_at": "2026-10-13",
     "exit_code": 0,
-    "target_status": "verified"
+    "target_status": "closed"
   }
 }
