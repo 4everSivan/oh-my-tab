@@ -4,7 +4,7 @@
   "title": "修复修饰键组合方向键被常用网站翻页抢占，恢复浏览器原生页面前进/后退",
   "version": "0.3.0",
   "type": "BugFix",
-  "status": "verified",
+  "status": "closed",
   "branch": "fix/C030-modifier-key-arrow-guard",
   "is_hotfix": false,
   "target": {
@@ -96,6 +96,6 @@
     "version": "1.2.0",
     "ran_at": "2026-10-14",
     "exit_code": 0,
-    "target_status": "verified"
+    "target_status": "closed"
   }
 }

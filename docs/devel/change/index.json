@@ -364,7 +364,7 @@
     "C030": {
       "title": "修复修饰键组合方向键被常用网站翻页抢占，恢复浏览器原生页面前进/后退",
       "type": "BugFix",
-      "status": "verified",
+      "status": "closed",
       "branch": "fix/C030-modifier-key-arrow-guard",
       "topic": "EntryNavigation",
       "created": "2026-10-14",
