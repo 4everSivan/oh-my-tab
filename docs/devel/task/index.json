@@ -1,7 +1,7 @@
 {
   "$schema": "https://ad-flow.org/schemas/task-index.v1.json",
-  "phase": "Phase 2 - 自由布局、高频组件与全站数据 (v0.2.0)",
-  "updated_at": "2026-10-09",
+  "phase": "Phase 3 - 扩展生态与深度集成 (v0.3.0)",
+  "updated_at": "2026-10-14",
   "milestones": {
     "M1": {
       "title": "M1-v0.1.0-首发里程碑 (已发版归档)",
@@ -24,6 +24,17 @@
         "T15"
       ],
       "archive": "docs/archive/v0.1.0/task/",
+      "status": "completed"
+    },
+    "M2": {
+      "title": "M2-v0.2.0-自由布局、高频组件与全站数据 (已发版归档)",
+      "description": "交付常用网站网页图标 Command+数字键快捷直达与实时按键提示 (T16)、独立订阅消息侧边栏与外观设置解耦 (T17)、真实 RSS/Atom 订阅解析与极客脚本数据源引擎 (T18)",
+      "tasks": [
+        "T16",
+        "T17",
+        "T18"
+      ],
+      "archive": "docs/archive/v0.2.0/task/",
       "status": "completed"
     }
   },
@@ -273,37 +284,37 @@
       "title": "常用网站网页图标 Command+数字键快捷直达与实时按键提示",
       "status": "completed",
       "branch": "feat/T16-shortcut-key-hints",
-      "milestone": "Phase 2 - 自由布局、高频组件与全站数据 (v0.2.0)",
+      "milestone": "M2-v0.2.0-自由布局、高频组件与全站数据",
       "depends_on": [
         "T04",
         "T14",
         "T15"
       ],
-      "path": "docs/devel/task/T16.json",
-      "file": "docs/devel/task/T16.json"
+      "archive": "docs/archive/v0.2.0/task/T16.json",
+      "file": "docs/archive/v0.2.0/task/T16.json"
     },
     "T17": {
       "title": "独立订阅消息侧边栏与外观设置解耦",
       "status": "completed",
       "branch": "feat/T17-feed-sidebar-and-settings-split",
-      "milestone": "Phase 2 - 自由布局、高频组件与全站数据 (v0.2.0)",
+      "milestone": "M2-v0.2.0-自由布局、高频组件与全站数据",
       "depends_on": [
         "T04",
         "T05"
       ],
-      "path": "docs/devel/task/T17.json",
-      "file": "docs/devel/task/T17.json"
+      "archive": "docs/archive/v0.2.0/task/T17.json",
+      "file": "docs/archive/v0.2.0/task/T17.json"
     },
     "T18": {
       "title": "真实 RSS/Atom 订阅解析与极客脚本数据源引擎",
       "status": "completed",
       "branch": "feat/T18-rss-feed-and-script-engine",
-      "milestone": "Phase 2 - 自由布局、高频组件与全站数据 (v0.2.0)",
+      "milestone": "M2-v0.2.0-自由布局、高频组件与全站数据",
       "depends_on": [
         "T17"
       ],
-      "path": "docs/devel/task/T18.json",
-      "file": "docs/devel/task/T18.json"
+      "archive": "docs/archive/v0.2.0/task/T18.json",
+      "file": "docs/archive/v0.2.0/task/T18.json"
     }
   }
 }

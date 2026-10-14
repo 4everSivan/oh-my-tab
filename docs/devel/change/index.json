@@ -278,7 +278,8 @@
       "branch": "fix/C021-shortcuts-page-local-keycaps",
       "topic": "EntryNavigation",
       "created": "2026-10-09",
-      "file": "docs/devel/change/C021.json"
+      "archive": "docs/archive/v0.2.0/change/C021.json",
+      "file": "docs/archive/v0.2.0/change/C021.json"
     },
     "C022": {
       "title": "修改常用网站 Command+数字键跳转行为：由新标签页打开调整为当前页面跳转",
@@ -287,7 +288,8 @@
       "branch": "fix/C022-shortcut-keys-current-page",
       "topic": "EntryNavigation",
       "created": "2026-10-09",
-      "file": "docs/devel/change/C022.json"
+      "archive": "docs/archive/v0.2.0/change/C022.json",
+      "file": "docs/archive/v0.2.0/change/C022.json"
     },
     "C023": {
       "title": "外观设置分栏标题折行优化、顶栏添加组件纯图标化与右侧浮动卡片式抽屉改版",
@@ -296,7 +298,8 @@
       "branch": "main",
       "topic": "WorkspaceAppearance",
       "created": "2026-10-09",
-      "file": "docs/devel/change/C023.json"
+      "archive": "docs/archive/v0.2.0/change/C023.json",
+      "file": "docs/archive/v0.2.0/change/C023.json"
     },
     "C024": {
       "title": "修复外部公共代理隐私泄露、假超时及极客脚本源 MV3 CSP 阻断缺陷",
@@ -305,7 +308,8 @@
       "branch": "fix/C024-privacy-and-csp",
       "topic": "ExtensionDataSources",
       "created": "2026-10-10",
-      "file": "docs/devel/change/C024.json"
+      "archive": "docs/archive/v0.2.0/change/C024.json",
+      "file": "docs/archive/v0.2.0/change/C024.json"
     },
     "C025": {
       "title": "修复存储并发竞争写丢失、事务假成功、iTab多组导入遗漏与跨标签同步缺陷",
@@ -314,7 +318,8 @@
       "branch": "fix/C025-storage-and-concurrency",
       "topic": "DataPersistenceSync",
       "created": "2026-10-10",
-      "file": "docs/devel/change/C025.json"
+      "archive": "docs/archive/v0.2.0/change/C025.json",
+      "file": "docs/archive/v0.2.0/change/C025.json"
     },
     "C026": {
       "title": "修复 RSS 刷新删除源复活与新源丢失、阅读状态回滚、空源强制恢复及点击非幂等缺陷",
@@ -323,7 +328,8 @@
       "branch": "fix/C026-feed-concurrency-and-read-state",
       "topic": "ExtensionDataSources",
       "created": "2026-10-10",
-      "file": "docs/devel/change/C026.json"
+      "archive": "docs/archive/v0.2.0/change/C026.json",
+      "file": "docs/archive/v0.2.0/change/C026.json"
     },
     "C027": {
       "title": "修复快捷键关闭死锁、文件夹模式污染、全局粘贴泄露、计时器重复通知与搜索选词不一致缺陷",
@@ -341,7 +347,8 @@
       "branch": "fix/C028-code-standards-governance",
       "topic": "SystemOverview",
       "created": "2026-10-13",
-      "file": "docs/devel/change/C028.json"
+      "archive": "docs/archive/v0.2.0/change/C028.json",
+      "file": "docs/archive/v0.2.0/change/C028.json"
     },
     "C029": {
       "title": "新标签页启动速度与加载动效性能优化：消除关键帧GPU滤镜卡顿、动效节奏提速、首屏零延迟防白屏与异步分包",
@@ -350,7 +357,8 @@
       "branch": "fix/C029-startup-speed-and-motion-optimization",
       "topic": "MotionSystem",
       "created": "2026-10-14",
-      "file": "docs/devel/change/C029.json"
+      "archive": "docs/archive/v0.2.0/change/C029.json",
+      "file": "docs/archive/v0.2.0/change/C029.json"
     }
   }
 }

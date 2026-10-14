@@ -1,0 +1,135 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-index.v1.json",
+  "version": "1.0",
+  "updated_at": "2026-10-14",
+  "topics": {
+    "SystemOverview": {
+      "design_doc": "docs/devel/design/00-系统总体设计.md",
+      "changes": [
+        "C028"
+      ]
+    },
+    "EntryNavigation": {
+      "design_doc": "docs/devel/design/01-页面入口与导航.md",
+      "changes": [
+        "C021",
+        "C022"
+      ]
+    },
+    "WorkspaceAppearance": {
+      "design_doc": "docs/devel/design/02-工作台布局与外观.md",
+      "changes": [
+        "C023"
+      ]
+    },
+    "ProductivityWidgets": {
+      "design_doc": "docs/devel/design/03-效率组件.md",
+      "changes": []
+    },
+    "DataPersistenceSync": {
+      "design_doc": "docs/devel/design/04-数据保存与同步.md",
+      "changes": [
+        "C025"
+      ]
+    },
+    "ExtensionDataSources": {
+      "design_doc": "docs/devel/design/05-深度扩展与外部数据.md",
+      "changes": [
+        "C024",
+        "C026"
+      ]
+    },
+    "WidgetContract": {
+      "design_doc": "docs/devel/design/06-组件契约与注册.md",
+      "changes": []
+    },
+    "MotionSystem": {
+      "design_doc": "docs/devel/design/07-动效系统.md",
+      "changes": [
+        "C029"
+      ]
+    }
+  },
+  "cards": {
+    "C021": {
+      "title": "常用网站快捷键与按键提示按当前活动页局部映射 (⌘1~⌘6)",
+      "type": "BugFix",
+      "status": "closed",
+      "branch": "fix/C021-shortcuts-page-local-keycaps",
+      "topic": "EntryNavigation",
+      "created": "2026-10-09",
+      "archive": "docs/archive/v0.2.0/change/C021.json",
+      "file": "docs/archive/v0.2.0/change/C021.json"
+    },
+    "C022": {
+      "title": "修改常用网站 Command+数字键跳转行为：由新标签页打开调整为当前页面跳转",
+      "type": "BugFix",
+      "status": "closed",
+      "branch": "fix/C022-shortcut-keys-current-page",
+      "topic": "EntryNavigation",
+      "created": "2026-10-09",
+      "archive": "docs/archive/v0.2.0/change/C022.json",
+      "file": "docs/archive/v0.2.0/change/C022.json"
+    },
+    "C023": {
+      "title": "外观设置分栏标题折行优化、顶栏添加组件纯图标化与右侧浮动卡片式抽屉改版",
+      "type": "Enhancement",
+      "status": "closed",
+      "branch": "main",
+      "topic": "WorkspaceAppearance",
+      "created": "2026-10-09",
+      "archive": "docs/archive/v0.2.0/change/C023.json",
+      "file": "docs/archive/v0.2.0/change/C023.json"
+    },
+    "C024": {
+      "title": "修复外部公共代理隐私泄露、假超时及极客脚本源 MV3 CSP 阻断缺陷",
+      "type": "BugFix",
+      "status": "closed",
+      "branch": "fix/C024-privacy-and-csp",
+      "topic": "ExtensionDataSources",
+      "created": "2026-10-10",
+      "archive": "docs/archive/v0.2.0/change/C024.json",
+      "file": "docs/archive/v0.2.0/change/C024.json"
+    },
+    "C025": {
+      "title": "修复存储并发竞争写丢失、事务假成功、iTab多组导入遗漏与跨标签同步缺陷",
+      "type": "BugFix",
+      "status": "closed",
+      "branch": "fix/C025-storage-and-concurrency",
+      "topic": "DataPersistenceSync",
+      "created": "2026-10-10",
+      "archive": "docs/archive/v0.2.0/change/C025.json",
+      "file": "docs/archive/v0.2.0/change/C025.json"
+    },
+    "C026": {
+      "title": "修复 RSS 刷新删除源复活与新源丢失、阅读状态回滚、空源强制恢复及点击非幂等缺陷",
+      "type": "BugFix",
+      "status": "closed",
+      "branch": "fix/C026-feed-concurrency-and-read-state",
+      "topic": "ExtensionDataSources",
+      "created": "2026-10-10",
+      "archive": "docs/archive/v0.2.0/change/C026.json",
+      "file": "docs/archive/v0.2.0/change/C026.json"
+    },
+    "C028": {
+      "title": "代码规范全面治理：消除any与非空断言、增强IPC类型守卫、消除静默吞错并解耦Shortcuts巨型组件",
+      "type": "Refactor",
+      "status": "closed",
+      "branch": "fix/C028-code-standards-governance",
+      "topic": "SystemOverview",
+      "created": "2026-10-13",
+      "archive": "docs/archive/v0.2.0/change/C028.json",
+      "file": "docs/archive/v0.2.0/change/C028.json"
+    },
+    "C029": {
+      "title": "新标签页启动速度与加载动效性能优化：消除关键帧GPU滤镜卡顿、动效节奏提速、首屏零延迟防白屏与异步分包",
+      "type": "BugFix",
+      "status": "closed",
+      "branch": "fix/C029-startup-speed-and-motion-optimization",
+      "topic": "MotionSystem",
+      "created": "2026-10-14",
+      "archive": "docs/archive/v0.2.0/change/C029.json",
+      "file": "docs/archive/v0.2.0/change/C029.json"
+    }
+  }
+}

@@ -1,10 +1,12 @@
 # 变更日志 (CHANGELOG)
 
-> **created**: 2026-10-07 ｜ **last-change**: 2026-10-13 ｜ **status**: active
+> **created**: 2026-10-07 ｜ **last-change**: 2026-10-14 ｜ **status**: active
 
 遵循 Keep a Changelog 与项目统一 SemVer。
 
 ## [Unreleased]
+
+## [0.2.0] - 2026-10-14
 
 ### Refactored
 

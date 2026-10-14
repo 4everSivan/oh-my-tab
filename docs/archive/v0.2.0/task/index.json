@@ -1,0 +1,76 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-index.v1.json",
+  "phase": "Phase 2 - 自由布局、高频组件与全站数据 (v0.2.0)",
+  "updated_at": "2026-10-14",
+  "milestones": {
+    "M2": {
+      "title": "M2-v0.2.0-自由布局、高频组件与全站数据 (已发版归档)",
+      "description": "交付常用网站网页图标 Command+数字键快捷直达与实时按键提示 (T16)、独立订阅消息侧边栏与外观设置解耦 (T17)、真实 RSS/Atom 订阅解析与极客脚本数据源引擎 (T18)",
+      "tasks": [
+        "T16",
+        "T17",
+        "T18"
+      ],
+      "archive": "docs/archive/v0.2.0/task/",
+      "status": "completed"
+    }
+  },
+  "topics": {
+    "EntryNavigation": {
+      "design_doc": "docs/devel/design/01-页面入口与导航.md",
+      "tasks": [
+        "T16"
+      ]
+    },
+    "WorkspaceAppearance": {
+      "design_doc": "docs/devel/design/02-工作台布局与外观.md",
+      "tasks": [
+        "T17"
+      ]
+    },
+    "ExtensionDataSources": {
+      "design_doc": "docs/devel/design/05-深度扩展与外部数据.md",
+      "tasks": [
+        "T18"
+      ]
+    }
+  },
+  "tasks": {
+    "T16": {
+      "title": "常用网站网页图标 Command+数字键快捷直达与实时按键提示",
+      "status": "completed",
+      "branch": "feat/T16-shortcut-key-hints",
+      "milestone": "M2-v0.2.0-自由布局、高频组件与全站数据",
+      "depends_on": [
+        "T04",
+        "T14",
+        "T15"
+      ],
+      "archive": "docs/archive/v0.2.0/task/T16.json",
+      "file": "docs/archive/v0.2.0/task/T16.json"
+    },
+    "T17": {
+      "title": "独立订阅消息侧边栏与外观设置解耦",
+      "status": "completed",
+      "branch": "feat/T17-feed-sidebar-and-settings-split",
+      "milestone": "M2-v0.2.0-自由布局、高频组件与全站数据",
+      "depends_on": [
+        "T04",
+        "T05"
+      ],
+      "archive": "docs/archive/v0.2.0/task/T17.json",
+      "file": "docs/archive/v0.2.0/task/T17.json"
+    },
+    "T18": {
+      "title": "真实 RSS/Atom 订阅解析与极客脚本数据源引擎",
+      "status": "completed",
+      "branch": "feat/T18-rss-feed-and-script-engine",
+      "milestone": "M2-v0.2.0-自由布局、高频组件与全站数据",
+      "depends_on": [
+        "T17"
+      ],
+      "archive": "docs/archive/v0.2.0/task/T18.json",
+      "file": "docs/archive/v0.2.0/task/T18.json"
+    }
+  }
+}
