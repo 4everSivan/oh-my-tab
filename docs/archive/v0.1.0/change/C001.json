@@ -3,7 +3,7 @@
   "id": "C001",
   "title": "修复自定义壁纸上传不生效：刷新死链、静默失败与 IndexedDB 空库阻塞",
   "type": "BugFix",
-  "status": "in_progress",
+  "status": "closed",
   "branch": "fix/C001-wallpaper-restore",
   "is_hotfix": false,
   "target": {
@@ -92,5 +92,14 @@
     "commit": "",
     "tag": ""
   },
-  "version": "v0.1.0"
+  "version": "v0.1.0",
+  "closure": {
+    "remediation": "archive-historical-batch",
+    "decided_by": "human",
+    "decided_on": "2026-10-14",
+    "decision_quote": "我全部确认",
+    "basis": "按 docs/archive/README.md §5 补收口径：该卡工作已随 v0.1.0 交付，代表提交 d24710c 同时为 v0.1.0 与 main 的祖先，CHANGELOG 存在对应条目",
+    "waiver": "历史封箱时未收口，故 gate 与 sync.commit 缺失（部分卡 user_quote/signoff 亦缺失，run_id 为早期格式）；按流程一律不作补造，保持原值，该版本验收以 tag、CHANGELOG 与运行事实为准",
+    "decided_card": "C031"
+  }
 }
