@@ -7,6 +7,7 @@
 ## [Unreleased]
 
 ### Fixed
+- **v0.1.0 归档批次账实修复 (C031)**：按 ad-flow v1.4.0 新硬门禁 `ARCHIVE_NON_TERMINAL` 如实暴露的 15 项历史违规，依归档 README §5「历史批次账实修复」流程由人工定口径（补收）处置：14 张变更卡置 `closed`、T10 置 `completed`，逐卡追加 `closure` 豁免标注记录决策依据与佐证，总账状态同步，`docs/archive/v0.1.0/ERRATUM.md` 登记事故、卡号、口径与审计声明；历史卡缺失的 `user_quote`/`signoff`/`gate`/`sync.commit` 一律未补造，保持原值。修复后普通校验与骨架 DoD 均恢复 Exit 0，M1 里程碑与成员任务状态重新对齐。
 
 - **修饰键组合方向键被常用网站翻页抢占的快捷键冲突修复 (C030)**：1) 新增修饰键守卫：常用网站翻页的全局键盘调度在 Escape 分支之后、方向键分支之前统一判断 `metaKey/ctrlKey/altKey/shiftKey`，任一为真即直接返回，`Command + ←/→`（页面前进/后退）与 `Alt + ←/→`、`Shift + ←/→`（文本选择）不再被切换网站图标页，也不再被 `preventDefault()` 吞掉，完全交还浏览器原生行为；2) 输入态守卫统一为 `isEditableElement` 判定并额外覆盖 `select` 下拉控件，外观设置与订阅源下拉聚焦时方向键恢复原生选项切换；3) 纯方向键 `←` / `→` 翻页、`Escape` 收起文件夹抽屉、`Command + 1~6` 图标直达等既有快捷键契约保持不变，并补充 7 项 C030 专项自动化测试（含从源码提取真实处理器执行的修饰键行为回放）。
 
