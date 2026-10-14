@@ -30,6 +30,7 @@ export interface BackgroundConfig {
   color: string;
   imageId: string;
   imageBlobUrl?: string;
+  previewUrl?: string; // 0ms 首屏超轻量微缩预览图 (C029)
   name: string;
   shade: number; // 0 - 85
   blur: number; // 0 - 20

@@ -6,6 +6,19 @@
     <title>新标签页</title>
     <link rel="icon" type="image/png" href="/icons/icon-32.png" />
     <link rel="apple-touch-icon" href="/icons/icon-128.png" />
+    <style>
+      /* 消除首屏白色闪烁 (C029 零延迟默认底色，遵循 C004 契约保持 body 透明) */
+      html {
+        margin: 0;
+        padding: 0;
+        background-color: #f5f4ef;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: transparent;
+      }
+    </style>
   </head>
   <body class="m-0 p-0 overflow-x-hidden min-h-screen font-modern antialiased">
     <div id="root"></div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import {
   storageService,
   getBootCache,
@@ -15,22 +15,33 @@ import {
   DEFAULT_SHORTCUT_GROUPS,
   DEFAULT_LAYOUT,
 } from './services/storage';
+import { kickOffWallpaperPreload } from './services/storage/wallpaper';
 import { Clock } from './components/clock/Clock';
 import { SearchBar, SEARCH_ENGINES } from './components/search/SearchBar';
 import { Shortcuts } from './components/shortcuts/Shortcuts';
-import { ShortcutsHelpModal } from './components/shortcuts/ShortcutsHelpModal';
 import { GridContainer } from './components/layout/GridContainer';
-import { AppearanceDrawer } from './components/settings/AppearanceDrawer';
-import { FeedSidebar } from './components/feed/FeedSidebar';
 import { feedService, FeedItem, FeedSource } from './services/feed';
-import { AddWidgetModal } from './components/widgets/AddWidgetModal';
 import { WidgetManifest } from './contract/types';
 import { createWidgetInstance } from './contract/widget';
-import { planBackgroundRestore } from './utils/background';
+import { planBackgroundRestore, generateWallpaperThumbnail } from './utils/background';
 // useAdaptiveContrast (C015): 统合原 useWallpaperContrast 与 useSearchContrast 为单管线并清空画布释放 GPU 缓冲
 import { useAdaptiveContrast } from './hooks/useAdaptiveContrast';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { SlidersHorizontal, Plus, Keyboard, Bell } from 'lucide-react';
+
+// 异步代码分割 (C029): 将非首屏重度浮层抽离主 bundle，削减首次加载 JS 体积与解析耗时
+const AppearanceDrawer = lazy(() =>
+  import('./components/settings/AppearanceDrawer').then((m) => ({ default: m.AppearanceDrawer }))
+);
+const FeedSidebar = lazy(() =>
+  import('./components/feed/FeedSidebar').then((m) => ({ default: m.FeedSidebar }))
+);
+const AddWidgetModal = lazy(() =>
+  import('./components/widgets/AddWidgetModal').then((m) => ({ default: m.AddWidgetModal }))
+);
+const ShortcutsHelpModal = lazy(() =>
+  import('./components/shortcuts/ShortcutsHelpModal').then((m) => ({ default: m.ShortcutsHelpModal }))
+);
 
 export const App: React.FC = () => {
   // 同步启动快照 (C015)：首帧直接读出用户缓存的真实配置，杜绝默认纯色与默认圆角在首帧闪跳
@@ -80,6 +91,31 @@ export const App: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const currentBlobUrlRef = useRef<string | null>(null);
 
+  // 极速壁纸装载 (C029): 并发抢跑预加载 Promise，在首个微任务周期内立即挂载 Blob URL，杜绝等待 loadAll 串行 IPC
+  useLayoutEffect(() => {
+    let isMounted = true;
+    if (boot?.background?.type === 'image' && boot.background.imageId) {
+      kickOffWallpaperPreload(boot.background.imageId).then((url) => {
+        if (!isMounted || !url) return;
+        if (currentBlobUrlRef.current && currentBlobUrlRef.current !== url) {
+          URL.revokeObjectURL(currentBlobUrlRef.current);
+        }
+        currentBlobUrlRef.current = url;
+        setBackground((prev) => {
+          if (prev.type === 'image' && prev.imageBlobUrl === url) return prev;
+          return {
+            ...prev,
+            type: 'image',
+            imageBlobUrl: url,
+          };
+        });
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // 并行批处理加载配置并建立 Blob URL 生命周期回收机制 (C015)
   useEffect(() => {
     let isMounted = true;
@@ -100,35 +136,68 @@ export const App: React.FC = () => {
 
       let finalBackground = b;
       if (b.type === 'image' && b.imageId) {
-        const record = await storageService.wallpaper.getWallpaper(b.imageId);
-        const plan = planBackgroundRestore(b, !!record);
-        if (plan.kind === 'restore' && record) {
-          if (currentBlobUrlRef.current) {
+        const preloaded = await kickOffWallpaperPreload(b.imageId);
+        if (preloaded) {
+          if (currentBlobUrlRef.current && currentBlobUrlRef.current !== preloaded) {
             URL.revokeObjectURL(currentBlobUrlRef.current);
           }
-          const newUrl = URL.createObjectURL(
-            record.data instanceof Blob ? record.data : new Blob([record.data])
-          );
-          currentBlobUrlRef.current = newUrl;
+          currentBlobUrlRef.current = preloaded;
           finalBackground = {
-            ...plan.config,
-            imageBlobUrl: newUrl,
+            ...b,
+            imageBlobUrl: preloaded,
           };
-        } else if (plan.kind === 'fallback') {
-          await storageService.setBackground(plan.config);
-          finalBackground = plan.config;
+        } else {
+          const record = await storageService.wallpaper.getWallpaper(b.imageId);
+          const plan = planBackgroundRestore(b, !!record);
+          if (plan.kind === 'restore' && record) {
+            if (currentBlobUrlRef.current) {
+              URL.revokeObjectURL(currentBlobUrlRef.current);
+            }
+            const newUrl = URL.createObjectURL(
+              record.data instanceof Blob ? record.data : new Blob([record.data])
+            );
+            currentBlobUrlRef.current = newUrl;
+            finalBackground = {
+              ...plan.config,
+              imageBlobUrl: newUrl,
+            };
+          } else if (plan.kind === 'fallback') {
+            await storageService.setBackground(plan.config);
+            finalBackground = plan.config;
+          }
+        }
+
+        // 异步微缩图自愈补全 (C029): 若旧配置尚无 previewUrl，后台静默补全一次供后续新标签页 0ms 直出
+        if (!b.previewUrl && finalBackground.imageBlobUrl) {
+          const activeUrl = finalBackground.imageBlobUrl;
+          window.setTimeout(async () => {
+            try {
+              const res = await fetch(activeUrl);
+              const blob = await res.blob();
+              const thumb = await generateWallpaperThumbnail(blob);
+              if (thumb) {
+                await storageService.setBackground({ previewUrl: thumb });
+              }
+            } catch (e) {
+              console.debug('[Wallpaper] generate thumbnail async failed:', e);
+            }
+          }, 500);
         }
       }
 
-      setClock(c);
-      setSearch(s);
-      setEngine(e);
-      setBackground(finalBackground);
-      setShortcuts(sc);
-      if (sg && sg.length > 0) setShortcutGroups(sg);
-      if (agId) setActiveShortcutGroupId(agId);
-      setLayout(l);
-      if (skEnabled !== undefined) setShortcutKeysEnabledState(skEnabled);
+      // 深度比对优化 (C029): 若与 boot 快照一致，跳过冗余 setState，杜绝入场动效期间全树 Re-render 掉帧
+      // 图片背景必须无条件挂载会话级最新 Blob URL (C004 / C029 坚守)，避免 bootCache 历史死链或比对漏刷
+      if (JSON.stringify(c) !== JSON.stringify(boot?.clock)) setClock(c);
+      if (JSON.stringify(s) !== JSON.stringify(boot?.search)) setSearch(s);
+      if (e !== boot?.engine) setEngine(e);
+      if (b.type === 'image' || JSON.stringify(finalBackground) !== JSON.stringify(boot?.background)) {
+        setBackground(finalBackground);
+      }
+      if (JSON.stringify(sc) !== JSON.stringify(boot?.shortcuts)) setShortcuts(sc);
+      if (sg && sg.length > 0 && JSON.stringify(sg) !== JSON.stringify(boot?.shortcutGroups)) setShortcutGroups(sg);
+      if (agId && agId !== boot?.activeShortcutGroupId) setActiveShortcutGroupId(agId);
+      if (JSON.stringify(l) !== JSON.stringify(boot?.layout)) setLayout(l);
+      if (skEnabled !== undefined && skEnabled !== boot?.shortcutKeysEnabled) setShortcutKeysEnabledState(skEnabled);
     }
     loadAll();
 
@@ -166,6 +235,31 @@ export const App: React.FC = () => {
     };
   }, []);
 
+  // 空闲时预加载浮层模块，确保用户点击时 0ms 秒开 (C029)
+  useEffect(() => {
+    const preload = () => {
+      import('./components/settings/AppearanceDrawer');
+      import('./components/feed/FeedSidebar');
+      import('./components/widgets/AddWidgetModal');
+      import('./components/shortcuts/ShortcutsHelpModal');
+    };
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const win = window as unknown as {
+        requestIdleCallback: (cb: () => void) => number;
+        cancelIdleCallback: (id: number) => void;
+      };
+      const handle = win.requestIdleCallback(preload);
+      return () => {
+        if ('cancelIdleCallback' in window) {
+          win.cancelIdleCallback(handle);
+        }
+      };
+    } else {
+      const timer = setTimeout(preload, 500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   // 刷新所有订阅源 (T18)
   const handleRefreshFeeds = useCallback(async () => {
     setIsFeedRefreshing(true);
@@ -181,7 +275,7 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // 订阅源与文章缓存初次加载 (T18)
+  // 订阅源与文章缓存初次加载 (T18 & C029: 延迟非关键后台任务让行首屏关键动效)
   useEffect(() => {
     let active = true;
     async function initFeeds() {
@@ -194,8 +288,10 @@ export const App: React.FC = () => {
       if (cached && cached.length > 0) {
         setFeeds(cached);
       } else {
-        // 首次启动静默初始化刷新
-        handleRefreshFeeds();
+        // 首次启动静默初始化刷新：让行首屏关键动效 (C029)
+        window.setTimeout(() => {
+          if (active) handleRefreshFeeds();
+        }, 300);
       }
     }
     initFeeds();
@@ -217,15 +313,21 @@ export const App: React.FC = () => {
   const searchTextColor = searchContrast.textColor;
   const searchTone = searchContrast.tone;
 
-  // Background style computation
+  // Background style computation (C029: 支持 0ms previewUrl 无感渐进式渲染)
   const getBackgroundStyle = (): React.CSSProperties => {
-    if (background.type === 'image' && background.imageBlobUrl) {
-      return {
-        backgroundImage: `url(${background.imageBlobUrl})`,
-        backgroundSize: 'cover',
-        backgroundPosition: background.position,
-        filter: background.blur > 0 ? `blur(${background.blur}px)` : 'none',
-      };
+    if (background.type === 'image') {
+      const activeUrl = background.imageBlobUrl || background.previewUrl;
+      if (activeUrl) {
+        const isPreviewOnly = !background.imageBlobUrl && !!background.previewUrl;
+        return {
+          backgroundImage: `url(${activeUrl})`,
+          backgroundSize: 'cover',
+          backgroundPosition: background.position,
+          filter: background.blur > 0
+            ? `blur(${background.blur}px)`
+            : (isPreviewOnly ? 'blur(4px)' : 'none'),
+        };
+      }
     }
     return {
       backgroundColor: background.color,
@@ -254,16 +356,34 @@ export const App: React.FC = () => {
   };
 
   const handleUpdateBackground = async (updates: Partial<BackgroundConfig>) => {
+    let nextUpdates = { ...updates };
     if (updates.imageBlobUrl) {
       if (currentBlobUrlRef.current && updates.imageBlobUrl !== currentBlobUrlRef.current) {
         URL.revokeObjectURL(currentBlobUrlRef.current);
       }
       currentBlobUrlRef.current = updates.imageBlobUrl;
-    } else if (updates.type === 'color' && currentBlobUrlRef.current) {
-      URL.revokeObjectURL(currentBlobUrlRef.current);
-      currentBlobUrlRef.current = null;
+    } else if (updates.type === 'color' || updates.type === 'material') {
+      if (currentBlobUrlRef.current) {
+        URL.revokeObjectURL(currentBlobUrlRef.current);
+        currentBlobUrlRef.current = null;
+      }
+      nextUpdates.imageBlobUrl = undefined;
+    } else if (currentBlobUrlRef.current) {
+      nextUpdates.imageBlobUrl = currentBlobUrlRef.current;
+    } else if (updates.type === 'image' || (!updates.type && background.type === 'image')) {
+      const targetImageId = updates.imageId || background.imageId;
+      if (targetImageId) {
+        const record = await storageService.wallpaper.getWallpaper(targetImageId);
+        if (record) {
+          const newUrl = URL.createObjectURL(
+            record.data instanceof Blob ? record.data : new Blob([record.data])
+          );
+          currentBlobUrlRef.current = newUrl;
+          nextUpdates.imageBlobUrl = newUrl;
+        }
+      }
     }
-    const updated = await storageService.setBackground(updates);
+    const updated = await storageService.setBackground(nextUpdates);
     setBackground(updated);
   };
 
@@ -684,54 +804,62 @@ export const App: React.FC = () => {
       </footer>
 
       {/* Appearance Settings Drawer */}
-      <AppearanceDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        clock={clock}
-        search={search}
-        background={background}
-        shortcutKeysEnabled={shortcutKeysEnabled}
-        onUpdateClock={handleUpdateClock}
-        onResetClock={handleResetClock}
-        onUpdateSearch={handleUpdateSearch}
-        onResetSearch={handleResetSearch}
-        onUpdateBackground={handleUpdateBackground}
-        onResetBackground={handleResetBackground}
-        onUpdateShortcutKeysEnabled={handleUpdateShortcutKeysEnabled}
-      />
+      <Suspense fallback={null}>
+        <AppearanceDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          clock={clock}
+          search={search}
+          background={background}
+          shortcutKeysEnabled={shortcutKeysEnabled}
+          onUpdateClock={handleUpdateClock}
+          onResetClock={handleResetClock}
+          onUpdateSearch={handleUpdateSearch}
+          onResetSearch={handleResetSearch}
+          onUpdateBackground={handleUpdateBackground}
+          onResetBackground={handleResetBackground}
+          onUpdateShortcutKeysEnabled={handleUpdateShortcutKeysEnabled}
+        />
+      </Suspense>
 
       {/* Feed Sidebar Drawer (T17 & T18) */}
-      <FeedSidebar
-        isOpen={isFeedSidebarOpen}
-        onClose={() => setIsFeedSidebarOpen(false)}
-        feeds={feeds}
-        sources={feedSources}
-        isRefreshing={isFeedRefreshing}
-        onRefresh={handleRefreshFeeds}
-        onToggleRead={handleToggleFeedRead}
-        onMarkRead={handleMarkFeedRead}
-        onMarkAllRead={handleMarkAllFeedsRead}
-        onAddSource={handleAddFeedSource}
-        onToggleSource={handleToggleFeedSource}
-        onDeleteSource={handleDeleteFeedSource}
-        onResetDefaultSources={handleResetDefaultSources}
-        onImportOpml={handleImportOpml}
-        onExportOpml={handleExportOpml}
-      />
+      <Suspense fallback={null}>
+        <FeedSidebar
+          isOpen={isFeedSidebarOpen}
+          onClose={() => setIsFeedSidebarOpen(false)}
+          feeds={feeds}
+          sources={feedSources}
+          isRefreshing={isFeedRefreshing}
+          onRefresh={handleRefreshFeeds}
+          onToggleRead={handleToggleFeedRead}
+          onMarkRead={handleMarkFeedRead}
+          onMarkAllRead={handleMarkAllFeedsRead}
+          onAddSource={handleAddFeedSource}
+          onToggleSource={handleToggleFeedSource}
+          onDeleteSource={handleDeleteFeedSource}
+          onResetDefaultSources={handleResetDefaultSources}
+          onImportOpml={handleImportOpml}
+          onExportOpml={handleExportOpml}
+        />
+      </Suspense>
 
       {/* Add Widget Modal */}
-      <AddWidgetModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        layout={layout}
-        onAddWidget={handleAddWidget}
-      />
+      <Suspense fallback={null}>
+        <AddWidgetModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          layout={layout}
+          onAddWidget={handleAddWidget}
+        />
+      </Suspense>
 
       {/* Shortcuts Help Modal */}
-      <ShortcutsHelpModal
-        isOpen={isHelpOpen}
-        onClose={() => setIsHelpOpen(false)}
-      />
+      <Suspense fallback={null}>
+        <ShortcutsHelpModal
+          isOpen={isHelpOpen}
+          onClose={() => setIsHelpOpen(false)}
+        />
+      </Suspense>
     </div>
   );
 };

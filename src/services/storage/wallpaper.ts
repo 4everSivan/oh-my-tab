@@ -133,3 +133,56 @@ export class WallpaperStorage {
 }
 
 export const wallpaperStorage = new WallpaperStorage();
+
+let activePreloadPromise: Promise<string | null> | null = null;
+let preloadedBlobUrl: string | null = null;
+let preloadedImageId: string | null = null;
+
+/**
+ * 提前触发壁纸从 IndexedDB 加载并异步预解码（C029 启动性能优化）
+ * 在 main.tsx 最早阶段（React 挂载前）即刻启动，与组件解析和首帧绘制并发进行
+ */
+export function kickOffWallpaperPreload(imageId: string): Promise<string | null> {
+  if (preloadedImageId === imageId && preloadedBlobUrl) {
+    return Promise.resolve(preloadedBlobUrl);
+  }
+  if (activePreloadPromise && preloadedImageId === imageId) {
+    return activePreloadPromise;
+  }
+
+  preloadedImageId = imageId;
+  activePreloadPromise = (async () => {
+    try {
+      const record = await wallpaperStorage.getWallpaper(imageId);
+      if (!record || !record.data) return null;
+      const blob = record.data instanceof Blob ? record.data : new Blob([record.data]);
+      const url = URL.createObjectURL(blob);
+      preloadedBlobUrl = url;
+
+      // 异步光栅化解码，防止大图上屏时主线程微卡
+      if (typeof Image !== 'undefined') {
+        const img = new Image();
+        img.src = url;
+        if ('decode' in img) {
+          img.decode().catch((err) => {
+            console.debug('[Wallpaper] pre-decode skipped:', err);
+          });
+        }
+      }
+      return url;
+    } catch (e) {
+      console.debug('[Wallpaper] kickOffWallpaperPreload failed:', e);
+      return null;
+    }
+  })();
+
+  return activePreloadPromise;
+}
+
+/**
+ * 获取当前已预加载的 Blob URL（若有）
+ */
+export function getPreloadedWallpaper(): string | null {
+  return preloadedBlobUrl;
+}
+

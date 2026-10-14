@@ -24,11 +24,11 @@
   --motion-blur-small: 2px;
 
   /* ── t-digit 数字弹入（时钟逐位渲染，key 含字符值仅变化位重挂载重放） ── */
-  --digit-dur: 500ms;
-  --digit-distance: 8px;
-  --digit-stagger: 70ms;
-  --digit-blur: 2px;
-  --digit-ease: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --digit-dur: 240ms;
+  --digit-distance: 6px;
+  --digit-stagger: 50ms;
+  --digit-blur: 0px;
+  --digit-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* ── t-check 勾选描画（aria-checked 驱动：先填充背景再 stroke 描画） ── */
   --check-box: 150ms;
@@ -52,9 +52,9 @@
   --panel-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* ── t-card-enter 卡片交错入场（--card-stagger-delay 由 computeCardStagger 注入） ── */
-  --card-enter-dur: 400ms;
-  --card-enter-distance: 12px;
-  --card-enter-blur: 2px;
+  --card-enter-dur: 260ms;
+  --card-enter-distance: 8px;
+  --card-enter-blur: 0px;
   --card-enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* ── t-list-enter 列表项入场 ── */
@@ -66,17 +66,16 @@
 
 /* ══ t-digit 数字弹入 ═════════════════════════════════════════
  * 时间数字逐位 span 渲染；key 含字符值，数值变化的位重挂载即重放入场。
- * 冒号等恒定字符 key 稳定，仅首次挂载参与入场。 */
+ * 冒号等恒定字符 key 稳定，仅首次挂载参与入场。
+ * C029: 消除关键帧内 filter: blur 强制光栅化重绘，由 GPU 合成器硬件加速 transform 与 opacity。 */
 @keyframes t-digit-pop-in {
   0% {
     transform: translateY(var(--digit-distance));
     opacity: 0;
-    filter: blur(var(--digit-blur));
   }
   100% {
     transform: translateY(0);
     opacity: 1;
-    filter: blur(0);
   }
 }
 .t-digit-group {
@@ -86,7 +85,7 @@
 .t-digit {
   display: inline-block;
   animation: t-digit-pop-in var(--digit-dur) var(--digit-ease) both;
-  will-change: transform, opacity, filter;
+  will-change: transform, opacity;
 }
 
 /* ══ t-check 勾选描画 ═════════════════════════════════════════
@@ -200,24 +199,22 @@
 }
 
 /* ══ t-card-enter 卡片交错入场 ═══════════════════════════════
- * 挂载时上升 + 淡入 + 去模糊；--card-stagger-delay 由
- * computeCardStagger(index) 注入（40ms 步进，360ms 封顶）。 */
+ * 挂载时上升 + 淡入；--card-stagger-delay 由 computeCardStagger 注入。
+ * C029: 消除 filter: blur，锁定 GPU 合成器硬件加速，杜绝卡片 backdrop-blur 复合层闪烁与掉帧。 */
 @keyframes t-card-enter-in {
   0% {
     transform: translateY(var(--card-enter-distance));
     opacity: 0;
-    filter: blur(var(--card-enter-blur));
   }
   100% {
     transform: translateY(0);
     opacity: 1;
-    filter: blur(0);
   }
 }
 .t-card-enter {
   animation: t-card-enter-in var(--card-enter-dur) var(--card-enter-ease) both;
   animation-delay: var(--card-stagger-delay, 0ms);
-  will-change: transform, opacity, filter;
+  will-change: transform, opacity;
 }
 
 /* ══ t-list-enter 列表项入场 ═════════════════════════════════
@@ -280,22 +277,21 @@
 }
 
 /* ══ t-stagger-item 常用网站级联入场与微交互 ═════════════════
- * 首次呈现时每个图标按 35ms 步进级联升起；带有实体按键弹性按压 */
+ * 首次呈现时每个图标级联升起；带有实体按键弹性按压。
+ * C029: 消除 filter: blur，锁定 GPU 合成器硬件加速，提速至 240ms 呈现轻快敏捷手感。 */
 @keyframes t-stagger-rise {
   0% {
     opacity: 0;
-    transform: translateY(12px) scale(0.95);
-    filter: blur(var(--motion-blur-small));
+    transform: translateY(8px) scale(0.96);
   }
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
-    filter: blur(0);
   }
 }
 .t-stagger-item {
-  animation: t-stagger-rise 400ms var(--motion-ease-smooth-out) both;
-  will-change: transform, opacity, filter;
+  animation: t-stagger-rise 240ms var(--motion-ease-smooth-out) both;
+  will-change: transform, opacity;
 }
 
 /* ══ origin-menu 源点感知菜单弹入 ════════════════════════════
