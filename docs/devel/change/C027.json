@@ -4,7 +4,7 @@
   "title": "修复快捷键关闭死锁、文件夹模式污染、全局粘贴泄露、计时器重复通知与搜索选词不一致缺陷",
   "version": "0.2.0",
   "type": "BugFix",
-  "status": "verified",
+  "status": "closed",
   "branch": "fix/C027-shortcuts-focus-and-interactions",
   "is_hotfix": false,
   "target": {
@@ -108,6 +108,6 @@
     "version": "1.2.0",
     "ran_at": "2026-10-14",
     "exit_code": 0,
-    "target_status": "verified"
+    "target_status": "closed"
   }
 }
