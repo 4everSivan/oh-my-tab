@@ -10,6 +10,7 @@ import {
 } from '../../services/storage/types';
 import { X, RotateCcw, Clock, Search, Image as ImageIcon, Upload, Keyboard, SlidersHorizontal } from 'lucide-react';
 import { wallpaperStorage } from '../../services/storage/wallpaper';
+import { generateWallpaperThumbnail } from '../../utils/background';
 import { useDelayedUnmount } from '../../hooks/useDelayedUnmount';
 
 interface AppearanceDrawerProps {
@@ -86,10 +87,12 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
       if (background.imageBlobUrl?.startsWith('blob:')) {
         URL.revokeObjectURL(background.imageBlobUrl);
       }
+      const thumb = await generateWallpaperThumbnail(file);
       onUpdateBackground({
         type: 'image',
         imageId: id,
         imageBlobUrl: objectUrl,
+        previewUrl: thumb || undefined,
         name: file.name,
       });
     } catch {

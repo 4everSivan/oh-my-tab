@@ -32,6 +32,48 @@ export function planBackgroundRestore(
       type: 'material',
       imageId: '',
       imageBlobUrl: undefined,
+      previewUrl: undefined,
     },
   };
 }
+
+/**
+ * 生成超轻量壁纸微缩预览图 (C029 启动性能优化)
+ * 宽/高封顶 240px，输出体积约 4KB~8KB 的 JPEG Data URL，供首帧 0ms 无感直出
+ */
+export async function generateWallpaperThumbnail(blob: Blob): Promise<string | null> {
+  if (typeof document === 'undefined' || typeof Image === 'undefined') return null;
+  try {
+    const objectUrl = URL.createObjectURL(blob);
+    const img = new Image();
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('Image decode error'));
+      img.src = objectUrl;
+    });
+
+    const maxDim = 240;
+    const origWidth = img.width || maxDim;
+    const origHeight = img.height || maxDim;
+    const scale = Math.min(1, maxDim / Math.max(origWidth, origHeight));
+    const width = Math.max(1, Math.round(origWidth * scale));
+    const height = Math.max(1, Math.round(origHeight * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      URL.revokeObjectURL(objectUrl);
+      return null;
+    }
+
+    ctx.drawImage(img, 0, 0, width, height);
+    URL.revokeObjectURL(objectUrl);
+    return canvas.toDataURL('image/jpeg', 0.45);
+  } catch (e) {
+    console.debug('[Wallpaper] generateWallpaperThumbnail failed:', e);
+    return null;
+  }
+}
+

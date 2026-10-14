@@ -139,3 +139,25 @@ test('C029 缺陷修复与坚守：index.html 维持 body 透明契约且 App.ts
     'handleUpdateBackground 必须支持在切换为 image 类型时自动恢复壁纸 Blob'
   );
 });
+
+test('C029 壁纸极速加载优化：main.tsx 抢跑预加载、useLayoutEffect 并发挂载与 previewUrl 渐进直出', () => {
+  const wallpaperSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'services', 'storage', 'wallpaper.ts'), 'utf8');
+  const bgUtilsSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'utils', 'background.ts'), 'utf8');
+  const drawerSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'settings', 'AppearanceDrawer.tsx'), 'utf8');
+
+  // 1. wallpaper.ts 导出 kickOffWallpaperPreload 并具备异步解码
+  assert.ok(wallpaperSrc.includes('export function kickOffWallpaperPreload'), 'wallpaper.ts 必须导出 kickOffWallpaperPreload 预热接口');
+  assert.ok(wallpaperSrc.includes('img.decode()'), 'kickOffWallpaperPreload 必须异步预解码大图');
+
+  // 2. main.tsx 抢先触发 kickOffWallpaperPreload
+  assert.ok(mainTsx.includes('kickOffWallpaperPreload(bg.imageId)'), 'main.tsx 必须在 React 挂载前并发启动壁纸预读');
+
+  // 3. App.tsx useLayoutEffect 抢先挂载与 getBackgroundStyle 渐进 preview 支持
+  assert.ok(appSrc.includes('useLayoutEffect'), 'App.tsx 必须引入并使用 useLayoutEffect');
+  assert.ok(appSrc.includes('kickOffWallpaperPreload(boot.background.imageId)'), 'App.tsx 必须在 useLayoutEffect 抢先监听预加载结果');
+  assert.ok(appSrc.includes('background.imageBlobUrl || background.previewUrl'), 'getBackgroundStyle 必须支持 previewUrl 渐进式直出');
+
+  // 4. background.ts 具备超轻微缩图生成能力且上传时落库
+  assert.ok(bgUtilsSrc.includes('generateWallpaperThumbnail'), 'background.ts 必须实现 generateWallpaperThumbnail');
+  assert.ok(drawerSrc.includes('generateWallpaperThumbnail'), 'AppearanceDrawer 上传壁纸时必须生成微缩图 previewUrl');
+});

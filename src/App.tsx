@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import {
   storageService,
   getBootCache,
@@ -15,6 +15,7 @@ import {
   DEFAULT_SHORTCUT_GROUPS,
   DEFAULT_LAYOUT,
 } from './services/storage';
+import { kickOffWallpaperPreload } from './services/storage/wallpaper';
 import { Clock } from './components/clock/Clock';
 import { SearchBar, SEARCH_ENGINES } from './components/search/SearchBar';
 import { Shortcuts } from './components/shortcuts/Shortcuts';
@@ -22,7 +23,7 @@ import { GridContainer } from './components/layout/GridContainer';
 import { feedService, FeedItem, FeedSource } from './services/feed';
 import { WidgetManifest } from './contract/types';
 import { createWidgetInstance } from './contract/widget';
-import { planBackgroundRestore } from './utils/background';
+import { planBackgroundRestore, generateWallpaperThumbnail } from './utils/background';
 // useAdaptiveContrast (C015): 统合原 useWallpaperContrast 与 useSearchContrast 为单管线并清空画布释放 GPU 缓冲
 import { useAdaptiveContrast } from './hooks/useAdaptiveContrast';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -90,6 +91,31 @@ export const App: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const currentBlobUrlRef = useRef<string | null>(null);
 
+  // 极速壁纸装载 (C029): 并发抢跑预加载 Promise，在首个微任务周期内立即挂载 Blob URL，杜绝等待 loadAll 串行 IPC
+  useLayoutEffect(() => {
+    let isMounted = true;
+    if (boot?.background?.type === 'image' && boot.background.imageId) {
+      kickOffWallpaperPreload(boot.background.imageId).then((url) => {
+        if (!isMounted || !url) return;
+        if (currentBlobUrlRef.current && currentBlobUrlRef.current !== url) {
+          URL.revokeObjectURL(currentBlobUrlRef.current);
+        }
+        currentBlobUrlRef.current = url;
+        setBackground((prev) => {
+          if (prev.type === 'image' && prev.imageBlobUrl === url) return prev;
+          return {
+            ...prev,
+            type: 'image',
+            imageBlobUrl: url,
+          };
+        });
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // 并行批处理加载配置并建立 Blob URL 生命周期回收机制 (C015)
   useEffect(() => {
     let isMounted = true;
@@ -110,23 +136,52 @@ export const App: React.FC = () => {
 
       let finalBackground = b;
       if (b.type === 'image' && b.imageId) {
-        const record = await storageService.wallpaper.getWallpaper(b.imageId);
-        const plan = planBackgroundRestore(b, !!record);
-        if (plan.kind === 'restore' && record) {
-          if (currentBlobUrlRef.current) {
+        const preloaded = await kickOffWallpaperPreload(b.imageId);
+        if (preloaded) {
+          if (currentBlobUrlRef.current && currentBlobUrlRef.current !== preloaded) {
             URL.revokeObjectURL(currentBlobUrlRef.current);
           }
-          const newUrl = URL.createObjectURL(
-            record.data instanceof Blob ? record.data : new Blob([record.data])
-          );
-          currentBlobUrlRef.current = newUrl;
+          currentBlobUrlRef.current = preloaded;
           finalBackground = {
-            ...plan.config,
-            imageBlobUrl: newUrl,
+            ...b,
+            imageBlobUrl: preloaded,
           };
-        } else if (plan.kind === 'fallback') {
-          await storageService.setBackground(plan.config);
-          finalBackground = plan.config;
+        } else {
+          const record = await storageService.wallpaper.getWallpaper(b.imageId);
+          const plan = planBackgroundRestore(b, !!record);
+          if (plan.kind === 'restore' && record) {
+            if (currentBlobUrlRef.current) {
+              URL.revokeObjectURL(currentBlobUrlRef.current);
+            }
+            const newUrl = URL.createObjectURL(
+              record.data instanceof Blob ? record.data : new Blob([record.data])
+            );
+            currentBlobUrlRef.current = newUrl;
+            finalBackground = {
+              ...plan.config,
+              imageBlobUrl: newUrl,
+            };
+          } else if (plan.kind === 'fallback') {
+            await storageService.setBackground(plan.config);
+            finalBackground = plan.config;
+          }
+        }
+
+        // 异步微缩图自愈补全 (C029): 若旧配置尚无 previewUrl，后台静默补全一次供后续新标签页 0ms 直出
+        if (!b.previewUrl && finalBackground.imageBlobUrl) {
+          const activeUrl = finalBackground.imageBlobUrl;
+          window.setTimeout(async () => {
+            try {
+              const res = await fetch(activeUrl);
+              const blob = await res.blob();
+              const thumb = await generateWallpaperThumbnail(blob);
+              if (thumb) {
+                await storageService.setBackground({ previewUrl: thumb });
+              }
+            } catch (e) {
+              console.debug('[Wallpaper] generate thumbnail async failed:', e);
+            }
+          }, 500);
         }
       }
 
@@ -258,15 +313,21 @@ export const App: React.FC = () => {
   const searchTextColor = searchContrast.textColor;
   const searchTone = searchContrast.tone;
 
-  // Background style computation
+  // Background style computation (C029: 支持 0ms previewUrl 无感渐进式渲染)
   const getBackgroundStyle = (): React.CSSProperties => {
-    if (background.type === 'image' && background.imageBlobUrl) {
-      return {
-        backgroundImage: `url(${background.imageBlobUrl})`,
-        backgroundSize: 'cover',
-        backgroundPosition: background.position,
-        filter: background.blur > 0 ? `blur(${background.blur}px)` : 'none',
-      };
+    if (background.type === 'image') {
+      const activeUrl = background.imageBlobUrl || background.previewUrl;
+      if (activeUrl) {
+        const isPreviewOnly = !background.imageBlobUrl && !!background.previewUrl;
+        return {
+          backgroundImage: `url(${activeUrl})`,
+          backgroundSize: 'cover',
+          backgroundPosition: background.position,
+          filter: background.blur > 0
+            ? `blur(${background.blur}px)`
+            : (isPreviewOnly ? 'blur(4px)' : 'none'),
+        };
+      }
     }
     return {
       backgroundColor: background.color,

@@ -41,6 +41,12 @@
       "before": "index.html 将 html, body 均声明 background-color: #f5f4ef，导致 body 不透明层遮蔽 -z-20 壁纸层",
       "after": "index.html 仅对 html 赋予 #f5f4ef 作为冷启动画布兜底，body 显式保持 transparent，确保 -z-20 壁纸层与材质层正常上屏",
       "impact": "index.html, App.tsx, layout-appearance.test.cjs"
+    },
+    {
+      "scope": "壁纸加载链路并发重构与微缩图渐进首帧直出",
+      "before": "壁纸加载阻塞在 loadAllSettings 9 项 IPC 串行链路之后，打开新标签页需等待数百毫秒才请求 IndexedDB；首帧无渐进图，大图解码阻塞主渲染",
+      "after": "main.tsx 在 React 挂载前即刻发起 IndexedDB 预读与后台异步解码；useLayoutEffect 在首个微任务周期内直连挂载；新增 240px 超轻微缩图 previewUrl 支撑首帧 0ms 渐进直出",
+      "impact": "wallpaper.ts, main.tsx, App.tsx, AppearanceDrawer.tsx, background.ts"
     }
   ],
   "design": {
@@ -54,7 +60,7 @@
   },
   "verification": {
     "result": true,
-    "run_id": "local-20261014-02",
+    "run_id": "local-20261014-03",
     "user_quote": "",
     "signoff": "",
     "checks": [
@@ -91,6 +97,13 @@
         "true_if": "配置一致跳过 set* 避免打断动画，RSS 抓取延后到首帧关键渲染完成后调度",
         "false_if": "启动首帧无条件触发多次 setState 与并发外部网络请求导致主线程丢帧",
         "evidence": "loadAllSettings 增加 JSON.stringify 深度比对跳过冗余 setState，useAdaptiveContrast 增加前序比对，RSS 首次静默抓取延后 300ms，单测断言通过",
+        "result": true
+      },
+      {
+        "item": "壁纸极速加载与渐进直出链路",
+        "true_if": "main.tsx 抢先触发 kickOffWallpaperPreload，useLayoutEffect 并发挂载 Blob URL，且支持 previewUrl 渐进式首帧直出",
+        "false_if": "壁纸读取依旧阻塞在 loadAllSettings 串行 IPC 之后，首帧无微缩图渐进直出能力",
+        "evidence": "main.tsx 抢跑 kickOffWallpaperPreload，App.tsx useLayoutEffect 抢先挂载，AppearanceDrawer 上传落库微缩图 previewUrl，单测 tests/c029-startup-speed-and-motion-optimization.test.cjs 验证通过",
         "result": true
       }
     ]
