@@ -4,19 +4,16 @@
   "title": "修复 v0.1.0 归档区历史非终态卡账实不符（ARCHIVE_NON_TERMINAL 15 项）",
   "version": "0.3.0",
   "type": "BugFix",
-  "status": "in_progress",
+  "status": "verified",
   "branch": "chore/adflow-upgrade-v1.4.0",
   "is_hotfix": false,
-
   "target": {
     "module": "治理与归档",
     "component": "docs/archive 历史批次（v0.1.0）卡片状态与 C/T 总账登记",
     "design_doc": "docs/devel/design/00-系统总体设计.md",
     "design_topic": "SystemOverview"
   },
-
   "why": "现象：ad-flow 治理规范升级至 v1.4.0 后，普通校验报告 15 项 ARCHIVE_NON_TERMINAL（Exit 4），项目整体被阻断收口、归档与主干合入。根因：2026-10-09 v0.1.0 封箱时将当时尚未收口的卡片一并移入 docs/archive/v0.1.0/，其状态被永久冻结在非终态（C001/C002/C005/C008/T10 为 in_progress，C003/C004/C009~C016 为 verified），且 gate 全部为空、sync.commit 全部缺失、5 张卡连 user_quote/signoff 都没有，形成「卡片与总账自洽但与已发布事实矛盾」的账实不符。已核实 15 张卡的工作均随 v0.1.0 实际交付（代表提交同时为 v0.1.0 与 main 的祖先，CHANGELOG 均有对应条目），因此按归档 README §5 的「补收」口径处置。",
-
   "precheck": {
     "description": "复现归档区账实不符：普通校验暴露的 ARCHIVE_NON_TERMINAL 项数与归属",
     "command": "scripts/adflow-verify --json",
@@ -24,7 +21,6 @@
     "is_completed": false,
     "evidence": "2026-10-14 升级后实测：exit_code=4，errors=15，全部为 ARCHIVE_NON_TERMINAL（C001/C002/C005/C008/T10 报 in_progress，C003/C004/C009~C016 报 verified），每条均指向归档 README「历史批次账实修复」；同时复核 15 张卡代表提交均为 v0.1.0 与 main 祖先，确认工作已交付。"
   },
-
   "callback": {
     "before": [
       "scripts/adflow-verify --json  # 复现 15 项 ARCHIVE_NON_TERMINAL",
@@ -36,7 +32,6 @@
       "scripts/adflow-verify --card C031 --to verified --record"
     ]
   },
-
   "changes": [
     {
       "scope": "归档卡状态（人工口径补收）",
@@ -57,7 +52,6 @@
       "impact": "docs/devel/task/index.json、docs/devel/change/index.json"
     }
   ],
-
   "design": {
     "doc": "docs/devel/design/00-系统总体设计.md",
     "topic": "SystemOverview",
@@ -67,49 +61,47 @@
       "after": "无设计规则变化（仅回填归档状态、总账字段与勘误记录）"
     }
   },
-
   "verification": {
-    "result": null,
-    "run_id": "",
-    "user_quote": "",
-    "signoff": "",
+    "result": true,
+    "run_id": "local-20261014-23",
+    "user_quote": "我全部确认（2026-10-14 会话中人类对 AI 汇总的三项待决事项一次性确认：v0.1.0 归档区 15 张卡按归档 README §5 补收口径处置、将里程碑诊断盲点反馈 ad-flow 侧、清理四处已过时的项目自述）",
+    "signoff": "human_approved",
     "checks": [
       {
         "item": "归档区终态与总账一致",
         "true_if": "15 张归档卡全部为 closed/completed，两个总账 status 与卡片逐卡一致，普通校验恢复 Exit 0",
         "false_if": "任一张归档卡仍非终态，或总账与卡片状态漂移，或校验仍报 ARCHIVE_NON_TERMINAL",
-        "evidence": "",
-        "result": null
+        "evidence": "2026-10-14 实测：普通校验 Exit 0（原 15 项 ARCHIVE_NON_TERMINAL 清零，summary 0 error/0 warning/0 advisory），--mode init Exit 0；归档 15 张卡状态分布 closed×14 + completed×1；change/index.json 与 task/index.json 的 status 与归档卡逐卡一致，未出现 INDEX_STATUS_DRIFT。",
+        "result": true
       },
       {
         "item": "豁免标注合规（严禁伪造证据）",
         "true_if": "每张补收卡均含 closure 标注（人工口径、日期、原话、交付佐证），原有 user_quote/signoff/gate/sync.commit 保持原值未被补造",
         "false_if": "存在无标注的状态改写，或为历史卡虚构人类原话、签署、门禁回执与提交锚点",
-        "evidence": "",
-        "result": null
+        "evidence": "15 张卡均含 closure 标注（remediation=archive-historical-batch、decided_by=human、decided_on=2026-10-14、decision_quote=我全部确认、basis 逐卡记录代表提交 sha、waiver 说明缺失字段不补造、decided_card=C031）；改写脚本逐卡断言「除 status 与 closure 外其余字段逐值不变」，C001/C002/C005/C008/T10 的 user_quote/signoff 仍为空，全部 gate 与 sync.commit 保持原值。",
+        "result": true
       },
       {
         "item": "勘误与派生矛盾闭环",
         "true_if": "ERRATUM.md 建立并登记归档批次清单；T10 置 completed 后 M1 里程碑与成员卡对齐；CHANGELOG 记录本次治理修复",
         "false_if": "缺勘误记录或未登记批次清单，或里程碑与成员任务仍矛盾，或 CHANGELOG 无对应条目",
-        "evidence": "",
-        "result": null
+        "evidence": "docs/archive/v0.1.0/ERRATUM.md 已建立（事故描述/卡号/口径与日期/审计声明），并在 docs/archive/README.md 批次清单 v0.1.0 行登记勘误指向；task/index.json 中 T10 置 completed，M1 里程碑与成员任务对齐（MILESTONE_STATUS_DRIFT 无报告）；CHANGELOG [Unreleased] 已新增 C031 条目。",
+        "result": true
       }
     ]
   },
-
   "rejections": [],
-
   "sync": {
     "design_pinned": false,
-    "changelog": false,
-    "commit": "",
+    "changelog": true,
+    "commit": "d18d4dc",
     "tag": ""
   },
   "gate": {
     "tool": "adflow-verify",
     "version": "1.4.0",
-    "ran_at": "",
-    "exit_code": null
+    "ran_at": "2026-10-14",
+    "exit_code": 0,
+    "target_status": "verified"
   }
 }
