@@ -4,7 +4,7 @@
   "title": "新标签页启动速度与加载动效性能优化：消除关键帧GPU滤镜卡顿、动效节奏提速、首屏零延迟防白屏与异步分包",
   "version": "0.2.0",
   "type": "BugFix",
-  "status": "in_progress",
+  "status": "closed",
   "branch": "fix/C029-startup-speed-and-motion-optimization",
   "is_hotfix": false,
   "target": {
@@ -61,8 +61,8 @@
   "verification": {
     "result": true,
     "run_id": "local-20261014-03",
-    "user_quote": "",
-    "signoff": "",
+    "user_quote": "/commit",
+    "signoff": "human_approved",
     "checks": [
       {
         "item": "入场动效 GPU 合成器硬件加速（零 filter:blur 插值）",
@@ -124,15 +124,15 @@
   ],
   "sync": {
     "design_pinned": true,
-    "changelog": false,
-    "commit": "",
+    "changelog": true,
+    "commit": "bafc2da0afcb74d13facead020f1d1286a4e5f29",
     "tag": ""
   },
   "gate": {
     "tool": "adflow-verify",
     "version": "1.2.0",
     "ran_at": "2026-10-14",
-    "exit_code": 4,
-    "target_status": "verified"
+    "exit_code": 0,
+    "target_status": "closed"
   }
 }
