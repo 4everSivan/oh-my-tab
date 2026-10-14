@@ -1,7 +1,7 @@
 # AGENTS.md
 
-<!-- @ad-flow: initialized v1.2.0 -->
-> oh-my-tab 研发与 AI 协作规范 (ad-flow v1.2.0)。文档导航与机器总账位于 [docs/README.md](docs/README.md) 与 [docs/index.json](docs/index.json)。首次初始化后，日常研发遵循本项目内规范；仅在希望同步新版治理规范时再次调用 `$ad-flow` 或 `/ad-flow`。
+<!-- @ad-flow: initialized v1.4.0 -->
+> oh-my-tab 研发与 AI 协作规范 (ad-flow v1.4.0)。文档导航与机器总账位于 [docs/README.md](docs/README.md) 与 [docs/index.json](docs/index.json)。首次初始化后，日常研发遵循本项目内规范；仅在希望同步新版治理规范时再次调用 `$ad-flow` 或 `/ad-flow`。
 
 ## 执行入口与规则作用范围
 
@@ -33,6 +33,9 @@
 
 > ⚠️ **【绝对红线·收口门禁】(INV_ADFLOW_VERIFY_GATE)**：
 > 任何卡片置为终态（变更 `closed` / 任务 `completed`）前，**必须运行 `scripts/adflow-verify` 且退出码为 0**，并以 `--record` 将真实结果回写至本卡 `gate` 块。校验器 Exit 4（确定性违规：关联 README、缺 `@topic` 锚标、证据锚缺失、commit 非祖先、零沉淀、拓扑未闭环、版本漂移等）时，**严禁收口/合入**；声称 `gate.exit_code==0` 但实测违规将被判 `GATE_CLAIM_CONTRADICTION`。校验器是仓库内可见、版本化资产，会话内可随时运行（`--warn-only` 供试点期降级为告警）；`$ad-flow` 初始化/升级时以 `--mode init` 跑一次骨架 DoD。
+
+> ⚠️ **【绝对红线·发版与归档门禁】(INV_RELEASE_ARCHIVE_GATE)**：
+> 打 Git Tag、对外发布、或将任何卡片移入 `docs/archive/` 之前，**本发布批次（按卡片 `version` 与发布范围核定）内的全部 C 卡必须已 `closed`、全部 T 卡必须已 `completed`，且普通校验 `scripts/adflow-verify` 退出码为 0**（Exit 0 本身不证明批次终态，须逐卡核定）。**严禁将非终态卡（`draft/pending/in_progress/verified/rejected`）移入归档区**；批次内存在未收口卡时，先收口或显式延后到下一批次，不得冻结未收口状态。标准顺序：**收口（closed/completed）→ 普通校验 Exit 0 → 归档移动 + 总账路径更新 → 复核校验再次 Exit 0 → 打 Tag / CHANGELOG 定稿**。归档区出现非终态卡将被判 `ARCHIVE_NON_TERMINAL` 确定性违规；Exit 4 期间禁止发布、归档与主干合入。推送、部署等外部动作仍需独立授权，发版紧迫性不扩大权限。历史批次账实不符的修复按 [归档 README](docs/archive/README.md)「历史批次账实修复」流程由人工定口径处置。
 
 ### 1. 功能设计入口 (新功能 / 大需求 / 阶段里程碑)
 1. **方向登记**：在 `docs/devel/todo/` 登记方向级灵感与事项；
@@ -113,7 +116,7 @@
    - 文档引用的架构图、流程图、原型图，以及 App 界面截图和文档视觉素材统一存放在 `docs/assets/`；项目运行时加载的资源遵循实际构建契约，不因文档治理迁移其加载路径；
    - 文件命名必须遵循语义化连字符命名（如 `arch-overview.svg`、`ui-login.png`），严禁在项目根目录、源码目录或各级文档子目录中随意散落图片文件；
    - 图片入库前必须经过合理压缩，优先采用矢量图（`.svg`），单张原则上不超过 2MB。
-5. **发版归档 SOP**：发版封箱时，将本版本完成的卡片统一移入 `docs/archive/<版本号>/`，刷新 `index.json` 中的物理路径映射，并打出对应 Git Tag（如 `git tag -a v0.1.0 -m "Release v0.1.0"`）。
+5. **发版归档 SOP（受发版与归档门禁约束）**：发版封箱前先核定本批次范围，确认 C 卡均 `closed`、T 卡均 `completed` 且普通校验 Exit 0，再按 [归档操作](docs/archive/README.md) 移动卡片、刷新 `index.json` 物理路径映射并复核校验，最后打出对应 Git Tag（如 `git tag -a v0.1.0 -m "Release v0.1.0"`）。**严禁将非终态卡移入归档区**；历史批次账实不符的修复按归档 README「历史批次账实修复」流程由人工定口径处置。
 
 ---
 

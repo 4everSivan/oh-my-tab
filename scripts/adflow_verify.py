@@ -13,6 +13,9 @@
   * 只读；除非 --record（可用 --card 限定回写范围）。
   * --card ID --to STATE 仅在内存预检目标状态，不代替人工验收或修改状态。
   * 新增 ADVISORY 诊断不影响退出码，保持既有门禁标准。
+  * 归档区只允许终态卡：非 closed/completed 即 ARCHIVE_NON_TERMINAL 确定性违规
+    （v1.1.0 起既有归档前置的机器覆盖；历史冻结卡由人工口径处置，见归档 README）。
+  * 里程碑标记与成员任务状态矛盾仅旁路观察（MILESTONE_STATUS_DRIFT）。
   * gate 证伪：声称 exit_code==0 的终态卡，会被独立复算，矛盾即 GATE_CLAIM_CONTRADICTION。
 
 用法：
@@ -27,7 +30,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-VERSION = "1.2.0"
+VERSION = "1.4.0"
 
 # ---- 常量 ----
 TOPIC_RE = re.compile(r"<!--\s*@topic:\s*([A-Za-z0-9_]+)\s*-->")
@@ -339,8 +342,43 @@ def check_card(ctx, card, cid, rel, track):
                      "卡片声称 gate.exit_code==0，但实测存在硬违规（伪造/漏跑门禁）")
 
 
+def check_legacy_templates(ctx):
+    idx = ctx.load_json("docs/index.json") or {}
+    if "standards" in idx:
+        for legacy in (LEGACY_FILES["docs/standards/change-template.json"],
+                       LEGACY_FILES["docs/standards/task-template.json"]):
+            if ctx.exists(legacy):
+                ctx.hard("LEGACY_TEMPLATE_EXISTS", None, legacy,
+                         "已启用 standards 规范，旧模板 %s 必须删除" % legacy)
+
+
+def check_milestones(ctx):
+    """里程碑标记与成员任务状态矛盾时旁路观察，不提高硬门槛。"""
+    idx_rel = "docs/devel/task/index.json"
+    idx = ctx.load_json(idx_rel) or {}
+    milestones = idx.get("milestones")
+    if not isinstance(milestones, dict):
+        return
+    reg = idx.get("tasks", idx.get("cards", {}))
+    if not isinstance(reg, dict):
+        reg = {}
+    for mid, m in milestones.items():
+        # list 型里程碑（仅成员清单、无状态字段）没有可矛盾的状态标记，跳过。
+        if not (isinstance(m, dict) and m.get("status") == "completed"):
+            continue
+        for cid, ent in reg.items():
+            if (isinstance(ent, dict) and ent.get("milestone") == mid
+                    and ent.get("status") is not None
+                    and ent.get("status") != "completed"):
+                ctx.advisory("MILESTONE_STATUS_DRIFT", cid, idx_rel,
+                             "里程碑 %s 标记 completed，但该任务状态为 %r（里程碑须与成员卡对齐）"
+                             % (mid, ent.get("status")))
+
+
 # ---- 全局检查 ----
 def check_globals(ctx):
+    check_legacy_templates(ctx)
+    check_milestones(ctx)
     # P11 零沉淀：todo 行内含已存在卡号
     for todo in ("docs/devel/todo/now.md", "docs/devel/todo/future.md"):
         txt = ctx.read_text(todo)
@@ -453,6 +491,12 @@ def collect_cards(ctx):
             if not check_card_shape(ctx, card, actual_id, rel, full=not archived):
                 continue
             check_status(ctx, card, actual_id, rel, track)
+            # 归档区只允许终态卡：这是 v1.1.0 起既有归档前置的机器覆盖，非新增追溯门槛。
+            if archived and card.get("status") in STATUSES[track] \
+                    and card.get("status") not in CLOSED:
+                ctx.hard("ARCHIVE_NON_TERMINAL", actual_id, rel,
+                         "归档卡处于非终态 %r（归档前置：C 卡 closed / T 卡 completed；"
+                         "历史冻结卡按归档 README「历史批次账实修复」人工处置）" % card.get("status"))
             if actual_id != cid:
                 ctx.hard("INDEX_ID_DRIFT", cid, idx_rel,
                          "索引 %s 指向了身份为 %s 的卡片: %s" % (cid, actual_id, f))
@@ -586,6 +630,7 @@ def run_init(ctx):
             ctx.load_json(rel)
     if ctx.exists(PLACEHOLDER):
         ctx.hard("PLACEHOLDER_DESIGN_EXISTS", None, PLACEHOLDER, "存在禁用占位设计文档")
+    check_legacy_templates(ctx)
     check_version(ctx, required=True)
 
 

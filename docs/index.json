@@ -1,9 +1,9 @@
 {
   "$schema": "adflow-docs-index-v1",
   "project": "oh-my-tab",
-  "adflow_version": "1.2.0",
+  "adflow_version": "1.4.0",
   "created": "2026-10-07",
-  "last_change": "2026-10-13",
+  "last_change": "2026-10-14",
   "status": "active",
   "description": "工程顶层文档中枢路由表，定义各子系统的边界与机器访问入口",
   "directories": [
