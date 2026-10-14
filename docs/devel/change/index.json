@@ -65,7 +65,8 @@
       "design_doc": "docs/devel/design/07-动效系统.md",
       "changes": [
         "C007",
-        "C008"
+        "C008",
+        "C029"
       ]
     }
   },
@@ -341,6 +342,15 @@
       "topic": "SystemOverview",
       "created": "2026-10-13",
       "file": "docs/devel/change/C028.json"
+    },
+    "C029": {
+      "title": "新标签页启动速度与加载动效性能优化：消除关键帧GPU滤镜卡顿、动效节奏提速、首屏零延迟防白屏与异步分包",
+      "type": "BugFix",
+      "status": "in_progress",
+      "branch": "fix/C029-startup-speed-and-motion-optimization",
+      "topic": "MotionSystem",
+      "created": "2026-10-14",
+      "file": "docs/devel/change/C029.json"
     }
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import {
   storageService,
   getBootCache,
@@ -18,12 +18,8 @@ import {
 import { Clock } from './components/clock/Clock';
 import { SearchBar, SEARCH_ENGINES } from './components/search/SearchBar';
 import { Shortcuts } from './components/shortcuts/Shortcuts';
-import { ShortcutsHelpModal } from './components/shortcuts/ShortcutsHelpModal';
 import { GridContainer } from './components/layout/GridContainer';
-import { AppearanceDrawer } from './components/settings/AppearanceDrawer';
-import { FeedSidebar } from './components/feed/FeedSidebar';
 import { feedService, FeedItem, FeedSource } from './services/feed';
-import { AddWidgetModal } from './components/widgets/AddWidgetModal';
 import { WidgetManifest } from './contract/types';
 import { createWidgetInstance } from './contract/widget';
 import { planBackgroundRestore } from './utils/background';
@@ -31,6 +27,20 @@ import { planBackgroundRestore } from './utils/background';
 import { useAdaptiveContrast } from './hooks/useAdaptiveContrast';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { SlidersHorizontal, Plus, Keyboard, Bell } from 'lucide-react';
+
+// 异步代码分割 (C029): 将非首屏重度浮层抽离主 bundle，削减首次加载 JS 体积与解析耗时
+const AppearanceDrawer = lazy(() =>
+  import('./components/settings/AppearanceDrawer').then((m) => ({ default: m.AppearanceDrawer }))
+);
+const FeedSidebar = lazy(() =>
+  import('./components/feed/FeedSidebar').then((m) => ({ default: m.FeedSidebar }))
+);
+const AddWidgetModal = lazy(() =>
+  import('./components/widgets/AddWidgetModal').then((m) => ({ default: m.AddWidgetModal }))
+);
+const ShortcutsHelpModal = lazy(() =>
+  import('./components/shortcuts/ShortcutsHelpModal').then((m) => ({ default: m.ShortcutsHelpModal }))
+);
 
 export const App: React.FC = () => {
   // 同步启动快照 (C015)：首帧直接读出用户缓存的真实配置，杜绝默认纯色与默认圆角在首帧闪跳
@@ -120,15 +130,16 @@ export const App: React.FC = () => {
         }
       }
 
-      setClock(c);
-      setSearch(s);
-      setEngine(e);
-      setBackground(finalBackground);
-      setShortcuts(sc);
-      if (sg && sg.length > 0) setShortcutGroups(sg);
-      if (agId) setActiveShortcutGroupId(agId);
-      setLayout(l);
-      if (skEnabled !== undefined) setShortcutKeysEnabledState(skEnabled);
+      // 深度比对优化 (C029): 若与 boot 快照一致，跳过冗余 setState，杜绝入场动效期间全树 Re-render 掉帧
+      if (JSON.stringify(c) !== JSON.stringify(boot?.clock)) setClock(c);
+      if (JSON.stringify(s) !== JSON.stringify(boot?.search)) setSearch(s);
+      if (e !== boot?.engine) setEngine(e);
+      if (JSON.stringify(finalBackground) !== JSON.stringify(boot?.background)) setBackground(finalBackground);
+      if (JSON.stringify(sc) !== JSON.stringify(boot?.shortcuts)) setShortcuts(sc);
+      if (sg && sg.length > 0 && JSON.stringify(sg) !== JSON.stringify(boot?.shortcutGroups)) setShortcutGroups(sg);
+      if (agId && agId !== boot?.activeShortcutGroupId) setActiveShortcutGroupId(agId);
+      if (JSON.stringify(l) !== JSON.stringify(boot?.layout)) setLayout(l);
+      if (skEnabled !== undefined && skEnabled !== boot?.shortcutKeysEnabled) setShortcutKeysEnabledState(skEnabled);
     }
     loadAll();
 
@@ -166,6 +177,31 @@ export const App: React.FC = () => {
     };
   }, []);
 
+  // 空闲时预加载浮层模块，确保用户点击时 0ms 秒开 (C029)
+  useEffect(() => {
+    const preload = () => {
+      import('./components/settings/AppearanceDrawer');
+      import('./components/feed/FeedSidebar');
+      import('./components/widgets/AddWidgetModal');
+      import('./components/shortcuts/ShortcutsHelpModal');
+    };
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const win = window as unknown as {
+        requestIdleCallback: (cb: () => void) => number;
+        cancelIdleCallback: (id: number) => void;
+      };
+      const handle = win.requestIdleCallback(preload);
+      return () => {
+        if ('cancelIdleCallback' in window) {
+          win.cancelIdleCallback(handle);
+        }
+      };
+    } else {
+      const timer = setTimeout(preload, 500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   // 刷新所有订阅源 (T18)
   const handleRefreshFeeds = useCallback(async () => {
     setIsFeedRefreshing(true);
@@ -181,7 +217,7 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // 订阅源与文章缓存初次加载 (T18)
+  // 订阅源与文章缓存初次加载 (T18 & C029: 延迟非关键后台任务让行首屏关键动效)
   useEffect(() => {
     let active = true;
     async function initFeeds() {
@@ -194,8 +230,10 @@ export const App: React.FC = () => {
       if (cached && cached.length > 0) {
         setFeeds(cached);
       } else {
-        // 首次启动静默初始化刷新
-        handleRefreshFeeds();
+        // 首次启动静默初始化刷新：让行首屏关键动效 (C029)
+        window.setTimeout(() => {
+          if (active) handleRefreshFeeds();
+        }, 300);
       }
     }
     initFeeds();
@@ -684,54 +722,62 @@ export const App: React.FC = () => {
       </footer>
 
       {/* Appearance Settings Drawer */}
-      <AppearanceDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        clock={clock}
-        search={search}
-        background={background}
-        shortcutKeysEnabled={shortcutKeysEnabled}
-        onUpdateClock={handleUpdateClock}
-        onResetClock={handleResetClock}
-        onUpdateSearch={handleUpdateSearch}
-        onResetSearch={handleResetSearch}
-        onUpdateBackground={handleUpdateBackground}
-        onResetBackground={handleResetBackground}
-        onUpdateShortcutKeysEnabled={handleUpdateShortcutKeysEnabled}
-      />
+      <Suspense fallback={null}>
+        <AppearanceDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          clock={clock}
+          search={search}
+          background={background}
+          shortcutKeysEnabled={shortcutKeysEnabled}
+          onUpdateClock={handleUpdateClock}
+          onResetClock={handleResetClock}
+          onUpdateSearch={handleUpdateSearch}
+          onResetSearch={handleResetSearch}
+          onUpdateBackground={handleUpdateBackground}
+          onResetBackground={handleResetBackground}
+          onUpdateShortcutKeysEnabled={handleUpdateShortcutKeysEnabled}
+        />
+      </Suspense>
 
       {/* Feed Sidebar Drawer (T17 & T18) */}
-      <FeedSidebar
-        isOpen={isFeedSidebarOpen}
-        onClose={() => setIsFeedSidebarOpen(false)}
-        feeds={feeds}
-        sources={feedSources}
-        isRefreshing={isFeedRefreshing}
-        onRefresh={handleRefreshFeeds}
-        onToggleRead={handleToggleFeedRead}
-        onMarkRead={handleMarkFeedRead}
-        onMarkAllRead={handleMarkAllFeedsRead}
-        onAddSource={handleAddFeedSource}
-        onToggleSource={handleToggleFeedSource}
-        onDeleteSource={handleDeleteFeedSource}
-        onResetDefaultSources={handleResetDefaultSources}
-        onImportOpml={handleImportOpml}
-        onExportOpml={handleExportOpml}
-      />
+      <Suspense fallback={null}>
+        <FeedSidebar
+          isOpen={isFeedSidebarOpen}
+          onClose={() => setIsFeedSidebarOpen(false)}
+          feeds={feeds}
+          sources={feedSources}
+          isRefreshing={isFeedRefreshing}
+          onRefresh={handleRefreshFeeds}
+          onToggleRead={handleToggleFeedRead}
+          onMarkRead={handleMarkFeedRead}
+          onMarkAllRead={handleMarkAllFeedsRead}
+          onAddSource={handleAddFeedSource}
+          onToggleSource={handleToggleFeedSource}
+          onDeleteSource={handleDeleteFeedSource}
+          onResetDefaultSources={handleResetDefaultSources}
+          onImportOpml={handleImportOpml}
+          onExportOpml={handleExportOpml}
+        />
+      </Suspense>
 
       {/* Add Widget Modal */}
-      <AddWidgetModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        layout={layout}
-        onAddWidget={handleAddWidget}
-      />
+      <Suspense fallback={null}>
+        <AddWidgetModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          layout={layout}
+          onAddWidget={handleAddWidget}
+        />
+      </Suspense>
 
       {/* Shortcuts Help Modal */}
-      <ShortcutsHelpModal
-        isOpen={isHelpOpen}
-        onClose={() => setIsHelpOpen(false)}
-      />
+      <Suspense fallback={null}>
+        <ShortcutsHelpModal
+          isOpen={isHelpOpen}
+          onClose={() => setIsHelpOpen(false)}
+        />
+      </Suspense>
     </div>
   );
 };

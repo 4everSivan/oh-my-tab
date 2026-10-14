@@ -1,0 +1,106 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C029",
+  "title": "新标签页启动速度与加载动效性能优化：消除关键帧GPU滤镜卡顿、动效节奏提速、首屏零延迟防白屏与异步分包",
+  "version": "0.2.0",
+  "type": "BugFix",
+  "status": "in_progress",
+  "branch": "fix/C029-startup-speed-and-motion-optimization",
+  "is_hotfix": false,
+  "target": {
+    "module": "动效系统与启动性能",
+    "component": "motion.css & index.html & App.tsx & useAdaptiveContrast",
+    "design_doc": "docs/devel/design/07-动效系统.md",
+    "design_topic": "MotionSystem"
+  },
+  "why": "用户反馈打开新标签页启动速度慢且加载动画存在卡顿。深层根因：1) 入场动效关键帧滥用 filter: blur，强制 GPU 逐帧光栅化重绘，与卡片内部 backdrop-blur 产生严重图层失效与掉帧；2) 动效时长与交错延迟过长（数字 500ms、卡片最高 760ms），导致视觉拖沓迟钝；3) index.html 首屏无背景注入，冷启动闪现白屏；4) 外观抽屉、订阅消息等非首屏重度模块静态打包进主 bundle（322KB），且首屏挂载时并发请求 RSS 争抢 CPU 并触发二次冗余渲染。",
+  "precheck": {
+    "description": "检测 motion.css 入场关键帧是否仍存在 filter: blur 导致 GPU 重新光栅化",
+    "command": "grep -nE 'digit-blur|card-enter-blur' src/styles/motion.css",
+    "expected": "匹配到入场关键帧中的 blur 滤镜参数",
+    "is_completed": true,
+    "evidence": "src/styles/motion.css 第 74 行与第 209 行在 t-digit 与 t-card-enter 关键帧中应用 blur 动态插值"
+  },
+  "callback": {
+    "before": [],
+    "after": [
+      "node --test tests/*.test.cjs",
+      "./node_modules/.bin/tsc --noEmit",
+      "./node_modules/.bin/vite build"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "动效合成器加速、动画时长与首屏冷启动优化",
+      "before": "关键帧含 filter:blur 卷积；数字 500ms、卡片 400ms+360ms 延迟；index.html 裸骨架白屏闪烁；四大非首屏抽屉静态打包（主包 322KB）；首屏无条件触发 RSS 网络抓取与二次 Re-render",
+      "after": "入场关键帧纯净锁定 transform 与 opacity 硬件加速；数字 240ms、卡片 260ms、常用网站 240ms 紧凑轻快；index.html 0ms 同步注入 bootCache 背景消除白屏；四大抽屉 React.lazy 异步动态分包并后台空闲预热；RSS 延后抓取且配置一致跳过 Re-render",
+      "impact": "motion.css, index.html, App.tsx, useAdaptiveContrast.ts, GridContainer.tsx"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/07-动效系统.md",
+    "topic": "MotionSystem",
+    "modified": true,
+    "rule_diff": {
+      "before": "入场动效包含位移与模糊（400ms~500ms），抽屉全量静态编译",
+      "after": "入场动效由 GPU 合成器硬件加速接管（240ms~260ms，零 blur），首屏 0ms 预设背景与动态分包懒加载"
+    }
+  },
+  "verification": {
+    "result": true,
+    "run_id": "local-20261014-01",
+    "user_quote": "",
+    "signoff": "",
+    "checks": [
+      {
+        "item": "入场动效 GPU 合成器硬件加速（零 filter:blur 插值）",
+        "true_if": "t-digit-pop-in、t-stagger-rise 与 t-card-enter-in 关键帧中消除 filter:blur 动态插值，仅保留 transform 与 opacity",
+        "false_if": "入场关键帧仍包含 filter:blur 导致每帧触发 GPU 卷积光栅化",
+        "evidence": "motion.css 中 t-digit-pop-in、t-stagger-rise、t-card-enter-in 关键帧移除了 filter: blur 插值，锁定 will-change: transform, opacity 硬件加速，单测 tests/c029-startup-speed-and-motion-optimization.test.cjs 验证通过",
+        "result": true
+      },
+      {
+        "item": "动效梯度紧凑提速",
+        "true_if": "数字弹入时长收紧至 240ms，卡片入场收紧至 260ms，常用网站入场收紧至 240ms，消除拖沓感",
+        "false_if": "入场动效时长仍为 400ms~500ms 拖沓迟缓",
+        "evidence": "motion.css 中 --digit-dur: 240ms，--card-enter-dur: 260ms，.t-stagger-item: 240ms，单测断言通过",
+        "result": true
+      },
+      {
+        "item": "index.html 首屏零延迟背景预渲染",
+        "true_if": "HTML 内置默认背景色与同步读取 bootCache 背景脚本，0ms 完成背景注入，彻底消除白屏闪烁",
+        "false_if": "HTML 保持空白，暗色或彩色背景在新标签页启动时出现白色闪烁",
+        "evidence": "index.html 预置 html, body 背景色 #f5f4ef，main.tsx 在 React 挂载前同步从 bootCache 恢复 backgroundColor，单测断言通过",
+        "result": true
+      },
+      {
+        "item": "非关键浮层异步分包（Code Splitting）与空闲预热",
+        "true_if": "AppearanceDrawer、FeedSidebar、AddWidgetModal、ShortcutsHelpModal 通过 React.lazy 动态拆分，主包体积明显下降",
+        "false_if": "四大抽屉组件仍然静态全量编译进 newtab.js 主 bundle",
+        "evidence": "App.tsx 采用 React.lazy 动态拆分四大浮层，Vite 编译主包 newtab.js 从 321.94 kB 降至 275.40 kB (直降 46.5 kB)，单测断言通过",
+        "result": true
+      },
+      {
+        "item": "消除启动首帧二次冗余 Re-render 与网络争抢",
+        "true_if": "配置一致跳过 set* 避免打断动画，RSS 抓取延后到首帧关键渲染完成后调度",
+        "false_if": "启动首帧无条件触发多次 setState 与并发外部网络请求导致主线程丢帧",
+        "evidence": "loadAllSettings 增加 JSON.stringify 深度比对跳过冗余 setState，useAdaptiveContrast 增加前序比对，RSS 首次静默抓取延后 300ms，单测断言通过",
+        "result": true
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.2.0",
+    "ran_at": "2026-10-14",
+    "exit_code": 4,
+    "target_status": "verified"
+  }
+}

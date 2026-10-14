@@ -79,19 +79,28 @@ export function useAdaptiveContrast(
         ? [232, 238, 245]
         : [245, 244, 239];
       const searchRes = chooseSearchForegroundWithProtection([baseRgb], LIGHT_RGB, transparency);
-      setResult({
-        clock: {
-          textColor: isDark ? '#ffffff' : '#141c20',
-          tone: isDark ? 'light' : 'dark',
-          contrast: isDark ? 16.8 : 15.6,
-          shadowProtection: 'none',
-        },
-        search: {
-          textColor: searchRes.color,
-          tone: searchRes.tone,
-          contrast: searchRes.minContrast,
-          shadowProtection: searchRes.shadowProtection,
-        },
+      setResult((prev) => {
+        if (
+          prev.clock.tone === (isDark ? 'light' : 'dark') &&
+          prev.search.textColor === searchRes.color &&
+          prev.search.tone === searchRes.tone
+        ) {
+          return prev;
+        }
+        return {
+          clock: {
+            textColor: isDark ? '#ffffff' : '#141c20',
+            tone: isDark ? 'light' : 'dark',
+            contrast: isDark ? 16.8 : 15.6,
+            shadowProtection: 'none',
+          },
+          search: {
+            textColor: searchRes.color,
+            tone: searchRes.tone,
+            contrast: searchRes.minContrast,
+            shadowProtection: searchRes.shadowProtection,
+          },
+        };
       });
       return;
     }
@@ -102,19 +111,29 @@ export function useAdaptiveContrast(
       const shadedRgb = blend(baseRgb, [0, 0, 0], (background.shade || 0) / 100);
       const clockRes = chooseFloatingForegroundWithProtection([shadedRgb]);
       const searchRes = chooseSearchForegroundWithProtection([shadedRgb], LIGHT_RGB, transparency);
-      setResult({
-        clock: {
-          textColor: clockRes.color,
-          tone: clockRes.tone,
-          contrast: clockRes.minContrast,
-          shadowProtection: clockRes.shadowProtection,
-        },
-        search: {
-          textColor: searchRes.color,
-          tone: searchRes.tone,
-          contrast: searchRes.minContrast,
-          shadowProtection: searchRes.shadowProtection,
-        },
+      setResult((prev) => {
+        if (
+          prev.clock.textColor === clockRes.color &&
+          prev.clock.tone === clockRes.tone &&
+          prev.search.textColor === searchRes.color &&
+          prev.search.tone === searchRes.tone
+        ) {
+          return prev;
+        }
+        return {
+          clock: {
+            textColor: clockRes.color,
+            tone: clockRes.tone,
+            contrast: clockRes.minContrast,
+            shadowProtection: clockRes.shadowProtection,
+          },
+          search: {
+            textColor: searchRes.color,
+            tone: searchRes.tone,
+            contrast: searchRes.minContrast,
+            shadowProtection: searchRes.shadowProtection,
+          },
+        };
       });
       return;
     }
