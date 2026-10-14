@@ -1,0 +1,109 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C030",
+  "title": "修复修饰键组合方向键被常用网站翻页抢占，恢复浏览器原生页面前进/后退",
+  "version": "0.3.0",
+  "type": "BugFix",
+  "status": "in_progress",
+  "branch": "fix/C030-modifier-key-arrow-guard",
+  "is_hotfix": false,
+
+  "target": {
+    "module": "页面入口与导航",
+    "component": "常用网站快捷调度 (Shortcuts)",
+    "design_doc": "docs/devel/design/01-页面入口与导航.md",
+    "design_topic": "EntryNavigation"
+  },
+
+  "why": "现象：主页按住 Command 再按左右方向键时，用户期望触发浏览器原生页面前进/后退，实际却切换了常用网站图标页。根因：常用网站翻页的全局 keydown 处理器仅判断 e.key 是否为 ArrowLeft/ArrowRight，未过滤 metaKey/ctrlKey/altKey/shiftKey，任何修饰键组合都被当作纯方向键翻页，并以 e.preventDefault() 吞掉浏览器原生导航；同时该处理器内联的输入态守卫只覆盖 input/textarea/contentEditable，未覆盖 select，下拉控件聚焦时方向键同样被抢占。",
+
+  "precheck": {
+    "description": "确认缺陷存在：翻页处理器缺少修饰键守卫与 select 覆盖",
+    "command": "grep -n \"e.key === 'ArrowRight'\" -B 20 src/components/shortcuts/Shortcuts.tsx",
+    "expected": "命中 ArrowRight 分支，且其上方守卫仅含 INPUT/TEXTAREA/isContentEditable 判断，全文无 metaKey/ctrlKey/altKey/shiftKey 过滤",
+    "is_completed": false,
+    "evidence": ""
+  },
+
+  "callback": {
+    "before": [
+      "git checkout -b fix/C030-modifier-key-arrow-guard",
+      "grep -n \"metaKey\\|ctrlKey\\|altKey\\|shiftKey\" src/components/shortcuts/Shortcuts.tsx"
+    ],
+    "after": [
+      "npm test  # 全量单测（含 C030 回归）",
+      "npx tsc --noEmit  # 类型检查",
+      "scripts/adflow-verify --card C030 --to verified --record"
+    ]
+  },
+
+  "changes": [
+    {
+      "scope": "键盘事件契约（常用网站翻页）",
+      "before": "全局 keydown 命中 ArrowLeft/ArrowRight 即翻页并 preventDefault()，不区分是否携带修饰键",
+      "after": "在 Escape 分支之后、方向键分支之前加入修饰键守卫：metaKey/ctrlKey/altKey/shiftKey 任一为真即直接返回，不翻页也不拦截浏览器行为",
+      "impact": "首页常用网站翻页；浏览器原生 Command+←/→（页面前进/后退）、Alt+←/→ 与 Shift+←/→（文本选择）恢复接管"
+    },
+    {
+      "scope": "输入态守卫覆盖面",
+      "before": "处理器内联判断 e.target.tagName 是否为 INPUT/TEXTAREA 或 isContentEditable",
+      "after": "复用 useKeyboardShortcuts 导出的 isEditableElement 统一判定，额外覆盖 select 下拉控件",
+      "impact": "外观设置与订阅源等下拉控件聚焦时，方向键恢复原生选项切换，不再触发翻页"
+    }
+  ],
+
+  "design": {
+    "doc": "docs/devel/design/01-页面入口与导航.md",
+    "topic": "EntryNavigation",
+    "modified": true,
+    "rule_diff": {
+      "before": "键盘方向键翻页 (C018)：当页面处于非文本输入状态（焦点不在任何 input/textarea）时，全局支持按方向键 ArrowRight (➡️) 切换至下一页、ArrowLeft (⬅️) 切换至上一页",
+      "after": "键盘方向键翻页 (C018, C030)：仅在非编辑/选择状态（焦点不在 input/textarea/select/contentEditable）且不携带任何修饰键（Command/Ctrl/Alt/Shift）时，纯方向键 ArrowRight (➡️)/ArrowLeft (⬅️) 才切换下一页/上一页；修饰键组合交还浏览器原生行为（页面前进/后退、文本选择），严禁 preventDefault 抢占"
+    }
+  },
+
+  "verification": {
+    "result": null,
+    "run_id": "",
+    "user_quote": "",
+    "signoff": "",
+    "checks": [
+      {
+        "item": "自动化测试",
+        "true_if": "全量单测全绿、退出码为 0，且含 C030 专门回归（修饰键组合不翻页且不 preventDefault，纯方向键仍翻页，select 聚焦不翻页）",
+        "false_if": "存在任何测试失败、报错或缺少上述回归用例",
+        "evidence": "",
+        "result": null
+      },
+      {
+        "item": "行为实测",
+        "true_if": "真实标签页中 Command+←/→ 不再切换网站图标页，浏览器前进/后退由原生接管；纯 ←/→ 仍正常翻页",
+        "false_if": "Command+方向键仍触发翻页，或浏览器原生导航仍被吞掉，或纯方向键翻页失效",
+        "evidence": "",
+        "result": null
+      },
+      {
+        "item": "反向影响排查",
+        "true_if": "Escape 收起文件夹、Command+1~6 直达、滚轮翻页、指示器键帽点击与搜索框内方向键联想导航均不受影响",
+        "false_if": "破坏上述任一交互或产生连锁反应",
+        "evidence": "",
+        "result": null
+      }
+    ]
+  },
+
+  "rejections": [],
+
+  "sync": {
+    "design_pinned": false,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.2.0",
+    "ran_at": "",
+    "exit_code": null
+  }
+}

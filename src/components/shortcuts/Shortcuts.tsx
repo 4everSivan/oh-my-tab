@@ -152,17 +152,11 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
     }
   }, [totalPages, pageIndex]);
 
-  // 全局非输入态键盘左右方向键 ⬅️ / ➡️ 翻页调度 (T14 & C018)
+  // 全局键盘左右方向键 ⬅️ / ➡️ 翻页调度 (T14 & C018 & C030)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 避免在用户编辑表单输入时触发翻页
-      const target = e.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable)
-      ) {
+      // 避免在用户编辑表单或下拉选择时触发翻页 (C030: 复用统一编辑元素判定，额外覆盖 select)
+      if (isEditableElement(e.target)) {
         return;
       }
 
@@ -170,6 +164,12 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
         if (expandedFolderId) {
           setExpandedFolderId(null);
         }
+        return;
+      }
+
+      // 修饰键组合（Command/Ctrl/Alt/Shift + 方向键）交还浏览器原生行为：
+      // 页面前进/后退与文本选择，既不翻页也不 preventDefault (C030)
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) {
         return;
       }
 
