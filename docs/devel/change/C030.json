@@ -4,19 +4,16 @@
   "title": "修复修饰键组合方向键被常用网站翻页抢占，恢复浏览器原生页面前进/后退",
   "version": "0.3.0",
   "type": "BugFix",
-  "status": "in_progress",
+  "status": "verified",
   "branch": "fix/C030-modifier-key-arrow-guard",
   "is_hotfix": false,
-
   "target": {
     "module": "页面入口与导航",
     "component": "常用网站快捷调度 (Shortcuts)",
     "design_doc": "docs/devel/design/01-页面入口与导航.md",
     "design_topic": "EntryNavigation"
   },
-
   "why": "现象：主页按住 Command 再按左右方向键时，用户期望触发浏览器原生页面前进/后退，实际却切换了常用网站图标页。根因：常用网站翻页的全局 keydown 处理器仅判断 e.key 是否为 ArrowLeft/ArrowRight，未过滤 metaKey/ctrlKey/altKey/shiftKey，任何修饰键组合都被当作纯方向键翻页，并以 e.preventDefault() 吞掉浏览器原生导航；同时该处理器内联的输入态守卫只覆盖 input/textarea/contentEditable，未覆盖 select，下拉控件聚焦时方向键同样被抢占。",
-
   "precheck": {
     "description": "确认缺陷存在：翻页处理器缺少修饰键守卫与 select 覆盖",
     "command": "grep -n \"e.key === 'ArrowRight'\" -B 20 src/components/shortcuts/Shortcuts.tsx",
@@ -24,7 +21,6 @@
     "is_completed": false,
     "evidence": "2026-10-14 precheck 命中缺陷：Shortcuts.tsx:176 的 ArrowRight 分支上方仅有 INPUT/TEXTAREA/isContentEditable 守卫（无修饰键过滤），文件内 3 处 metaKey/ctrlKey 全部位于 ⌘1~6 直达处理器；对 HEAD 版本处理器做 VM 回放（起始 pageIndex=1/totalPages=3）实测：纯 ArrowLeft → prevented=true pageUpdates=[0]；⌘+ArrowLeft → prevented=true pageUpdates=[0]；⌘+ArrowRight → prevented=true pageUpdates=[2]；⌥+ArrowRight → prevented=true pageUpdates=[2]，与用户上报现象一致（缺陷未修复）。"
   },
-
   "callback": {
     "before": [
       "git checkout -b fix/C030-modifier-key-arrow-guard",
@@ -36,7 +32,6 @@
       "scripts/adflow-verify --card C030 --to verified --record"
     ]
   },
-
   "changes": [
     {
       "scope": "键盘事件契约（常用网站翻页）",
@@ -51,7 +46,6 @@
       "impact": "外观设置与订阅源等下拉控件聚焦时，方向键恢复原生选项切换，不再触发翻页"
     }
   ],
-
   "design": {
     "doc": "docs/devel/design/01-页面入口与导航.md",
     "topic": "EntryNavigation",
@@ -61,12 +55,11 @@
       "after": "键盘方向键翻页 (C018, C030)：仅在非编辑/选择状态（焦点不在 input/textarea/select/contentEditable）且不携带任何修饰键（Command/Ctrl/Alt/Shift）时，纯方向键 ArrowRight (➡️)/ArrowLeft (⬅️) 才切换下一页/上一页；修饰键组合交还浏览器原生行为（页面前进/后退、文本选择），严禁 preventDefault 抢占"
     }
   },
-
   "verification": {
-    "result": null,
+    "result": true,
     "run_id": "local-20261014-20",
-    "user_quote": "",
-    "signoff": "",
+    "user_quote": "确认收口（2026-10-14 会话中人类针对 AI 提出的「请在真实标签页按一次 ⌘+←/→ 确认并授权合入收口」作出的原话回应，随后指示继续推进收口）",
+    "signoff": "human_approved",
     "checks": [
       {
         "item": "自动化测试",
@@ -79,8 +72,8 @@
         "item": "行为实测",
         "true_if": "真实标签页中 Command+←/→ 不再切换网站图标页，浏览器前进/后退由原生接管；纯 ←/→ 仍正常翻页",
         "false_if": "Command+方向键仍触发翻页，或浏览器原生导航仍被吞掉，或纯方向键翻页失效",
-        "evidence": "浏览器实测（http://localhost:5173，预置 8 个网站构成 2 页）：纯 ArrowRight → defaultPrevented=true 且页码 0→1；纯 ArrowLeft → 页码 1→0；⌘+ArrowLeft → defaultPrevented=false 且页码不变；⌘+ArrowRight → defaultPrevented=false 且页码不变；⌥+ArrowLeft、⇧+ArrowRight → 同上不翻页不拦截。补充说明：自动化通道的真实按键注入（cua/locator press）在本环境未能送达页面（连纯方向键都无响应），故上述为页面内真实 DOM 事件经应用实际处理器链路的证据；OS 级 ⌘+←/→ 触发 Chrome 原生前进/后退需在人工验收时手工按一次确认（新标签页本身无历史时浏览器不做导航属正常）。",
-        "result": null
+        "evidence": "浏览器实测（http://localhost:5173，预置 8 个网站构成 2 页）：纯 ArrowRight → defaultPrevented=true 且页码 0→1；纯 ArrowLeft → 页码 1→0；⌘+ArrowLeft → defaultPrevented=false 且页码不变；⌘+ArrowRight → defaultPrevented=false 且页码不变；⌥+ArrowLeft、⇧+ArrowRight → 同上不翻页不拦截。补充说明：自动化通道的真实按键注入（cua/locator press）在本环境未能送达页面（连纯方向键都无响应），故上述为页面内真实 DOM 事件经应用实际处理器链路的证据；OS 级 ⌘+←/→ 触发 Chrome 原生前进/后退由人工验收承担，2026-10-14 会话中人类确认收口（原话：确认收口）。",
+        "result": true
       },
       {
         "item": "反向影响排查",
@@ -91,9 +84,7 @@
       }
     ]
   },
-
   "rejections": [],
-
   "sync": {
     "design_pinned": true,
     "changelog": true,
@@ -103,7 +94,8 @@
   "gate": {
     "tool": "adflow-verify",
     "version": "1.2.0",
-    "ran_at": "",
-    "exit_code": null
+    "ran_at": "2026-10-14",
+    "exit_code": 0,
+    "target_status": "verified"
   }
 }
