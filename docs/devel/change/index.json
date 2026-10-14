@@ -335,7 +335,7 @@
     "C027": {
       "title": "修复快捷键关闭死锁、文件夹模式污染、全局粘贴泄露、计时器重复通知与搜索选词不一致缺陷",
       "type": "BugFix",
-      "status": "in_progress",
+      "status": "verified",
       "branch": "fix/C027-shortcuts-focus-and-interactions",
       "topic": "EntryNavigation",
       "created": "2026-10-10",

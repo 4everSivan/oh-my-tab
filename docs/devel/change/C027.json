@@ -2,8 +2,9 @@
   "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
   "id": "C027",
   "title": "修复快捷键关闭死锁、文件夹模式污染、全局粘贴泄露、计时器重复通知与搜索选词不一致缺陷",
+  "version": "0.2.0",
   "type": "BugFix",
-  "status": "in_progress",
+  "status": "verified",
   "branch": "fix/C027-shortcuts-focus-and-interactions",
   "is_hotfix": false,
   "target": {
@@ -48,8 +49,8 @@
   "verification": {
     "result": true,
     "run_id": "local-20261010-04",
-    "user_quote": "",
-    "signoff": "",
+    "user_quote": "确认（2026-10-14 会话中人类对 AI 提出的「逐卡核对挂空卡合入状态后补收口」请求作出的原话回应，授权对 C027 补办收口）",
+    "signoff": "human_approved",
     "checks": [
       {
         "item": "关闭添加窗口快捷键复位防死锁 (N07)",
@@ -94,5 +95,19 @@
         "result": true
       }
     ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "eba2862",
+    "tag": ""
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.2.0",
+    "ran_at": "2026-10-14",
+    "exit_code": 0,
+    "target_status": "verified"
   }
 }
