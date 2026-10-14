@@ -22,7 +22,7 @@
     "command": "grep -n \"e.key === 'ArrowRight'\" -B 20 src/components/shortcuts/Shortcuts.tsx",
     "expected": "命中 ArrowRight 分支，且其上方守卫仅含 INPUT/TEXTAREA/isContentEditable 判断，全文无 metaKey/ctrlKey/altKey/shiftKey 过滤",
     "is_completed": false,
-    "evidence": ""
+    "evidence": "2026-10-14 precheck 命中缺陷：Shortcuts.tsx:176 的 ArrowRight 分支上方仅有 INPUT/TEXTAREA/isContentEditable 守卫（无修饰键过滤），文件内 3 处 metaKey/ctrlKey 全部位于 ⌘1~6 直达处理器；对 HEAD 版本处理器做 VM 回放（起始 pageIndex=1/totalPages=3）实测：纯 ArrowLeft → prevented=true pageUpdates=[0]；⌘+ArrowLeft → prevented=true pageUpdates=[0]；⌘+ArrowRight → prevented=true pageUpdates=[2]；⌥+ArrowRight → prevented=true pageUpdates=[2]，与用户上报现象一致（缺陷未修复）。"
   },
 
   "callback": {
@@ -64,7 +64,7 @@
 
   "verification": {
     "result": null,
-    "run_id": "",
+    "run_id": "local-20261014-20",
     "user_quote": "",
     "signoff": "",
     "checks": [
@@ -72,22 +72,22 @@
         "item": "自动化测试",
         "true_if": "全量单测全绿、退出码为 0，且含 C030 专门回归（修饰键组合不翻页且不 preventDefault，纯方向键仍翻页，select 聚焦不翻页）",
         "false_if": "存在任何测试失败、报错或缺少上述回归用例",
-        "evidence": "",
-        "result": null
+        "evidence": "npm test → tests 211 / pass 211 / fail 0，退出码 0（新增 tests/c030-modifier-key-arrow-guard.test.cjs 共 7 项，直接从源码提取真实翻页处理器并在 VM 中执行断言）；npx tsc --noEmit 退出码 0；npm run build 退出码 0（产物 local/dist）。",
+        "result": true
       },
       {
         "item": "行为实测",
         "true_if": "真实标签页中 Command+←/→ 不再切换网站图标页，浏览器前进/后退由原生接管；纯 ←/→ 仍正常翻页",
         "false_if": "Command+方向键仍触发翻页，或浏览器原生导航仍被吞掉，或纯方向键翻页失效",
-        "evidence": "",
+        "evidence": "浏览器实测（http://localhost:5173，预置 8 个网站构成 2 页）：纯 ArrowRight → defaultPrevented=true 且页码 0→1；纯 ArrowLeft → 页码 1→0；⌘+ArrowLeft → defaultPrevented=false 且页码不变；⌘+ArrowRight → defaultPrevented=false 且页码不变；⌥+ArrowLeft、⇧+ArrowRight → 同上不翻页不拦截。补充说明：自动化通道的真实按键注入（cua/locator press）在本环境未能送达页面（连纯方向键都无响应），故上述为页面内真实 DOM 事件经应用实际处理器链路的证据；OS 级 ⌘+←/→ 触发 Chrome 原生前进/后退需在人工验收时手工按一次确认（新标签页本身无历史时浏览器不做导航属正常）。",
         "result": null
       },
       {
         "item": "反向影响排查",
         "true_if": "Escape 收起文件夹、Command+1~6 直达、滚轮翻页、指示器键帽点击与搜索框内方向键联想导航均不受影响",
         "false_if": "破坏上述任一交互或产生连锁反应",
-        "evidence": "",
-        "result": null
+        "evidence": "浏览器实测：⌘+1 仍触发图标直达（URL 由 http://localhost:5173/ 真实跳转为 https://example.com/0）；外观设置抽屉 select 聚焦时 ArrowRight defaultPrevented=false 且页码不变（修复前会被翻页抢占）。自动化：C030 用例覆盖 ⌘+Escape 收起文件夹、单页不拦截方向键；既有 T14/C018/C019/C021 等 204 项历史用例全绿，未出现回归。",
+        "result": true
       }
     ]
   },
@@ -95,9 +95,9 @@
   "rejections": [],
 
   "sync": {
-    "design_pinned": false,
-    "changelog": false,
-    "commit": "",
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "897eebc",
     "tag": ""
   },
   "gate": {
