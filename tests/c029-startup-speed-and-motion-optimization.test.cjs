@@ -117,3 +117,25 @@ test('C029: 消除启动首帧全树二次 Re-render 与非关键网络争抢', 
     'useAdaptiveContrast 必须比对前序计算结果，数值未变时跳过 setResult'
   );
 });
+
+test('C029 缺陷修复与坚守：index.html 维持 body 透明契约且 App.tsx 确保壁纸 Blob 挂载上屏', () => {
+  // 1. index.html body 透明保障
+  const bodyMatch = indexHtml.match(/body\s*\{([^}]*)\}/i);
+  assert.ok(bodyMatch, 'index.html 必须声明 body 样式');
+  assert.ok(
+    bodyMatch[1].includes('background-color: transparent'),
+    'index.html 内的 body 必须声明 background-color: transparent，避免遮蔽 -z-20 壁纸层 (C004)'
+  );
+
+  // 2. App.tsx 在 b.type === image 时确保更新 background 挂载最新会话 Blob URL
+  assert.ok(
+    appSrc.includes("b.type === 'image' || JSON.stringify(finalBackground) !== JSON.stringify(boot?.background)"),
+    'loadAll 必须在图片模式下无条件挂载由 IndexedDB 恢复出的最新会话 Blob URL'
+  );
+
+  // 3. handleUpdateBackground 具备切回图片模式时恢复 wallpaper 的能力
+  assert.ok(
+    appSrc.includes("updates.type === 'image' || (!updates.type && background.type === 'image')"),
+    'handleUpdateBackground 必须支持在切换为 image 类型时自动恢复壁纸 Blob'
+  );
+});

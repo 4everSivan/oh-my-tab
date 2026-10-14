@@ -103,9 +103,26 @@ test('body 必须透明：不透明 body 底色会在绘制序上遮蔽 -z-20 �
   // body 声明 background-color 会让不透明 body 层绘制在负 z-index 背景层之上，完全遮蔽壁纸/材质
   assert.ok(
     !/body\s*\{[^}]*background-color/.test(indexCss),
-    'body 不得声明 background-color（负 z-index 背景层绘制于 body 背景之下，会被完全遮蔽）'
+    'body 不得在 index.css 声明 background-color（负 z-index 背景层绘制于 body 背景之下，会被完全遮蔽）'
   );
   assert.ok(/html\s*\{[^}]*background-color/.test(indexCss), 'html 底色须保留作画布兜底');
+
+  // 双重防线：index.html 内联样式同样不得令 body 具有非透明背景色 (C004 / C029 坚守)
+  const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
+    .replace(/<!--[\s\S]*?-->/g, '');
+  const bodyMatch = indexHtml.match(/body\s*\{([^}]*)\}/i);
+  if (bodyMatch) {
+    const bgMatch = bodyMatch[1].match(/background(?:-color)?\s*:\s*([^;]+)/i);
+    if (bgMatch) {
+      assert.equal(
+        bgMatch[1].trim(),
+        'transparent',
+        'index.html 内的 body 样式必须显式为 transparent 或不设背景，严禁赋予不透明色遮蔽壁纸层'
+      );
+    }
+  }
+  assert.ok(/html\s*\{[^}]*background-color/.test(indexHtml), 'index.html html 底色须保留作冷启动画布兜底');
+
   const appSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'App.tsx'), 'utf8');
   assert.ok(appSrc.includes('-z-20'), 'App 背景层应保持 -z-20 固定层');
 });

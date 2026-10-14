@@ -35,6 +35,12 @@
       "before": "关键帧含 filter:blur 卷积；数字 500ms、卡片 400ms+360ms 延迟；index.html 裸骨架白屏闪烁；四大非首屏抽屉静态打包（主包 322KB）；首屏无条件触发 RSS 网络抓取与二次 Re-render",
       "after": "入场关键帧纯净锁定 transform 与 opacity 硬件加速；数字 240ms、卡片 260ms、常用网站 240ms 紧凑轻快；index.html 0ms 同步注入 bootCache 背景消除白屏；四大抽屉 React.lazy 异步动态分包并后台空闲预热；RSS 延后抓取且配置一致跳过 Re-render",
       "impact": "motion.css, index.html, App.tsx, useAdaptiveContrast.ts, GridContainer.tsx"
+    },
+    {
+      "scope": "首屏底色与壁纸绘制契约兼容 (C004 坚守)",
+      "before": "index.html 将 html, body 均声明 background-color: #f5f4ef，导致 body 不透明层遮蔽 -z-20 壁纸层",
+      "after": "index.html 仅对 html 赋予 #f5f4ef 作为冷启动画布兜底，body 显式保持 transparent，确保 -z-20 壁纸层与材质层正常上屏",
+      "impact": "index.html, App.tsx, layout-appearance.test.cjs"
     }
   ],
   "design": {
@@ -48,7 +54,7 @@
   },
   "verification": {
     "result": true,
-    "run_id": "local-20261014-01",
+    "run_id": "local-20261014-02",
     "user_quote": "",
     "signoff": "",
     "checks": [
@@ -67,10 +73,10 @@
         "result": true
       },
       {
-        "item": "index.html 首屏零延迟背景预渲染",
-        "true_if": "HTML 内置默认背景色与同步读取 bootCache 背景脚本，0ms 完成背景注入，彻底消除白屏闪烁",
-        "false_if": "HTML 保持空白，暗色或彩色背景在新标签页启动时出现白色闪烁",
-        "evidence": "index.html 预置 html, body 背景色 #f5f4ef，main.tsx 在 React 挂载前同步从 bootCache 恢复 backgroundColor，单测断言通过",
+        "item": "index.html 首屏零延迟背景预渲染与 C004 body 透明契约",
+        "true_if": "HTML 内置默认背景色与同步读取 bootCache 背景脚本，0ms 完成背景注入消除白屏，且 body 保持 transparent 不遮蔽壁纸",
+        "false_if": "HTML 保持空白导致闪烁，或 body 被赋予不透明背景导致遮蔽负层叠上下文壁纸",
+        "evidence": "index.html 预置 html 背景色 #f5f4ef 且 body 保持 transparent，main.tsx 在 React 挂载前同步从 bootCache 恢复 html backgroundColor，单测 tests/c029-startup-speed-and-motion-optimization.test.cjs 与 layout-appearance.test.cjs 验证通过",
         "result": true
       },
       {
@@ -89,7 +95,20 @@
       }
     ]
   },
-  "rejections": [],
+  "rejections": [
+    {
+      "round": 1,
+      "date": "2026-10-14",
+      "user_feedback": "出问题了，我上传的壁纸不现实了，现在就是纯白色背景",
+      "root_cause": "C029 在 index.html 中将 html, body 同时赋予 background-color: #f5f4ef，违反了 C004 绘制契约（body 必须透明）。由于背景壁纸层为 App 内的 -z-20 负层叠上下文，CSS 绘制序使得 body 的不透明底色绘制在负层叠上下文之上，导致壁纸与材质被 body 的米白底色完整遮蔽。",
+      "rework_actions": [
+        "修复 index.html，将 background-color 限制在 html 元素，body 显式声明 background-color: transparent",
+        "增强 App.tsx，在 b.type === 'image' 时无条件挂载会话级最新 Blob URL，杜绝比对漏刷",
+        "增强 handleUpdateBackground，支持从材质/纯色切回自定义图片时自动重建 Blob URL",
+        "更新 layout-appearance.test.cjs 与 c029 单测，增加对 index.html body 透明契约的防倒退回归校验"
+      ]
+    }
+  ],
   "sync": {
     "design_pinned": true,
     "changelog": false,

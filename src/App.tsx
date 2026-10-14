@@ -131,10 +131,13 @@ export const App: React.FC = () => {
       }
 
       // 深度比对优化 (C029): 若与 boot 快照一致，跳过冗余 setState，杜绝入场动效期间全树 Re-render 掉帧
+      // 图片背景必须无条件挂载会话级最新 Blob URL (C004 / C029 坚守)，避免 bootCache 历史死链或比对漏刷
       if (JSON.stringify(c) !== JSON.stringify(boot?.clock)) setClock(c);
       if (JSON.stringify(s) !== JSON.stringify(boot?.search)) setSearch(s);
       if (e !== boot?.engine) setEngine(e);
-      if (JSON.stringify(finalBackground) !== JSON.stringify(boot?.background)) setBackground(finalBackground);
+      if (b.type === 'image' || JSON.stringify(finalBackground) !== JSON.stringify(boot?.background)) {
+        setBackground(finalBackground);
+      }
       if (JSON.stringify(sc) !== JSON.stringify(boot?.shortcuts)) setShortcuts(sc);
       if (sg && sg.length > 0 && JSON.stringify(sg) !== JSON.stringify(boot?.shortcutGroups)) setShortcutGroups(sg);
       if (agId && agId !== boot?.activeShortcutGroupId) setActiveShortcutGroupId(agId);
@@ -292,16 +295,34 @@ export const App: React.FC = () => {
   };
 
   const handleUpdateBackground = async (updates: Partial<BackgroundConfig>) => {
+    let nextUpdates = { ...updates };
     if (updates.imageBlobUrl) {
       if (currentBlobUrlRef.current && updates.imageBlobUrl !== currentBlobUrlRef.current) {
         URL.revokeObjectURL(currentBlobUrlRef.current);
       }
       currentBlobUrlRef.current = updates.imageBlobUrl;
-    } else if (updates.type === 'color' && currentBlobUrlRef.current) {
-      URL.revokeObjectURL(currentBlobUrlRef.current);
-      currentBlobUrlRef.current = null;
+    } else if (updates.type === 'color' || updates.type === 'material') {
+      if (currentBlobUrlRef.current) {
+        URL.revokeObjectURL(currentBlobUrlRef.current);
+        currentBlobUrlRef.current = null;
+      }
+      nextUpdates.imageBlobUrl = undefined;
+    } else if (currentBlobUrlRef.current) {
+      nextUpdates.imageBlobUrl = currentBlobUrlRef.current;
+    } else if (updates.type === 'image' || (!updates.type && background.type === 'image')) {
+      const targetImageId = updates.imageId || background.imageId;
+      if (targetImageId) {
+        const record = await storageService.wallpaper.getWallpaper(targetImageId);
+        if (record) {
+          const newUrl = URL.createObjectURL(
+            record.data instanceof Blob ? record.data : new Blob([record.data])
+          );
+          currentBlobUrlRef.current = newUrl;
+          nextUpdates.imageBlobUrl = newUrl;
+        }
+      }
     }
-    const updated = await storageService.setBackground(updates);
+    const updated = await storageService.setBackground(nextUpdates);
     setBackground(updated);
   };
 
