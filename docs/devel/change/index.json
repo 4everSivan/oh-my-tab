@@ -374,7 +374,7 @@
     "C031": {
       "title": "修复 v0.1.0 归档区历史非终态卡账实不符（ARCHIVE_NON_TERMINAL 15 项）",
       "type": "BugFix",
-      "status": "verified",
+      "status": "closed",
       "branch": "chore/adflow-upgrade-v1.4.0",
       "topic": "SystemOverview",
       "created": "2026-10-14",
