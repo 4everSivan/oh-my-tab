@@ -340,7 +340,8 @@
       "branch": "fix/C027-shortcuts-focus-and-interactions",
       "topic": "EntryNavigation",
       "created": "2026-10-10",
-      "file": "docs/devel/change/C027.json"
+      "file": "docs/archive/v0.2.0/change/C027.json",
+      "archive": "docs/archive/v0.2.0/change/C027.json"
     },
     "C028": {
       "title": "代码规范全面治理：消除any与非空断言、增强IPC类型守卫、消除静默吞错并解耦Shortcuts巨型组件",
@@ -369,7 +370,8 @@
       "branch": "fix/C030-modifier-key-arrow-guard",
       "topic": "EntryNavigation",
       "created": "2026-10-14",
-      "file": "docs/devel/change/C030.json"
+      "file": "docs/archive/v0.3.0/change/C030.json",
+      "archive": "docs/archive/v0.3.0/change/C030.json"
     },
     "C031": {
       "title": "修复 v0.1.0 归档区历史非终态卡账实不符（ARCHIVE_NON_TERMINAL 15 项）",
@@ -378,7 +380,8 @@
       "branch": "chore/adflow-upgrade-v1.4.0",
       "topic": "SystemOverview",
       "created": "2026-10-14",
-      "file": "docs/devel/change/C031.json"
+      "file": "docs/archive/v0.3.0/change/C031.json",
+      "archive": "docs/archive/v0.3.0/change/C031.json"
     }
   }
 }

@@ -19,7 +19,8 @@
 ## 2. 归档索引
 
 - **阶段任务总账快照**：[task/index.json](task/index.json)（收录 T16 ~ T18 共 3 项任务卡）
-- **变更核验总账快照**：[change/index.json](change/index.json)（收录 C021 ~ C026, C028, C029 共 8 张变更卡）
+- **变更核验总账快照**：[change/index.json](change/index.json)（封箱快照收录 C021 ~ C026, C028, C029 共 8 张卡）
+- **批次勘误**：[ERRATUM.md](ERRATUM.md)（C027 于 2026-10-14 补办收口后归入本批次，批次范围修正为 C021 ~ C029 共 9 张）
 - **现行设计基线追溯**：[docs/devel/design/README.md](../../devel/design/README.md)
 - **根变更日志**：[CHANGELOG.md](../../../CHANGELOG.md)
 
@@ -35,7 +36,7 @@
 
 ---
 
-## 4. 归档变更清单 (C021 ~ C026, C028, C029)
+## 4. 归档变更清单 (C021 ~ C029)
 
 | 变更号 | 变更标题 | 模块 | 状态 | 卡片文件 |
 |---|---|---|---|---|
@@ -45,5 +46,6 @@
 | **C024** | 修复外部公共代理隐私泄露、假超时及极客脚本源 MV3 CSP 阻断缺陷 | ExtensionDataSources | closed | [change/C024.json](change/C024.json) |
 | **C025** | 修复存储并发竞争写丢失、事务假成功、iTab多组导入遗漏与跨标签同步缺陷 | DataPersistenceSync | closed | [change/C025.json](change/C025.json) |
 | **C026** | 修复 RSS 刷新删除源复活与新源丢失、阅读状态回滚、空源强制恢复及点击非幂等缺陷 | ExtensionDataSources | closed | [change/C026.json](change/C026.json) |
+| **C027** | 修复快捷键关闭死锁、文件夹模式污染、全局粘贴泄露、计时器重复通知与搜索选词不一致缺陷 | EntryNavigation | closed | [change/C027.json](change/C027.json) |
 | **C028** | 代码规范全面治理：消除any与非空断言、增强IPC类型守卫、消除静默吞错并解耦Shortcuts巨型组件 | SystemOverview | closed | [change/C028.json](change/C028.json) |
 | **C029** | 新标签页启动速度与加载动效性能优化：消除关键帧GPU滤镜卡顿、动效节奏提速、首屏零延迟防白屏与异步分包 | MotionSystem | closed | [change/C029.json](change/C029.json) |
