@@ -370,8 +370,8 @@
       "branch": "fix/C030-modifier-key-arrow-guard",
       "topic": "EntryNavigation",
       "created": "2026-10-14",
-      "file": "docs/archive/v0.3.0/change/C030.json",
-      "archive": "docs/archive/v0.3.0/change/C030.json"
+      "file": "docs/archive/v0.2.1/change/C030.json",
+      "archive": "docs/archive/v0.2.1/change/C030.json"
     },
     "C031": {
       "title": "修复 v0.1.0 归档区历史非终态卡账实不符（ARCHIVE_NON_TERMINAL 15 项）",
@@ -380,8 +380,8 @@
       "branch": "chore/adflow-upgrade-v1.4.0",
       "topic": "SystemOverview",
       "created": "2026-10-14",
-      "file": "docs/archive/v0.3.0/change/C031.json",
-      "archive": "docs/archive/v0.3.0/change/C031.json"
+      "file": "docs/archive/v0.2.1/change/C031.json",
+      "archive": "docs/archive/v0.2.1/change/C031.json"
     }
   }
 }

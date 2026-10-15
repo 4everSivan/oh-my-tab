@@ -2,7 +2,7 @@
   "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
   "id": "C031",
   "title": "修复 v0.1.0 归档区历史非终态卡账实不符（ARCHIVE_NON_TERMINAL 15 项）",
-  "version": "0.3.0",
+  "version": "0.2.1",
   "type": "BugFix",
   "status": "closed",
   "branch": "chore/adflow-upgrade-v1.4.0",
