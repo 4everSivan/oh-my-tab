@@ -352,6 +352,48 @@ def check_legacy_templates(ctx):
                          "已启用 standards 规范，旧模板 %s 必须删除" % legacy)
 
 
+def same_milestone(a, b):
+    """判断两个里程碑标签是否指同一里程碑（ID、标题或带后缀的标题）。
+
+    只认整词边界（`-`、空格、括号），因此 `M1` 不会误匹配 `M10`。
+    """
+    a, b = str(a).strip(), str(b).strip()
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    shorter, longer = (a, b) if len(a) <= len(b) else (b, a)
+    return any(longer.startswith(shorter + sep) for sep in ("-", " ", "(", "（"))
+
+
+def milestone_members(mid, milestone, reg):
+    """解析里程碑的成员任务号。
+
+    真实项目存在三种登记形态，任一形态都应能定位成员：
+    1. 里程碑对象自带 `tasks` 成员清单（模板结构）；
+    2. 任务登记的 `milestone` 字段填里程碑 ID；
+    3. 任务登记的 `milestone` 字段填里程碑标题（可能带 “(已发版归档)” 一类后缀）。
+    """
+    aliases = {str(mid)}
+    title = milestone.get("title")
+    if isinstance(title, str) and title.strip():
+        aliases.add(title.strip())
+        stripped = re.sub(r"\s*[（(][^）)]*[）)]\s*$", "", title.strip())
+        if stripped:
+            aliases.add(stripped)
+    members = set()
+    listed = milestone.get("tasks")
+    if isinstance(listed, list):
+        members.update(str(t) for t in listed if isinstance(t, str))
+    for cid, ent in reg.items():
+        if not isinstance(ent, dict):
+            continue
+        label = ent.get("milestone")
+        if isinstance(label, str) and any(same_milestone(label, a) for a in aliases):
+            members.add(str(cid))
+    return members
+
+
 def check_milestones(ctx):
     """里程碑标记与成员任务状态矛盾时旁路观察，不提高硬门槛。"""
     idx_rel = "docs/devel/task/index.json"
@@ -366,9 +408,9 @@ def check_milestones(ctx):
         # list 型里程碑（仅成员清单、无状态字段）没有可矛盾的状态标记，跳过。
         if not (isinstance(m, dict) and m.get("status") == "completed"):
             continue
-        for cid, ent in reg.items():
-            if (isinstance(ent, dict) and ent.get("milestone") == mid
-                    and ent.get("status") is not None
+        for cid in sorted(milestone_members(mid, m, reg)):
+            ent = reg.get(cid)
+            if (isinstance(ent, dict) and ent.get("status") is not None
                     and ent.get("status") != "completed"):
                 ctx.advisory("MILESTONE_STATUS_DRIFT", cid, idx_rel,
                              "里程碑 %s 标记 completed，但该任务状态为 %r（里程碑须与成员卡对齐）"
