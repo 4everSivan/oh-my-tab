@@ -57,7 +57,8 @@
       "design_doc": "docs/devel/design/05-深度扩展与外部数据.md",
       "changes": [
         "C024",
-        "C026"
+        "C026",
+        "C033"
       ]
     },
     "WidgetContract": {
@@ -392,6 +393,15 @@
       "topic": "DataPersistenceSync",
       "created": "2026-10-19",
       "file": "docs/devel/change/C032.json"
+    },
+    "C033": {
+      "title": "修复纯日期订阅时间在西半球时区显示为前一天",
+      "type": "BugFix",
+      "status": "in_progress",
+      "branch": "fix/C033-feed-date-timezone",
+      "topic": "ExtensionDataSources",
+      "created": "2026-10-19",
+      "file": "docs/devel/change/C033.json"
     }
   }
 }

@@ -1,0 +1,99 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C033",
+  "title": "修复纯日期订阅时间在西半球时区显示为前一天",
+  "version": "0.2.2",
+  "type": "BugFix",
+  "status": "in_progress",
+  "branch": "fix/C033-feed-date-timezone",
+  "is_hotfix": false,
+  "target": {
+    "module": "深度扩展与外部数据",
+    "component": "feedParser.formatRelativeTime",
+    "design_doc": "docs/devel/design/05-深度扩展与外部数据.md",
+    "design_topic": "ExtensionDataSources"
+  },
+  "why": "现象：订阅源只给出纯日期（如 2025-01-01）且超过 7 天时，美洲时区用户看到的是 2024-12-31；同时 T18 单测在 America/New_York 下失败、在 Asia/Shanghai 下通过。根因：ECMAScript 将纯日期 YYYY-MM-DD 解析为 UTC 零点，formatRelativeTime 却用本地时区的 getFullYear/getMonth/getDate 格式化，UTC 以西时区回退到前一天。另外 T18 测试测的是测试文件内复制的一份实现，与源码存在漂移风险。",
+  "precheck": {
+    "description": "以真实 feedParser.ts（typescript 即时转译）在多个时区下格式化 '2025-01-01'",
+    "command": "node /tmp/omt-precheck-c033.cjs \"$PWD\"  # 内容：require tests/helpers/load-ts.cjs 后加载 src/services/feed/feedParser.ts，依次设置 process.env.TZ 为 Asia/Shanghai、UTC、America/New_York、America/Los_Angeles 打印 formatRelativeTime('2025-01-01').formatted",
+    "expected": "缺陷存在时 America/* 输出 2024-12-31",
+    "is_completed": false,
+    "evidence": "2026-10-19 在 6698743（C032 之上）执行：Asia/Shanghai 2025-01-01、UTC 2025-01-01、America/New_York 2024-12-31、America/Los_Angeles 2024-12-31，缺陷确认；本机（America/New_York）pnpm test 中 T18 失败，TZ=Asia/Shanghai 下通过。"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b fix/C033-feed-date-timezone  # 叠加在 fix/C032-wallpaper-session-url 之上，避免 change/index.json 并行冲突"
+    ],
+    "after": [
+      "pnpm test && TZ=Asia/Shanghai pnpm test && TZ=America/Los_Angeles pnpm test  # 多时区全量单测",
+      "npx tsc --noEmit",
+      "scripts/adflow-verify --card C033 --to verified --record"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "业务规则（订阅时间显示）",
+      "before": "formatRelativeTime 对所有字符串调用 new Date(input)，纯日期按 UTC 零点解析后以本地时区格式化",
+      "after": "纯日期 YYYY-MM-DD（允许首尾空白）按本地日历日 new Date(y, m-1, d) 解析；带时间或时区的时间戳与数值保持原生解析",
+      "impact": "订阅侧栏文章时间与排序时间戳；仅影响纯日期输入"
+    },
+    {
+      "scope": "测试",
+      "before": "tests/feed-rss-engine.test.cjs 内复制一份 formatRelativeTime 进行断言",
+      "after": "T18 改为加载真实 src/services/feed/feedParser.ts；新增 tests/c033-feed-date-timezone.test.cjs 覆盖 5 个时区",
+      "impact": "仅测试代码"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/05-深度扩展与外部数据.md",
+    "topic": "ExtensionDataSources",
+    "modified": true,
+    "rule_diff": {
+      "before": "EXT-05：清洗 HTML 标签与格式化相对时间",
+      "after": "EXT-05：清洗 HTML 标签与格式化相对时间（纯日期 YYYY-MM-DD 按本地日历日解析，不随时区偏移，C033）"
+    }
+  },
+  "verification": {
+    "result": null,
+    "run_id": "local-20261019-c033",
+    "user_quote": "",
+    "signoff": "",
+    "checks": [
+      {
+        "item": "自动化测试",
+        "true_if": "America/New_York、Asia/Shanghai、America/Los_Angeles 三个时区下全量单测全绿；C033 回归在修复前失败",
+        "false_if": "任一时区存在失败，或回归用例在旧实现上通过",
+        "evidence": "pnpm test → tests 218 / pass 218 / fail 0；TZ=Asia/Shanghai → pass 218 / fail 0；TZ=America/Los_Angeles → pass 218 / fail 0。暂存 feedParser.ts 修复后运行 c033 与 feed-rss-engine 两个文件：pass 11 / fail 2（C033 时区用例与 T18 均失败），恢复后全过。npx tsc --noEmit 退出码 0。",
+        "result": null
+      },
+      {
+        "item": "行为实测",
+        "true_if": "订阅侧栏中纯日期且超过 7 天的文章显示原日期",
+        "false_if": "仍显示前一天",
+        "evidence": "待人工在真实 Chrome 扩展中验收（需一个只提供纯日期的订阅源）。",
+        "result": null
+      },
+      {
+        "item": "反向影响排查",
+        "true_if": "RFC 822 / ISO 带时区时间与相对时间（刚刚、N 分钟前、昨天、N 天前）不变",
+        "false_if": "上述任一格式解析结果变化",
+        "evidence": "C033 用例断言 ISO 与 RFC 822 时间戳与 Date.parse 一致，相对时间分支输出不变；既有 T18 RSS/Atom 解析用例全绿。",
+        "result": null
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.4.0",
+    "ran_at": "",
+    "exit_code": null
+  }
+}

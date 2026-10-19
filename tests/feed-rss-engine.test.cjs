@@ -61,21 +61,9 @@ function cleanHtmlText(html, maxLength = 140) {
   return text;
 }
 
-function formatRelativeTime(dateInput) {
-  if (!dateInput) return { formatted: '近期', timestamp: Date.now() };
-  const d = new Date(dateInput);
-  const timestamp = isNaN(d.getTime()) ? Date.now() : d.getTime();
-  const diffMs = Date.now() - timestamp;
-  if (diffMs < 0 || diffMs < 60 * 1000) return { formatted: '刚刚', timestamp };
-  if (diffMs < 60 * 60 * 1000) return { formatted: `${Math.floor(diffMs / (60 * 1000))} 分钟前`, timestamp };
-  if (diffMs < 24 * 60 * 60 * 1000) return { formatted: `${Math.floor(diffMs / (60 * 60 * 1000))} 小时前`, timestamp };
-  if (diffMs < 48 * 60 * 60 * 1000) return { formatted: '昨天', timestamp };
-  if (diffMs < 7 * 24 * 60 * 60 * 1000) return { formatted: `${Math.floor(diffMs / (24 * 60 * 60 * 1000))} 天前`, timestamp };
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return { formatted: `${year}-${month}-${day}`, timestamp };
-}
+// 相对时间直接使用真实发货实现（C033：原镜像副本与源码漂移，时区缺陷只在副本中被测到）
+require('./helpers/load-ts.cjs');
+const { formatRelativeTime } = require('../src/services/feed/feedParser.ts');
 
 function extractTagContent(xmlChunk, tagName) {
   const escaped = tagName.replace(':', '\\:');

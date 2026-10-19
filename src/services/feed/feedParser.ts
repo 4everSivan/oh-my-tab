@@ -46,7 +46,11 @@ export function formatRelativeTime(dateInput?: string | number | Date): { format
     return { formatted: '近期', timestamp: Date.now() };
   }
 
-  const d = new Date(dateInput);
+  // 纯日期 YYYY-MM-DD 按本地日历日解析 (C033)：原生 Date 视其为 UTC 零点，西半球会显示成前一天
+  const dateOnly = typeof dateInput === 'string' ? dateInput.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/) : null;
+  const d = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(dateInput);
   const timestamp = isNaN(d.getTime()) ? Date.now() : d.getTime();
   const diffMs = Date.now() - timestamp;
 
