@@ -1,0 +1,100 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C035",
+  "title": "修复扩展 manifest 版本与 package.json 漂移：v0.2.1 分发包仍声明 0.2.0",
+  "version": "0.2.2",
+  "type": "BugFix",
+  "status": "in_progress",
+  "branch": "fix/C035-manifest-version-sync",
+  "is_hotfix": false,
+  "target": {
+    "module": "系统总体（构建与发布）",
+    "component": "vite.config.ts / public/manifest.json / package 脚本",
+    "design_doc": "docs/devel/design/00-系统总体设计.md",
+    "design_topic": "SystemOverview"
+  },
+  "why": "现象：v0.2.1 已发版，但 local/oh-my-tab-v0.2.1.zip 内 manifest.json 的 version 仍为 0.2.0；Chrome 扩展管理页显示旧版本，若上传商店会因版本号未递增被拒。根因：版本号同时手工维护在 package.json、public/manifest.json 与 package 脚本的 zip 文件名三处，发版时只更新了 package.json 与脚本，manifest 遗漏；违反 AGENTS.md 第六节「全局严格遵循单一 SemVer 版本号」。",
+  "precheck": {
+    "description": "确认已发布分发包与源 manifest 版本落后于 package.json",
+    "command": "unzip -p local/oh-my-tab-v0.2.1.zip manifest.json | grep '\"version\"'; grep '\"version\"' package.json public/manifest.json",
+    "expected": "缺陷存在时分发包与 public/manifest.json 为 0.2.0，package.json 为 0.2.1",
+    "is_completed": false,
+    "evidence": "2026-10-19 执行：分发包 manifest \"version\": \"0.2.0\"；package.json \"version\": \"0.2.1\"；public/manifest.json \"version\": \"0.2.0\"；local/dist/manifest.json 亦为 0.2.0。缺陷确认。"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b fix/C035-manifest-version-sync  # 叠加在 fix/C034-notification-icon-path 之上"
+    ],
+    "after": [
+      "pnpm test",
+      "npx tsc --noEmit && npx tsc --noEmit -p tsconfig.node.json",
+      "npx vite build --outDir /tmp/omt-c035/dist --emptyOutDir && grep '\"version\"' /tmp/omt-c035/dist/manifest.json",
+      "scripts/adflow-verify --card C035 --to verified --record"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "构建链路（版本单一来源）",
+      "before": "public/manifest.json 原样复制进产物，版本需手工与 package.json 同步",
+      "after": "新增 scripts/vite-plugin-manifest-version.ts（apply: build，writeBundle 阶段以 package.json version 覆盖产物 manifest.json），vite.config.ts 挂载；tsconfig.node.json 纳入类型检查；public/manifest.json 同步为 0.2.1 以免开发态显示旧值",
+      "impact": "所有构建产物 local/dist/manifest.json"
+    },
+    {
+      "scope": "打包脚本",
+      "before": "package 脚本 zip 名硬编码 oh-my-tab-v0.2.1.zip",
+      "after": "改为 oh-my-tab-v$npm_package_version.zip，由 pnpm/npm 运行时注入；C025 N15 断言同步改为校验该变量形式",
+      "impact": "pnpm package 产物命名；历史分发包不受影响"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/00-系统总体设计.md",
+    "topic": "SystemOverview",
+    "modified": true,
+    "rule_diff": {
+      "before": "打包构建产物严格强制隔离输出至根目录 local/dist/（未规定版本来源）",
+      "after": "扩展版本以 package.json 的 SemVer 为唯一来源：构建插件将其写入产物 manifest.json，分发包名经 $npm_package_version 注入，源码中不再手工维护第二份版本号（C035）"
+    }
+  },
+  "verification": {
+    "result": null,
+    "run_id": "local-20261019-c035",
+    "user_quote": "",
+    "signoff": "",
+    "checks": [
+      {
+        "item": "自动化测试",
+        "true_if": "全量单测全绿，C035 回归在修复前失败；两套 tsc 退出码 0",
+        "false_if": "存在失败，或回归在旧配置上通过",
+        "evidence": "pnpm test → tests 222 / pass 222 / fail 0。新增 tests/c035-manifest-version-sync.test.cjs 3 项；暂存 vite.config.ts、package.json、public/manifest.json 修改后运行为 pass 1 / fail 2，恢复后全过。npx tsc --noEmit 与 npx tsc --noEmit -p tsconfig.node.json 退出码均为 0。",
+        "result": null
+      },
+      {
+        "item": "行为实测",
+        "true_if": "构建产物 manifest.json version 等于 package.json，且源 manifest 写错版本时产物仍被纠正",
+        "false_if": "产物版本与 package.json 不一致",
+        "evidence": "vite build --outDir /tmp/omt-c035/dist → 产物 \"version\": \"0.2.1\"；临时把 public/manifest.json 改为 9.9.9 再构建至 /tmp/omt-c035/dist2 → 产物仍为 \"0.2.1\"，随后已恢复源文件。临时增加 envcheck 脚本执行 pnpm run -s envcheck 输出 zip-name=oh-my-tab-v0.2.1.zip（已还原 package.json）。为保护已发布的 local/oh-my-tab-v0.2.1.zip，未执行 pnpm package。",
+        "result": null
+      },
+      {
+        "item": "反向影响排查",
+        "true_if": "vite dev 不受影响（插件 apply: build）；产物其他 manifest 字段不变",
+        "false_if": "dev 服务器报错或 manifest 其他字段被改写",
+        "evidence": "C035 用例断言 syncManifestVersion 仅改 version，其余字段与源 manifest 深度相等；插件 apply 为 'build'。dev 服务器待人工顺带确认。",
+        "result": null
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.4.0",
+    "ran_at": "",
+    "exit_code": null
+  }
+}

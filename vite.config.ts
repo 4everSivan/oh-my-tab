@@ -1,10 +1,14 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import { readFileSync } from 'fs';
+import { manifestVersionPlugin } from './scripts/vite-plugin-manifest-version';
+
+const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8')) as { version: string };
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), manifestVersionPlugin(pkg.version)],
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),

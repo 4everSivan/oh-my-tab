@@ -7,7 +7,8 @@
       "design_doc": "docs/devel/design/00-系统总体设计.md",
       "changes": [
         "C028",
-        "C031"
+        "C031",
+        "C035"
       ]
     },
     "EntryNavigation": {
@@ -413,6 +414,15 @@
       "topic": "WidgetContract",
       "created": "2026-10-19",
       "file": "docs/devel/change/C034.json"
+    },
+    "C035": {
+      "title": "修复扩展 manifest 版本与 package.json 漂移：v0.2.1 分发包仍声明 0.2.0",
+      "type": "BugFix",
+      "status": "in_progress",
+      "branch": "fix/C035-manifest-version-sync",
+      "topic": "SystemOverview",
+      "created": "2026-10-19",
+      "file": "docs/devel/change/C035.json"
     }
   }
 }

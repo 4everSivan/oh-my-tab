@@ -169,12 +169,13 @@ test('C025: package 脚本打包前清理旧 zip 防止残留历史 bundle (N15)
   assert.ok(script, 'package.json 必须定义 package 脚本');
   // 2026-10-14 (v0.2.1)：清理范围收窄为同名旧包——历史版本分发包是归档批次引用的发版证据，
   // 不再随新版本构建删除；断言同时改为校验产物名与 package.json version 一致，杜绝版本漂移。
+  // 2026-10-19 (C035)：包名改由 $npm_package_version 注入，与 package.json version 天然一致
   assert.ok(
-    script.includes(`rm -f ../oh-my-tab-v${pkg.version}.zip`),
+    script.includes('rm -f ../oh-my-tab-v$npm_package_version.zip'),
     'package 脚本必须在打包前执行 rm -f 清理同名旧压缩包'
   );
   assert.ok(
-    script.includes(`zip -r -q ../oh-my-tab-v${pkg.version}.zip`),
+    script.includes('zip -r -q ../oh-my-tab-v$npm_package_version.zip'),
     '分发包名必须与 package.json version 一致，防止版本漂移'
   );
 });
