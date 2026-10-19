@@ -1,6 +1,9 @@
 import { WidgetManifest, WidgetComponent, HostContext, WidgetInstance } from './types';
 import { storageService, StorageService } from '../services/storage';
 
+// 通知图标须为扩展包内真实路径 (C034)：与 manifest icons 一致，图标加载失败时 Chrome 会拒绝创建通知
+export const NOTIFICATION_ICON_PATH = 'icons/icon-48.png';
+
 export interface WidgetRegistration {
   manifest: WidgetManifest;
   component: WidgetComponent;
@@ -82,12 +85,19 @@ export class WidgetRegistry {
         ? {
             send: async (title: string, message: string) => {
               if (typeof chrome !== 'undefined' && chrome.notifications) {
-                chrome.notifications.create({
-                  type: 'basic',
-                  iconUrl: 'icon-48.png',
-                  title,
-                  message,
-                });
+                chrome.notifications.create(
+                  {
+                    type: 'basic',
+                    iconUrl: chrome.runtime.getURL(NOTIFICATION_ICON_PATH),
+                    title,
+                    message,
+                  },
+                  () => {
+                    if (chrome.runtime.lastError) {
+                      console.warn('[WidgetRegistry] 系统通知创建失败:', chrome.runtime.lastError.message);
+                    }
+                  }
+                );
               } else if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
                 new Notification(title, { body: message });
               } else {

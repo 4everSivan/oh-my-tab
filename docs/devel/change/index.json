@@ -63,7 +63,9 @@
     },
     "WidgetContract": {
       "design_doc": "docs/devel/design/06-组件契约与注册.md",
-      "changes": []
+      "changes": [
+        "C034"
+      ]
     },
     "MotionSystem": {
       "design_doc": "docs/devel/design/07-动效系统.md",
@@ -402,6 +404,15 @@
       "topic": "ExtensionDataSources",
       "created": "2026-10-19",
       "file": "docs/devel/change/C033.json"
+    },
+    "C034": {
+      "title": "修复专注计时系统通知图标路径错误导致通知静默失败",
+      "type": "BugFix",
+      "status": "in_progress",
+      "branch": "fix/C034-notification-icon-path",
+      "topic": "WidgetContract",
+      "created": "2026-10-19",
+      "file": "docs/devel/change/C034.json"
     }
   }
 }

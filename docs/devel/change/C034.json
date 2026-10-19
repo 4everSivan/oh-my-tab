@@ -1,0 +1,93 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C034",
+  "title": "修复专注计时系统通知图标路径错误导致通知静默失败",
+  "version": "0.2.2",
+  "type": "BugFix",
+  "status": "in_progress",
+  "branch": "fix/C034-notification-icon-path",
+  "is_hotfix": false,
+  "target": {
+    "module": "组件契约与注册",
+    "component": "WidgetRegistry.createHostContext → host.notify",
+    "design_doc": "docs/devel/design/06-组件契约与注册.md",
+    "design_topic": "WidgetContract"
+  },
+  "why": "现象：专注计时结束时预期弹出系统通知，实际在扩展环境中不出现。根因：host.notify 调用 chrome.notifications.create 时 iconUrl 写为 'icon-48.png'，而扩展包中图标位于 icons/icon-48.png（public/icons/ → local/dist/icons/），包根不存在该文件；Chrome 在 basic 通知图标加载失败时拒绝创建通知，且调用未提供回调读取 runtime.lastError，失败完全静默。",
+  "precheck": {
+    "description": "确认通知图标路径在扩展包中不存在",
+    "command": "ls local/dist/icon-48.png; grep -rn \"icon-48\" public/manifest.json src",
+    "expected": "local/dist/icon-48.png 不存在；manifest 声明 icons/icon-48.png，registry.ts 使用 'icon-48.png'",
+    "is_completed": false,
+    "evidence": "2026-10-19 执行：ls 报 No such file or directory；manifest.json:24/32 为 icons/icon-48.png；src/contract/registry.ts:87 为 iconUrl: 'icon-48.png'，且 create 调用无回调。缺陷确认。"
+  },
+  "callback": {
+    "before": [
+      "git checkout -b fix/C034-notification-icon-path  # 叠加在 fix/C033-feed-date-timezone 之上"
+    ],
+    "after": [
+      "pnpm test",
+      "npx tsc --noEmit",
+      "scripts/adflow-verify --card C034 --to verified --record"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "接口契约（host.notify）",
+      "before": "chrome.notifications.create({ iconUrl: 'icon-48.png', ... })，无回调",
+      "after": "导出常量 NOTIFICATION_ICON_PATH = 'icons/icon-48.png'，以 chrome.runtime.getURL 解析为包内绝对地址；提供回调，runtime.lastError 时 console.warn 告警",
+      "impact": "专注计时结束通知；其他声明 notify 能力的组件"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/06-组件契约与注册.md",
+    "topic": "WidgetContract",
+    "modified": true,
+    "rule_diff": {
+      "before": "host.notify：通知能力，按能力声明申请权限",
+      "after": "host.notify：通知能力，按能力声明申请权限；系统通知图标经 chrome.runtime.getURL 指向与 manifest icons 一致的包内文件，创建失败经回调读取 runtime.lastError 告警，不得静默丢弃（C034）"
+    }
+  },
+  "verification": {
+    "result": null,
+    "run_id": "local-20261019-c034",
+    "user_quote": "",
+    "signoff": "",
+    "checks": [
+      {
+        "item": "自动化测试",
+        "true_if": "全量单测全绿，C034 回归在修复前失败；tsc 退出码 0",
+        "false_if": "存在失败，或回归用例在旧实现上通过",
+        "evidence": "pnpm test → tests 219 / pass 219 / fail 0。新增 tests/c034-notification-icon-path.test.cjs：以伪 chrome 对象加载真实 registry.ts，断言 iconUrl 为 runtime.getURL('icons/icon-48.png')、提供回调、图标文件存在于 public/ 且与 manifest icons 一致；暂存修复后对旧实现运行为 pass 0 / fail 1。npx tsc --noEmit 退出码 0。",
+        "result": null
+      },
+      {
+        "item": "行为实测",
+        "true_if": "真实 Chrome 扩展中专注计时（可设 1 分钟）结束后弹出带 oh-my-tab 图标的系统通知",
+        "false_if": "通知不出现，或 Service Worker / 页面控制台出现通知创建失败告警",
+        "evidence": "待人工在真实 Chrome 扩展中验收（需系统允许 Chrome 通知）。",
+        "result": null
+      },
+      {
+        "item": "反向影响排查",
+        "true_if": "非扩展环境（vite dev）仍走 Web Notification / console 降级分支",
+        "false_if": "非扩展环境报错",
+        "evidence": "降级分支代码未改动；chrome.runtime.getURL 仅在 chrome.notifications 存在的分支内调用。",
+        "result": null
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": false,
+    "commit": "",
+    "tag": ""
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.4.0",
+    "ran_at": "",
+    "exit_code": null
+  }
+}
