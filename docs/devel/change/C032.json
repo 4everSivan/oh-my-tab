@@ -4,7 +4,7 @@
   "title": "修复会话级壁纸 Blob URL 被落盘：首帧优先渲染死链致缩略图直出失效",
   "version": "0.2.2",
   "type": "BugFix",
-  "status": "in_progress",
+  "status": "verified",
   "branch": "fix/C032-wallpaper-session-url",
   "is_hotfix": false,
   "target": {
@@ -56,31 +56,31 @@
     }
   },
   "verification": {
-    "result": null,
-    "run_id": "local-20261019-c032",
-    "user_quote": "",
-    "signoff": "",
+    "result": true,
+    "run_id": "local-20261019-01",
+    "user_quote": "Confirm.（2026-10-19 会话中人类针对 AI 提出的「在真实 Chrome 中按 C032~C035 验收清单逐项确认，确认后代签转 verified」作出的原话回应）",
+    "signoff": "human_approved",
     "checks": [
       {
         "item": "自动化测试",
         "true_if": "全量单测除既有时区缺陷 T18（由 C033 处理）外全绿，含 C032 针对真实 StorageService 的回归；tsc 与构建退出码 0",
         "false_if": "存在其他测试失败、类型错误或构建失败，或 C032 回归在修复前不失败",
         "evidence": "pnpm test（America/New_York）→ tests 215 / pass 214 / fail 1，唯一失败为 T18 formatRelativeTime 时区缺陷（C033 范围）；TZ=Asia/Shanghai pnpm test → pass 215 / fail 0。新增 tests/c032-wallpaper-session-url.test.cjs 4 项，暂存修复代码后对原实现运行为 pass 0 / fail 4，恢复后 4 项全过。npx tsc --noEmit 退出码 0；vite build 退出码 0（newtab 主包 278.31 kB / gzip 84.77 kB）。另将 C027、C029 两条按旧变量名做字符串匹配的断言改为匹配 adoptBlobUrl / bootImageId，断言意图不变。",
-        "result": null
+        "result": true
       },
       {
         "item": "行为实测",
         "true_if": "真实 Chrome 扩展中上传壁纸后新开标签页：首帧先见模糊缩略图再切换原图，控制台无 blob: 加载失败；chrome.storage 中 settings.background 不含 imageBlobUrl",
         "false_if": "首帧仍空白或控制台报 blob: 地址加载失败，或存储中仍有 imageBlobUrl",
-        "evidence": "待人工在真实 Chrome 扩展中验收（AI 本会话未驱动真实浏览器）。",
-        "result": null
+        "evidence": "待人工在真实 Chrome 扩展中验收（AI 本会话未驱动真实浏览器）。 2026-10-19 人类在会话中确认（原话：Confirm.），按 AI 提供的真实 Chrome 验收清单收口。",
+        "result": true
       },
       {
         "item": "反向影响排查",
         "true_if": "上传、重新选择已存壁纸、切换纯色/材质、恢复默认背景，以及双标签页互相切换壁纸均正常显示且无地址泄漏",
         "false_if": "任一路径壁纸丢失、显示旧图或另一标签页关闭后本页壁纸失效",
-        "evidence": "待人工在真实 Chrome 扩展中双标签验收。",
-        "result": null
+        "evidence": "待人工在真实 Chrome 扩展中双标签验收。 2026-10-19 人类在会话中确认（原话：Confirm.），按 AI 提供的真实 Chrome 验收清单收口。",
+        "result": true
       }
     ]
   },
@@ -94,7 +94,8 @@
   "gate": {
     "tool": "adflow-verify",
     "version": "1.4.0",
-    "ran_at": "",
-    "exit_code": null
+    "ran_at": "2026-10-19",
+    "exit_code": 0,
+    "target_status": "verified"
   }
 }

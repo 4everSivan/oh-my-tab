@@ -4,7 +4,7 @@
   "title": "修复纯日期订阅时间在西半球时区显示为前一天",
   "version": "0.2.2",
   "type": "BugFix",
-  "status": "in_progress",
+  "status": "verified",
   "branch": "fix/C033-feed-date-timezone",
   "is_hotfix": false,
   "target": {
@@ -55,31 +55,31 @@
     }
   },
   "verification": {
-    "result": null,
-    "run_id": "local-20261019-c033",
-    "user_quote": "",
-    "signoff": "",
+    "result": true,
+    "run_id": "local-20261019-02",
+    "user_quote": "Confirm.（2026-10-19 会话中人类针对 AI 提出的「在真实 Chrome 中按 C032~C035 验收清单逐项确认，确认后代签转 verified」作出的原话回应）",
+    "signoff": "human_approved",
     "checks": [
       {
         "item": "自动化测试",
         "true_if": "America/New_York、Asia/Shanghai、America/Los_Angeles 三个时区下全量单测全绿；C033 回归在修复前失败",
         "false_if": "任一时区存在失败，或回归用例在旧实现上通过",
         "evidence": "pnpm test → tests 218 / pass 218 / fail 0；TZ=Asia/Shanghai → pass 218 / fail 0；TZ=America/Los_Angeles → pass 218 / fail 0。暂存 feedParser.ts 修复后运行 c033 与 feed-rss-engine 两个文件：pass 11 / fail 2（C033 时区用例与 T18 均失败），恢复后全过。npx tsc --noEmit 退出码 0。",
-        "result": null
+        "result": true
       },
       {
         "item": "行为实测",
         "true_if": "订阅侧栏中纯日期且超过 7 天的文章显示原日期",
         "false_if": "仍显示前一天",
-        "evidence": "待人工在真实 Chrome 扩展中验收（需一个只提供纯日期的订阅源）。",
-        "result": null
+        "evidence": "待人工在真实 Chrome 扩展中验收（需一个只提供纯日期的订阅源）。 2026-10-19 人类在会话中确认（原话：Confirm.），按 AI 提供的真实 Chrome 验收清单收口。",
+        "result": true
       },
       {
         "item": "反向影响排查",
         "true_if": "RFC 822 / ISO 带时区时间与相对时间（刚刚、N 分钟前、昨天、N 天前）不变",
         "false_if": "上述任一格式解析结果变化",
         "evidence": "C033 用例断言 ISO 与 RFC 822 时间戳与 Date.parse 一致，相对时间分支输出不变；既有 T18 RSS/Atom 解析用例全绿。",
-        "result": null
+        "result": true
       }
     ]
   },
@@ -93,7 +93,8 @@
   "gate": {
     "tool": "adflow-verify",
     "version": "1.4.0",
-    "ran_at": "",
-    "exit_code": null
+    "ran_at": "2026-10-19",
+    "exit_code": 0,
+    "target_status": "verified"
   }
 }

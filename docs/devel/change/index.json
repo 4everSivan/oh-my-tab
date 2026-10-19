@@ -391,7 +391,7 @@
     "C032": {
       "title": "修复会话级壁纸 Blob URL 被落盘：首帧优先渲染死链致缩略图直出失效",
       "type": "BugFix",
-      "status": "in_progress",
+      "status": "verified",
       "branch": "fix/C032-wallpaper-session-url",
       "topic": "DataPersistenceSync",
       "created": "2026-10-19",
@@ -400,7 +400,7 @@
     "C033": {
       "title": "修复纯日期订阅时间在西半球时区显示为前一天",
       "type": "BugFix",
-      "status": "in_progress",
+      "status": "verified",
       "branch": "fix/C033-feed-date-timezone",
       "topic": "ExtensionDataSources",
       "created": "2026-10-19",
@@ -409,7 +409,7 @@
     "C034": {
       "title": "修复专注计时系统通知图标路径错误导致通知静默失败",
       "type": "BugFix",
-      "status": "in_progress",
+      "status": "verified",
       "branch": "fix/C034-notification-icon-path",
       "topic": "WidgetContract",
       "created": "2026-10-19",
@@ -418,7 +418,7 @@
     "C035": {
       "title": "修复扩展 manifest 版本与 package.json 漂移：v0.2.1 分发包仍声明 0.2.0",
       "type": "BugFix",
-      "status": "in_progress",
+      "status": "verified",
       "branch": "fix/C035-manifest-version-sync",
       "topic": "SystemOverview",
       "created": "2026-10-19",

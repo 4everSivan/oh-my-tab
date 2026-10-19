@@ -4,7 +4,7 @@
   "title": "修复专注计时系统通知图标路径错误导致通知静默失败",
   "version": "0.2.2",
   "type": "BugFix",
-  "status": "in_progress",
+  "status": "verified",
   "branch": "fix/C034-notification-icon-path",
   "is_hotfix": false,
   "target": {
@@ -49,31 +49,31 @@
     }
   },
   "verification": {
-    "result": null,
-    "run_id": "local-20261019-c034",
-    "user_quote": "",
-    "signoff": "",
+    "result": true,
+    "run_id": "local-20261019-03",
+    "user_quote": "Confirm.（2026-10-19 会话中人类针对 AI 提出的「在真实 Chrome 中按 C032~C035 验收清单逐项确认，确认后代签转 verified」作出的原话回应）",
+    "signoff": "human_approved",
     "checks": [
       {
         "item": "自动化测试",
         "true_if": "全量单测全绿，C034 回归在修复前失败；tsc 退出码 0",
         "false_if": "存在失败，或回归用例在旧实现上通过",
         "evidence": "pnpm test → tests 219 / pass 219 / fail 0。新增 tests/c034-notification-icon-path.test.cjs：以伪 chrome 对象加载真实 registry.ts，断言 iconUrl 为 runtime.getURL('icons/icon-48.png')、提供回调、图标文件存在于 public/ 且与 manifest icons 一致；暂存修复后对旧实现运行为 pass 0 / fail 1。npx tsc --noEmit 退出码 0。",
-        "result": null
+        "result": true
       },
       {
         "item": "行为实测",
         "true_if": "真实 Chrome 扩展中专注计时（可设 1 分钟）结束后弹出带 oh-my-tab 图标的系统通知",
         "false_if": "通知不出现，或 Service Worker / 页面控制台出现通知创建失败告警",
-        "evidence": "待人工在真实 Chrome 扩展中验收（需系统允许 Chrome 通知）。",
-        "result": null
+        "evidence": "待人工在真实 Chrome 扩展中验收（需系统允许 Chrome 通知）。 2026-10-19 人类在会话中确认（原话：Confirm.），按 AI 提供的真实 Chrome 验收清单收口。",
+        "result": true
       },
       {
         "item": "反向影响排查",
         "true_if": "非扩展环境（vite dev）仍走 Web Notification / console 降级分支",
         "false_if": "非扩展环境报错",
         "evidence": "降级分支代码未改动；chrome.runtime.getURL 仅在 chrome.notifications 存在的分支内调用。",
-        "result": null
+        "result": true
       }
     ]
   },
@@ -87,7 +87,8 @@
   "gate": {
     "tool": "adflow-verify",
     "version": "1.4.0",
-    "ran_at": "",
-    "exit_code": null
+    "ran_at": "2026-10-19",
+    "exit_code": 0,
+    "target_status": "verified"
   }
 }
