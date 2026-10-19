@@ -90,17 +90,34 @@ export const App: React.FC = () => {
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const currentBlobUrlRef = useRef<string | null>(null);
+  // 当前 Blob URL 对应的壁纸 imageId (C032)：跨标签同步时据此判断能否复用本页派生地址
+  const currentBlobImageIdRef = useRef<string | null>(null);
+
+  // 本页 Blob URL 唯一登记入口：替换时回收旧地址，杜绝泄漏与重复回收
+  const adoptBlobUrl = (url: string, imageId: string) => {
+    if (currentBlobUrlRef.current && currentBlobUrlRef.current !== url) {
+      URL.revokeObjectURL(currentBlobUrlRef.current);
+    }
+    currentBlobUrlRef.current = url;
+    currentBlobImageIdRef.current = imageId;
+  };
+
+  const releaseBlobUrl = () => {
+    if (currentBlobUrlRef.current) {
+      URL.revokeObjectURL(currentBlobUrlRef.current);
+    }
+    currentBlobUrlRef.current = null;
+    currentBlobImageIdRef.current = null;
+  };
 
   // 极速壁纸装载 (C029): 并发抢跑预加载 Promise，在首个微任务周期内立即挂载 Blob URL，杜绝等待 loadAll 串行 IPC
   useLayoutEffect(() => {
     let isMounted = true;
     if (boot?.background?.type === 'image' && boot.background.imageId) {
-      kickOffWallpaperPreload(boot.background.imageId).then((url) => {
+      const bootImageId = boot.background.imageId;
+      kickOffWallpaperPreload(bootImageId).then((url) => {
         if (!isMounted || !url) return;
-        if (currentBlobUrlRef.current && currentBlobUrlRef.current !== url) {
-          URL.revokeObjectURL(currentBlobUrlRef.current);
-        }
-        currentBlobUrlRef.current = url;
+        adoptBlobUrl(url, bootImageId);
         setBackground((prev) => {
           if (prev.type === 'image' && prev.imageBlobUrl === url) return prev;
           return {
@@ -138,10 +155,7 @@ export const App: React.FC = () => {
       if (b.type === 'image' && b.imageId) {
         const preloaded = await kickOffWallpaperPreload(b.imageId);
         if (preloaded) {
-          if (currentBlobUrlRef.current && currentBlobUrlRef.current !== preloaded) {
-            URL.revokeObjectURL(currentBlobUrlRef.current);
-          }
-          currentBlobUrlRef.current = preloaded;
+          adoptBlobUrl(preloaded, b.imageId);
           finalBackground = {
             ...b,
             imageBlobUrl: preloaded,
@@ -150,13 +164,10 @@ export const App: React.FC = () => {
           const record = await storageService.wallpaper.getWallpaper(b.imageId);
           const plan = planBackgroundRestore(b, !!record);
           if (plan.kind === 'restore' && record) {
-            if (currentBlobUrlRef.current) {
-              URL.revokeObjectURL(currentBlobUrlRef.current);
-            }
             const newUrl = URL.createObjectURL(
               record.data instanceof Blob ? record.data : new Blob([record.data])
             );
-            currentBlobUrlRef.current = newUrl;
+            adoptBlobUrl(newUrl, b.imageId);
             finalBackground = {
               ...plan.config,
               imageBlobUrl: newUrl,
@@ -201,6 +212,27 @@ export const App: React.FC = () => {
     }
     loadAll();
 
+    // 跨标签壁纸同步 (C032)：存储中不再携带 Blob URL，按 imageId 在本页重建派生地址
+    async function applyExternalBackground(next: BackgroundConfig) {
+      if (next.type !== 'image' || !next.imageId) {
+        releaseBlobUrl();
+        setBackground({ ...next, imageBlobUrl: undefined });
+        return;
+      }
+      if (currentBlobImageIdRef.current !== next.imageId) {
+        const record = await storageService.wallpaper.getWallpaper(next.imageId).catch(() => null);
+        if (!isMounted) return;
+        if (record && currentBlobImageIdRef.current !== next.imageId) {
+          adoptBlobUrl(
+            URL.createObjectURL(record.data instanceof Blob ? record.data : new Blob([record.data])),
+            next.imageId
+          );
+        }
+      }
+      const reusable = currentBlobImageIdRef.current === next.imageId ? currentBlobUrlRef.current : null;
+      setBackground({ ...next, imageBlobUrl: reusable ?? undefined });
+    }
+
     // 跨标签页/跨窗口存储变更监听与状态多播 (N01)
     const unbindStorage = storageService.onSettingsChanged((key, newValue) => {
       if (!isMounted) return;
@@ -217,7 +249,7 @@ export const App: React.FC = () => {
       } else if (key === 'settings.engine') {
         if (typeof newValue === 'string') setEngine(newValue);
       } else if (key === 'settings.background') {
-        if (newValue && typeof newValue === 'object') setBackground((prev) => ({ ...prev, ...(newValue as Partial<BackgroundConfig>) }));
+        if (newValue && typeof newValue === 'object') applyExternalBackground(newValue as BackgroundConfig);
       } else if (key === 'settings.layout') {
         if (Array.isArray(newValue)) setLayout(newValue as LayoutItem[]);
       } else if (key === 'settings.shortcutKeysEnabled') {
@@ -228,10 +260,7 @@ export const App: React.FC = () => {
     return () => {
       isMounted = false;
       unbindStorage();
-      if (currentBlobUrlRef.current) {
-        URL.revokeObjectURL(currentBlobUrlRef.current);
-        currentBlobUrlRef.current = null;
-      }
+      releaseBlobUrl();
     };
   }, []);
 
@@ -358,15 +387,9 @@ export const App: React.FC = () => {
   const handleUpdateBackground = async (updates: Partial<BackgroundConfig>) => {
     let nextUpdates = { ...updates };
     if (updates.imageBlobUrl) {
-      if (currentBlobUrlRef.current && updates.imageBlobUrl !== currentBlobUrlRef.current) {
-        URL.revokeObjectURL(currentBlobUrlRef.current);
-      }
-      currentBlobUrlRef.current = updates.imageBlobUrl;
+      adoptBlobUrl(updates.imageBlobUrl, updates.imageId ?? background.imageId);
     } else if (updates.type === 'color' || updates.type === 'material') {
-      if (currentBlobUrlRef.current) {
-        URL.revokeObjectURL(currentBlobUrlRef.current);
-        currentBlobUrlRef.current = null;
-      }
+      releaseBlobUrl();
       nextUpdates.imageBlobUrl = undefined;
     } else if (currentBlobUrlRef.current) {
       nextUpdates.imageBlobUrl = currentBlobUrlRef.current;
@@ -378,7 +401,7 @@ export const App: React.FC = () => {
           const newUrl = URL.createObjectURL(
             record.data instanceof Blob ? record.data : new Blob([record.data])
           );
-          currentBlobUrlRef.current = newUrl;
+          adoptBlobUrl(newUrl, targetImageId);
           nextUpdates.imageBlobUrl = newUrl;
         }
       }
@@ -388,10 +411,7 @@ export const App: React.FC = () => {
   };
 
   const handleResetBackground = async () => {
-    if (currentBlobUrlRef.current) {
-      URL.revokeObjectURL(currentBlobUrlRef.current);
-      currentBlobUrlRef.current = null;
-    }
+    releaseBlobUrl();
     const reset = await storageService.resetBackground();
     setBackground(reset);
   };

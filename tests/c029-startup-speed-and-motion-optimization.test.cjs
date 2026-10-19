@@ -154,7 +154,7 @@ test('C029 壁纸极速加载优化：main.tsx 抢跑预加载、useLayoutEffect
 
   // 3. App.tsx useLayoutEffect 抢先挂载与 getBackgroundStyle 渐进 preview 支持
   assert.ok(appSrc.includes('useLayoutEffect'), 'App.tsx 必须引入并使用 useLayoutEffect');
-  assert.ok(appSrc.includes('kickOffWallpaperPreload(boot.background.imageId)'), 'App.tsx 必须在 useLayoutEffect 抢先监听预加载结果');
+  assert.ok(appSrc.includes('kickOffWallpaperPreload(bootImageId)'), 'App.tsx 必须在 useLayoutEffect 抢先监听预加载结果');
   assert.ok(appSrc.includes('background.imageBlobUrl || background.previewUrl'), 'getBackgroundStyle 必须支持 previewUrl 渐进式直出');
 
   // 4. background.ts 具备超轻微缩图生成能力且上传时落库

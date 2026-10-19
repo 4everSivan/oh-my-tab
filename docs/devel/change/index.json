@@ -1,7 +1,7 @@
 {
   "$schema": "https://ad-flow.org/schemas/change-index.v1.json",
   "version": "1.0",
-  "updated_at": "2026-10-14",
+  "updated_at": "2026-10-19",
   "topics": {
     "SystemOverview": {
       "design_doc": "docs/devel/design/00-系统总体设计.md",
@@ -49,7 +49,8 @@
       "design_doc": "docs/devel/design/04-数据保存与同步.md",
       "changes": [
         "C001",
-        "C025"
+        "C025",
+        "C032"
       ]
     },
     "ExtensionDataSources": {
@@ -382,6 +383,15 @@
       "created": "2026-10-14",
       "file": "docs/archive/v0.2.1/change/C031.json",
       "archive": "docs/archive/v0.2.1/change/C031.json"
+    },
+    "C032": {
+      "title": "修复会话级壁纸 Blob URL 被落盘：首帧优先渲染死链致缩略图直出失效",
+      "type": "BugFix",
+      "status": "in_progress",
+      "branch": "fix/C032-wallpaper-session-url",
+      "topic": "DataPersistenceSync",
+      "created": "2026-10-19",
+      "file": "docs/devel/change/C032.json"
     }
   }
 }

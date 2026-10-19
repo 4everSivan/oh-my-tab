@@ -155,7 +155,7 @@ test('C027: useAdaptiveContrast 接收 clockConfig 并在几何属性改变时�
 
 test('C027: App.tsx 首次纯色上传图片正确登记 Blob URL 以备重置回收', () => {
   assert.ok(
-    appSrc.includes('currentBlobUrlRef.current = updates.imageBlobUrl;'),
+    appSrc.includes('adoptBlobUrl(updates.imageBlobUrl'),
     'handleUpdateBackground 必须把新 imageBlobUrl 登记至 currentBlobUrlRef'
   );
 });

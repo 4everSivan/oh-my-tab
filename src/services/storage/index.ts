@@ -43,11 +43,24 @@ export interface BootCache {
   savedAt?: number;
 }
 
+/**
+ * 剥离会话级派生字段 (C001, C032)：imageBlobUrl 刷新后必然死链，不得写入存储或启动快照；
+ * 读取旧数据时同样剥离，避免首帧优先渲染死链而跳过 previewUrl 缩略图
+ */
+export function toPersistedBackground(bg: BackgroundConfig): BackgroundConfig {
+  if (!bg || typeof bg !== 'object' || !('imageBlobUrl' in bg)) return bg;
+  const persisted = { ...bg };
+  delete persisted.imageBlobUrl;
+  return persisted;
+}
+
 export function getBootCache(): BootCache | null {
   if (typeof localStorage === 'undefined') return null;
   try {
     const raw = localStorage.getItem(BOOT_CACHE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    const boot: BootCache | null = raw ? JSON.parse(raw) : null;
+    if (boot?.background) boot.background = toPersistedBackground(boot.background);
+    return boot;
   } catch {
     return null;
   }
@@ -122,7 +135,12 @@ export class StorageService {
         if (key === STORAGE_KEYS.CLOCK) updateBootCache({ clock: change.newValue as ClockAppearance });
         else if (key === STORAGE_KEYS.SEARCH) updateBootCache({ search: change.newValue as SearchAppearance });
         else if (key === STORAGE_KEYS.ENGINE) updateBootCache({ engine: change.newValue as string });
-        else if (key === STORAGE_KEYS.BACKGROUND) updateBootCache({ background: change.newValue as BackgroundConfig });
+        else if (key === STORAGE_KEYS.BACKGROUND) {
+          const background = toPersistedBackground(change.newValue as BackgroundConfig);
+          updateBootCache({ background });
+          callback(key, background);
+          continue;
+        }
         else if (key === STORAGE_KEYS.SHORTCUTS) updateBootCache({ shortcuts: change.newValue as Shortcut[] });
         else if (key === STORAGE_KEYS.SHORTCUT_GROUPS) updateBootCache({ shortcutGroups: change.newValue as ShortcutGroup[] });
         else if (key === STORAGE_KEYS.ACTIVE_SHORTCUT_GROUP_ID) updateBootCache({ activeShortcutGroupId: change.newValue as string });
@@ -194,15 +212,18 @@ export class StorageService {
 
   // Background
   async getBackground(): Promise<BackgroundConfig> {
-    return this.adapter.get<BackgroundConfig>(STORAGE_KEYS.BACKGROUND, DEFAULT_BACKGROUND_CONFIG);
+    const background = await this.adapter.get<BackgroundConfig>(STORAGE_KEYS.BACKGROUND, DEFAULT_BACKGROUND_CONFIG);
+    return toPersistedBackground(background);
   }
 
   async setBackground(bg: Partial<BackgroundConfig>): Promise<BackgroundConfig> {
     return this.mutex.run(async () => {
       const current = await this.getBackground();
+      // 返回值保留调用方传入的会话 Blob URL 供本页渲染，落盘与启动快照只写持久化事实
       const updated: BackgroundConfig = { ...current, ...bg };
-      await this.adapter.set(STORAGE_KEYS.BACKGROUND, updated);
-      updateBootCache({ background: updated });
+      const persisted = toPersistedBackground(updated);
+      await this.adapter.set(STORAGE_KEYS.BACKGROUND, persisted);
+      updateBootCache({ background: persisted });
       return updated;
     });
   }
