@@ -1,0 +1,115 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C036",
+  "title": "修复闲置聚焦淡化在「减少动态效果」下瞬跳无动效，并收敛为只显示淡化搜索框的显式唤醒交互",
+  "version": "0.2.2",
+  "type": "BugFix",
+  "status": "closed",
+  "branch": "main",
+  "is_hotfix": false,
+  "target": {
+    "module": "外观与动效（闲置聚焦淡化）",
+    "component": "src/styles/motion.css / src/hooks/useIdleDetection.ts / src/hooks/useKeyboardShortcuts.ts / src/App.tsx / src/components/settings/AppearanceDrawer.tsx",
+    "design_doc": "docs/devel/design/07-动效系统.md",
+    "design_topic": "MotionSystem"
+  },
+  "why": "现象：T19 闲置淡化效果在真机上完全看不到动画，元素在 3 秒后一帧跳到终态。根因：motion.css 的 prefers-reduced-motion 全局守卫把 .t-idle-target 一族的 transition-duration 一并压到 0.01ms，而 macOS「减少动态效果」开启时 Chrome 会命中该媒体查询，闲置淡化的 1000ms 渐变被彻底归零；守卫对纯透明度变化（无位移/缩放/模糊）的过度抑制属于降级范围过宽。此外原实现只有一次性淡出到静态 0.38，且 3 秒阈值下任意鼠标微动都会唤醒整页，与「闲置时只保留搜索框」的使用预期不符，故一并收敛交互语义。",
+  "precheck": {
+    "description": "确认 reduced-motion 守卫把闲置目标的过渡时长归零，且当前系统确实命中该媒体查询",
+    "command": "defaults read com.apple.universalaccess reduceMotion; grep -n 'transition-duration: 0.01ms' src/styles/motion.css",
+    "expected": "reduceMotion=1 且 .t-idle-target 出现在 0.01ms 归零名单中",
+    "is_completed": false,
+    "evidence": "2026-10-27 执行：reduceMotion=1；无头 Chrome 原生 matchMedia('(prefers-reduced-motion: reduce)').matches 为 true；修复前闲置目标 computed transition-duration 为 1e-05s，3 秒后 opacity 由 1 直接跳到 0.38（3.0s→3.1s 内完成，无中间帧）。缺陷确认。"
+  },
+  "callback": {
+    "before": [
+      "git status --short  # 确认工作区仅含本次改动"
+    ],
+    "after": [
+      "node --test tests/idle-liquid-glass.test.cjs",
+      "npm test",
+      "npm run build  # 产物收拢 local/dist/"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "动效降级守卫（motion.css）",
+      "before": "reduced-motion 守卫把 .t-idle-target 一族的 transition-duration 统一压到 0.01ms !important",
+      "after": "闲置目标从归零名单移出，单列透明度例外：保留 --idle-fade-dur (1000ms) 淡出与 --idle-wake-dur (200ms) 唤醒，其余位移/模糊通道在降级态一律不走过渡",
+      "impact": "开启系统「减少动态效果」的用户首次能看到闲置淡化渐变"
+    },
+    {
+      "scope": "闲置态视觉（motion.css）",
+      "before": "时钟、搜索框、顶栏、图标栏、页脚统一淡化至 0.38",
+      "after": "时钟/顶栏/图标栏/组件区/页脚 opacity: 0 完全隐去并让出 pointer-events；搜索框改挂 t-idle-search 保留可见、自身淡化至 --idle-opacity (0.38)，hover 时 200ms 点亮回 1",
+      "impact": "首页闲置态整屏视觉：只显示一个半透明的搜索框"
+    },
+    {
+      "scope": "唤醒交互（useIdleDetection / useKeyboardShortcuts / App）",
+      "before": "mousemove / mousedown / keydown / touchstart / scroll / wheel 任一事件都唤醒整页并恢复全部区块",
+      "after": "仅 keydown 计为活动事件，且闲置态只认 `（反引号）；点击搜索框（onPointerDown 唤醒并聚焦输入）或按 ` 才恢复整页并进入输入态；useKeyboardShortcuts 新增 suspended 开关，闲置态下 ?/e/s/b/a/c/Tab/Escape 全部挂起",
+      "impact": "闲置态交互入口、全局快捷键调度；非闲置态快捷键行为不变"
+    },
+    {
+      "scope": "外观设置文案（AppearanceDrawer）",
+      "before": "「闲置呼吸淡化」「开启无操作闲置呼吸淡化」，说明为「任意操作瞬时唤醒」",
+      "after": "「闲置聚焦淡化」「开启无操作闲置聚焦淡化」，说明改为「移动鼠标仅高亮搜索框，点击搜索框或按 ` 才唤回并进入输入」",
+      "impact": "外观设置抽屉展示文案"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/07-动效系统.md",
+    "topic": "MotionSystem",
+    "modified": true,
+    "rule_diff": {
+      "before": "MOT-14：无操作达到阈值后各区块平滑淡化至半透明；任意用户交互或局部 hover 以 200ms 唤醒。MOT-08：reduced-motion 时全部动效即时完成或禁用。",
+      "after": "MOT-14：闲置后仅保留搜索框（自身淡化至 --idle-opacity 0.38，hover 点亮回 1），时钟/顶栏/图标栏/组件区/页脚淡出隐去并让出指针事件；移动鼠标不唤醒整页，只有点击搜索框或按 ` 才以 --idle-wake-dur (200ms) 恢复整页并聚焦输入，闲置态其余单键快捷键挂起。MOT-08：唯一例外为闲置聚焦淡化——仅透明度通道、无位移/缩放/模糊，保留 opacity 过渡与原时长。"
+    }
+  },
+  "verification": {
+    "result": true,
+    "run_id": "local-20261027-15",
+    "user_quote": "确认签收，然后准备推送",
+    "signoff": "sivan (AI代签)",
+    "checks": [
+      {
+        "item": "自动化测试",
+        "true_if": "全量单测全绿、退出码 0，且含针对本次语义的回归断言",
+        "false_if": "存在失败，或缺少隐去/唤醒语义的回归覆盖",
+        "evidence": "npm test → tests 230 / pass 230 / fail 0；tests/idle-liquid-glass.test.cjs 8 项全绿，新增断言覆盖：目标 opacity: 0 与 pointer-events 让出、搜索框不得进入隐去组且必须淡化到 --idle-opacity、闲置 hover 高亮、唤醒事件集只含 keydown（mousemove/scroll/wheel 不得出现）、闲置态只有 ` 可唤醒、useKeyboardShortcuts suspended 开关与 App 接线、reduced-motion 保留 fade 时长；npm run build 退出码 0。",
+        "result": true
+      },
+      {
+        "item": "行为实测",
+        "true_if": "真实 Chrome 中闲置只显示半透明搜索框，鼠标移动仅高亮搜索框，点击搜索框或按 ` 恢复整页并聚焦输入",
+        "false_if": "移动鼠标唤回其他区块，或点击/` 未进入输入态",
+        "evidence": "真实 Chrome 156 加载 local/dist（系统「减少动态效果」开启、未做媒体模拟）实测：静置 3s → data-idle=true、搜索框 opacity 0.380、9/9 目标隐去；鼠标移到搜索框 → 搜索框 1.000（高亮）、目标仍 9/9 隐去、data-idle 仍 true；鼠标移开 → 0.519→0.384 淡回；按 a → 仍 idle、仍 9/9 隐去（快捷键已挂起）；按 ` → data-idle=false、9/9 恢复、activeElement 为 INPUT；点击搜索框 → data-idle=false、9/9 恢复、activeElement 为 INPUT。截图确认闲置态整屏只剩搜索框。",
+        "result": true
+      },
+      {
+        "item": "反向影响排查",
+        "true_if": "闲置避让、液态玻璃常态、非闲置态快捷键与既有动效均不受影响",
+        "false_if": "抽屉/模态避让失效，或非闲置态快捷键、其他动效被破坏",
+        "evidence": "isGuarded（抽屉/侧栏/模态/搜索聚焦）逻辑未改动，闲置在聚焦态仍完全挂起；.liquid-glass-surface 常态与 hover 阴影规则保持原值；useKeyboardShortcuts 的 suspended 仅在 isIdle 为真时生效，非闲置态分支未改动，230 项测试全绿；TS 侧 npm run build 内 tsc 退出码 0。",
+        "result": true
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "e17d82c",
+    "tag": ""
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.6.0",
+    "ran_at": "2026-10-27",
+    "exit_code": 0,
+    "from_status": "verified",
+    "target_status": "closed",
+    "signed_quote": "确认签收，然后准备推送",
+    "signed_rejection_count": 0
+  }
+}

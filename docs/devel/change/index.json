@@ -1,7 +1,7 @@
 {
   "$schema": "https://ad-flow.org/schemas/change-index.v1.json",
   "version": "1.0",
-  "updated_at": "2026-10-19",
+  "updated_at": "2026-10-27",
   "topics": {
     "SystemOverview": {
       "design_doc": "docs/devel/design/00-系统总体设计.md",
@@ -73,7 +73,8 @@
       "changes": [
         "C007",
         "C008",
-        "C029"
+        "C029",
+        "C036"
       ]
     }
   },
@@ -423,6 +424,15 @@
       "topic": "SystemOverview",
       "created": "2026-10-19",
       "file": "docs/devel/change/C035.json"
+    },
+    "C036": {
+      "title": "修复闲置聚焦淡化在「减少动态效果」下瞬跳无动效，并收敛为只显示淡化搜索框的显式唤醒交互",
+      "type": "BugFix",
+      "status": "closed",
+      "branch": "main",
+      "topic": "MotionSystem",
+      "created": "2026-10-27",
+      "file": "docs/devel/change/C036.json"
     }
   }
 }
