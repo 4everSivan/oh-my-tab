@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-10-27
+
+> 批次归档：[docs/archive/v0.2.2/](docs/archive/v0.2.2/README.md) ｜ 变更 C032 ~ C037 ｜ 分发包 `local/oh-my-tab-v0.2.2.zip`
+
 ### Changed
 
 - **闲置态新增 Escape 退出入口 (C037)**：闲置聚焦态此前只能通过「点击搜索框」或「按 `」退出，Escape 被一并挂起。现验收美学与操作直觉，将 `Escape` 加入放行名单：按下即退出闲置、恢复整页，但不把焦点塞进搜索框（与全局 Escape「退出当前状态」语义一致，避免误触发输入态）。实现上 `useKeyboardShortcuts` 的 `suspended` 守卫放行 `Escape`，`useIdleDetection` 的闲置态唤醒键白名单同步加入 `Escape`；`?`/`e`/`s`/`b`/`a`/`c`/`Tab` 仍保持挂起。新增/更新 2 项断言覆盖白名单与放行条件。

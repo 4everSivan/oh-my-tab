@@ -82,7 +82,7 @@
     "design_pinned": true,
     "changelog": true,
     "commit": "ea90bed",
-    "tag": ""
+    "tag": "v0.2.2"
   },
   "gate": {
     "tool": "adflow-verify",

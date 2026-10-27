@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "oh-my-tab",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Chrome 新标签页与浏览器启动页个人工作台",
   "chrome_url_overrides": {
     "newtab": "index.html"
