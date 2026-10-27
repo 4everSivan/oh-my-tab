@@ -122,11 +122,12 @@ export function useIdleDetection({
         wakeUp();
         return;
       }
-      // 闲置态只认 `（反引号）：其余按键不打断聚焦态，避免随手一个字母就把
-      // 时钟与图标栏唤回来（快捷键层在闲置态同样挂起，见 useKeyboardShortcuts）。
+      // 闲置态只认 `（反引号）与 Escape 两个退出键：其余按键不打断聚焦态，
+      // 避免随手一个字母就把时钟与图标栏唤回来（快捷键层在闲置态同样挂起，
+      // 见 useKeyboardShortcuts 的 suspended）。
       if (isIdleRef.current) {
         const key = event instanceof KeyboardEvent ? event.key : '';
-        if (key !== '`' && key !== '~') return;
+        if (key !== '`' && key !== '~' && key !== 'Escape') return;
       }
       resetTimer();
     };

@@ -89,16 +89,16 @@ test('T19: useIdleDetection Hook 具备严谨的防抖重置、唤醒事件集�
   assert.ok(hookTs.includes('resetTimer'), '必须导出 resetTimer');
   assert.ok(hookTs.includes('forceIdle'), '必须导出 forceIdle');
   assert.ok(
-    /if \(isIdleRef\.current\)[\s\S]{0,220}?key !== '`'/.test(hookTs),
-    '闲置态只有 ` 可唤醒，其余按键不得打断聚焦态'
+    /if \(isIdleRef\.current\)[\s\S]{0,260}?key !== '`'[\s\S]{0,80}?key !== 'Escape'/.test(hookTs),
+    '闲置态只有 ` 与 Escape 可唤醒，其余按键不得打断聚焦态'
   );
 
   // 快捷键层在闲置态必须整体挂起，避免在隐去的界面上开抽屉/弹窗
   const kbdTs = fs.readFileSync(path.join(ROOT, 'src/hooks/useKeyboardShortcuts.ts'), 'utf-8');
   assert.ok(kbdTs.includes('suspended?: boolean'), 'useKeyboardShortcuts 必须支持 suspended 挂起开关');
   assert.ok(
-    /if \(suspended && e\.key !== '`' && e\.key !== '~'\) return;/.test(kbdTs),
-    '闲置态只放行 `，其余单键快捷键必须提前返回'
+    /if \(suspended && e\.key !== '`' && e\.key !== '~' && e\.key !== 'Escape'\) return;/.test(kbdTs),
+    '闲置态只放行 ` 与 Escape，其余单键快捷键必须提前返回'
   );
 });
 

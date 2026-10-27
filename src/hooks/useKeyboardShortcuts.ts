@@ -60,9 +60,10 @@ export function useKeyboardShortcuts({
 }: UseKeyboardShortcutsOptions) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      // 闲置聚焦态：界面只剩淡化的搜索框，此时除 ` 之外的快捷键一律休眠，
-      // 否则 a / e / b 会在看不见的界面上直接开弹窗抽屉。` 仍可唤醒并聚焦搜索。
-      if (suspended && e.key !== '`' && e.key !== '~') return;
+      // 闲置聚焦态：界面只剩淡化的搜索框，此时除 ` 与 Escape 之外的快捷键一律
+      // 休眠，否则 a / e / b 会在看不见的界面上直接开弹窗抽屉。` 唤醒并聚焦搜索，
+      // Escape 只退出闲置态（唤醒由 useIdleDetection 的活动判定负责）。
+      if (suspended && e.key !== '`' && e.key !== '~' && e.key !== 'Escape') return;
 
       const activeEl = document.activeElement;
       const isSearchFocused = !!(
