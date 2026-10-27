@@ -75,7 +75,8 @@
         "C008",
         "C029",
         "C036",
-        "C037"
+        "C037",
+        "C038"
       ]
     }
   },
@@ -449,6 +450,15 @@
       "created": "2026-10-27",
       "file": "docs/archive/v0.2.2/change/C037.json",
       "archive": "docs/archive/v0.2.2/change/C037.json"
+    },
+    "C038": {
+      "title": "修复闲置误判：鼠标在页面上移动但未点击仍按倒计时进入闲置聚焦",
+      "type": "BugFix",
+      "status": "verified",
+      "branch": "fix/C038-idle-pointer-activity",
+      "topic": "MotionSystem",
+      "created": "2026-10-27",
+      "file": "docs/devel/change/C038.json"
     }
   }
 }

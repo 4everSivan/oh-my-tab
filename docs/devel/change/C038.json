@@ -1,0 +1,111 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C038",
+  "title": "修复闲置误判：鼠标在页面上移动但未点击仍按倒计时进入闲置聚焦",
+  "version": "0.2.3",
+  "type": "BugFix",
+  "status": "verified",
+  "branch": "fix/C038-idle-pointer-activity",
+  "is_hotfix": false,
+  "target": {
+    "module": "外观与动效（闲置聚焦淡化）",
+    "component": "src/hooks/useIdleDetection.ts",
+    "design_doc": "docs/devel/design/07-动效系统.md",
+    "design_topic": "MotionSystem"
+  },
+  "why": "C036 收敛为显式唤醒入口制时，把活动事件集一并收窄成只监听 keydown，理由是担心指针微动打断「只显示搜索框」。副作用是：用户只动鼠标、不敲键盘也不点击时（例如扫视图标栏、把指针移到待办上对照内容），3 秒倒计时照常走完并进入闲置聚焦，整页在用户明明正在操作指针的情况下淡出。活动判定与唤醒入口是两件事：闲置「之前」的指针操作属于真实活动，不应被判为无操作；闲置「之后」才需要显式入口制来守住聚焦态。",
+  "precheck": {
+    "description": "确认闲置计时只由键盘事件重置，指针活动不参与活动判定",
+    "command": "grep -n \"const events\" src/hooks/useIdleDetection.ts",
+    "expected": "改动前活动事件集为 ['keydown']，pointermove/pointerdown/wheel 均未注册",
+    "is_completed": false,
+    "evidence": "2026-10-27 改动前核对：useIdleDetection.ts 仅注册 keydown，窗口内未监听任何指针或滚轮事件；测试 tests/idle-liquid-glass.test.cjs 亦以断言固定「唤醒事件集只应包含键盘」。据此确认用户只动鼠标时活动判定为零输入，3 秒后必定进入闲置。"
+  },
+  "callback": {
+    "before": [
+      "git status --short  # 确认工作区仅含本次改动",
+      "git checkout -b fix/C038-idle-pointer-activity"
+    ],
+    "after": [
+      "node --test tests/idle-liquid-glass.test.cjs",
+      "npm test",
+      "npm run build  # 产物收拢 local/dist/",
+      "scripts/adflow-verify --card C038 --to verified --record"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "闲置活动判定（未进入闲置时）",
+      "before": "活动事件集只有 keydown；鼠标移动、按下与滚轮一律不计为活动，只要不敲键盘，倒计时走完即进入闲置聚焦",
+      "after": "活动事件集扩为 keydown / pointermove / pointerdown / wheel；pointermove 以距上次活动锚点的累计位移 ≥ 4px 为判定条件，静止指针的微小抖动不重置倒计时；键盘与滚轮活动后清空锚点，使下一次指针移动重新成为活动起点",
+      "impact": "未闲置状态的闲置计时；进入闲置后的唤醒语义不变"
+    },
+    {
+      "scope": "闲置唤醒语义（已进入闲置时）",
+      "before": "闲置态下键盘白名单只放行 ` / ~ / Escape，其余按键与指针事件均不唤醒",
+      "after": "保持显式入口制不变：闲置态下指针事件（含 pointermove / pointerdown / wheel）在活动处理器里提前返回，只有点击搜索框、`（含 ~）与 Escape 三个入口恢复整页；隐去目标仍为 pointer-events: none，闲置态不会因指针移动而被唤回",
+      "impact": "「只显示搜索框」的聚焦态稳定性；无行为变化"
+    },
+    {
+      "scope": "状态更新开销",
+      "before": "wakeUp 每次直接 setRemainingSeconds(timeoutSeconds)，指针事件纳入后会在高频事件上反复触发同值状态更新",
+      "after": "wakeUp 改为同值短路（prev === timeoutSeconds 时返回原值），配合 4px 位移阈值，指针连续移动不会造成无谓重渲染",
+      "impact": "闲置 Hook 的渲染开销；状态结果不变"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/07-动效系统.md",
+    "topic": "MotionSystem",
+    "modified": true,
+    "rule_diff": {
+      "before": "MOT-14：闲置感知只把键盘视为活动事件（mousemove/scroll/wheel 不计），唤醒为显式入口制。",
+      "after": "MOT-14：活动判定分两段——未闲置时键盘与指针操作（pointermove/pointerdown/wheel）都算活动，指针移动以累计 4px 位移阈值过滤静止抖动；进入闲置后指针事件一律不计为唤醒，仍只认点击搜索框、` 与 Escape 三个显式入口。"
+    }
+  },
+  "verification": {
+    "result": true,
+    "run_id": "local-20261027-17",
+    "user_quote": "确认，提交并推送",
+    "signoff": "sivan (AI代签)",
+    "checks": [
+      {
+        "item": "自动化测试",
+        "true_if": "全量单测全绿、退出码 0，且含活动事件集与闲置态指针提前返回的断言",
+        "false_if": "存在失败，或缺少对应断言",
+        "evidence": "npm test → tests 230 / pass 230 / fail 0；node --test tests/idle-liquid-glass.test.cjs → 8/8 通过，含新增断言：活动事件集为 keydown/pointermove/pointerdown/wheel、scroll 不入选、存在累计位移阈值、闲置态指针提前返回且只有 ` 与 Escape 重置倒计时；npx tsc --noEmit 退出码 0；npm run build 退出码 0（产物 local/dist/）。",
+        "result": true
+      },
+      {
+        "item": "行为实测",
+        "true_if": "真实 Chrome 中只移动鼠标（不点击不按键）时不再进入闲置聚焦；停手超时后正常进入；闲置态移动鼠标仍只高亮搜索框、点击搜索框或按 ` / Escape 才恢复整页",
+        "false_if": "移动鼠标仍会淡出，或闲置态被指针移动唤醒，或指针静止抖动导致永不进入闲置",
+        "evidence": "用户于 2026-10-27 会话确认实测通过并授权提交推送（原话「确认，提交并推送」）；本卡未自行执行浏览器运行态验证，该项结论来自人工确认。",
+        "result": true
+      },
+      {
+        "item": "反向影响排查",
+        "true_if": "键盘活动、抽屉/搜索聚焦避让、快捷键悬挂、reduced-motion 降级均不受影响",
+        "false_if": "上述既有行为被改变或产生连锁副作用",
+        "evidence": "isGuarded 分支、闲置态按键白名单、useKeyboardShortcuts 的 suspended、motion.css 的 reduced-motion 例外与 data-idle 规则均未改动；230 项测试全绿，其中 idle 8 项与 keyboard-shortcuts 相关套件覆盖上述契约。",
+        "result": true
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "",
+    "tag": ""
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.6.0",
+    "ran_at": "2026-10-27",
+    "exit_code": 0,
+    "from_status": "verified",
+    "target_status": "verified",
+    "signed_quote": "确认，提交并推送",
+    "signed_rejection_count": 0
+  }
+}
