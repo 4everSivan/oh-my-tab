@@ -24,20 +24,27 @@ test('T19: StorageService 具备完整的 idle 配置读写与启动快照契约
   assert.ok(storageTs.includes('this.getIdle()'), 'loadAllSettings 必须并发读取 idle 配置');
 });
 
-test('T19: motion.css 包含液态玻璃动效令牌与 reduced-motion 守卫', () => {
+test('T19: motion.css 包含液态玻璃方案B空间错峰动效令牌与 reduced-motion 守卫', () => {
   const motionCss = fs.readFileSync(path.join(ROOT, 'src/styles/motion.css'), 'utf-8');
-  assert.ok(motionCss.includes('--idle-fade-dur: 600ms;'), '必须定义 --idle-fade-dur 令牌');
+  assert.ok(motionCss.includes('--idle-fade-dur: 1600ms;'), '必须定义方案B 1600ms --idle-fade-dur 令牌');
   assert.ok(motionCss.includes('--idle-wake-dur: 200ms;'), '必须定义 --idle-wake-dur 令牌');
-  assert.ok(motionCss.includes('--idle-opacity: 0.38;'), '必须定义 --idle-opacity 令牌');
-  assert.ok(motionCss.includes('--idle-glass-opacity: 0.08;'), '必须定义 --idle-glass-opacity 令牌');
-  assert.ok(motionCss.includes('--idle-blur: 20px;'), '必须定义 --idle-blur 令牌');
-  assert.ok(motionCss.includes('.t-idle-target'), '必须定义 .t-idle-target 类名');
-  assert.ok(motionCss.includes('.liquid-glass-surface'), '必须定义 .liquid-glass-surface 类名');
-  assert.ok(motionCss.includes('[data-idle="true"] .t-idle-target:hover'), '必须包含局部聚光唤醒 hover 规则');
+  assert.ok(motionCss.includes('--idle-topbar-delay: 0ms;'), '必须定义 --idle-topbar-delay 错峰延时');
+  assert.ok(motionCss.includes('--idle-shortcuts-delay: 180ms;'), '必须定义 --idle-shortcuts-delay 错峰延时');
+  assert.ok(motionCss.includes('--idle-search-delay: 320ms;'), '必须定义 --idle-search-delay 错峰延时');
+  assert.ok(motionCss.includes('--idle-clock-delay: 450ms;'), '必须定义 --idle-clock-delay 错峰延时');
+  assert.ok(motionCss.includes('.liquid-glass-surface'), '必须定义 .liquid-glass-surface 物理液化类名');
+  assert.ok(motionCss.includes('.t-idle-topbar'), '必须定义 .t-idle-topbar 错峰层');
+  assert.ok(motionCss.includes('.t-idle-shortcuts'), '必须定义 .t-idle-shortcuts 错峰层');
+  assert.ok(motionCss.includes('.t-idle-search'), '必须定义 .t-idle-search 错峰层');
+  assert.ok(motionCss.includes('.t-idle-clock'), '必须定义 .t-idle-clock 错峰层');
+  assert.ok(motionCss.includes('[data-idle="true"] .t-idle-clock:hover'), '必须包含局部聚光唤醒 hover 规则');
 
   // 验证 reduced-motion 全局降级守卫
   const reducedMotionBlock = motionCss.slice(motionCss.indexOf('@media (prefers-reduced-motion: reduce)'));
-  assert.ok(reducedMotionBlock.includes('.t-idle-target'), 'reduced-motion 守卫必须包含 .t-idle-target');
+  assert.ok(reducedMotionBlock.includes('.t-idle-topbar'), 'reduced-motion 守卫必须包含 .t-idle-topbar');
+  assert.ok(reducedMotionBlock.includes('.t-idle-shortcuts'), 'reduced-motion 守卫必须包含 .t-idle-shortcuts');
+  assert.ok(reducedMotionBlock.includes('.t-idle-search'), 'reduced-motion 守卫必须包含 .t-idle-search');
+  assert.ok(reducedMotionBlock.includes('.t-idle-clock'), 'reduced-motion 守卫必须包含 .t-idle-clock');
   assert.ok(reducedMotionBlock.includes('.liquid-glass-surface'), 'reduced-motion 守卫必须包含 .liquid-glass-surface');
 });
 
@@ -69,10 +76,11 @@ test('T19: App.tsx 核心区块全量接线与输入/抽屉避让守卫', () => 
   assert.ok(appTs.includes('useIdleDetection'), 'App.tsx 必须挂载 useIdleDetection');
   assert.ok(appTs.includes('isGuarded'), 'App.tsx 必须根据抽屉和搜索焦点计算 isGuarded');
   assert.ok(appTs.includes('onFocusChange={setIsSearchFocused}'), 'SearchBar 必须接线 onFocusChange');
-  assert.ok(appTs.includes('t-idle-target liquid-glass-surface'), '顶栏配置按钮必须接入 t-idle-target liquid-glass-surface');
-  assert.ok(appTs.includes('ref={clockContainerRef} className="w-full t-idle-target"'), '时钟容器必须挂载 t-idle-target');
-  assert.ok(appTs.includes('ref={searchContainerRef} className="w-full t-idle-target"'), '搜索框容器必须挂载 t-idle-target');
-  assert.ok(appTs.includes('className="w-full mt-6 t-idle-target"'), '常用网站容器必须挂载 t-idle-target');
+  assert.ok(appTs.includes('t-idle-topbar liquid-glass-surface'), '顶栏配置按钮必须接入 t-idle-topbar liquid-glass-surface');
+  assert.ok(appTs.includes('ref={clockContainerRef} className="w-full t-idle-clock"'), '时钟容器必须挂载 t-idle-clock');
+  assert.ok(appTs.includes('ref={searchContainerRef} className="w-full t-idle-search"'), '搜索框容器必须挂载 t-idle-search');
+  assert.ok(appTs.includes('className="w-full mt-6 t-idle-shortcuts"'), '常用网站容器必须挂载 t-idle-shortcuts');
+  assert.ok(appTs.includes('footer className="w-full py-4 text-center select-none text-[11px] opacity-40 hover:opacity-70 transition-opacity t-idle-topbar"'), '页脚必须挂载 t-idle-topbar');
 });
 
 test('T19: AppearanceDrawer 提供闲置淡化配置开关与时长分段调节', () => {

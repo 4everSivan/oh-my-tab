@@ -63,13 +63,21 @@
   --list-enter-blur: 2px;
   --list-enter-ease: cubic-bezier(0.34, 1.36, 0.64, 1);
 
-  /* ── t-idle-glass 闲置液态玻璃呼吸淡化系统 (MOT-14 & LAY-13) ── */
-  --idle-fade-dur: 600ms;
+  /* ── t-idle-glass 闲置液态玻璃呼吸淡化系统 (MOT-14 & LAY-13 · 方案 B 空间错峰慢呼吸) ── */
+  --idle-fade-dur: 1600ms;
   --idle-wake-dur: 200ms;
   --idle-opacity: 0.38;
-  --idle-glass-opacity: 0.08;
-  --idle-blur: 20px;
-  --ease-apple: cubic-bezier(0.16, 1, 0.3, 1);
+  --idle-surface-bg: rgba(255, 255, 255, 0.08);
+  --idle-blur: 24px;
+  --idle-saturate: 200%;
+  --ease-apple-wake: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-apple-settle: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* 分层错峰延迟梯度 (Staggered Cascade Delays) */
+  --idle-topbar-delay: 0ms;
+  --idle-shortcuts-delay: 180ms;
+  --idle-search-delay: 320ms;
+  --idle-clock-delay: 450ms;
 }
 
 /* ══ t-digit 数字弹入 ═════════════════════════════════════════
@@ -350,65 +358,146 @@
   will-change: transform, opacity, filter;
 }
 
-/* ══ t-idle-glass 闲置液态玻璃呼吸淡化系统 (MOT-14 & LAY-13) ═══
+/* ══ t-idle-glass 闲置液态玻璃呼吸淡化系统 (MOT-14 & LAY-13 · 方案 B 空间错峰慢呼吸) ═══
  * 闲置达到阈值后进入液态玻璃沉浸态；全域活动毫秒级唤醒；
- * 支持局部鼠标 Hover 聚光唤醒（Local Spotlight）与幽灵半透明图标。
+ * 彻底废除整块粗暴降 opacity，转为表面物理液化 (Surface Dissolve) + 层次错峰延迟 (Staggered Cascade)。
  */
-.t-idle-target {
-  transition: opacity var(--idle-wake-dur) var(--ease-apple),
-              filter var(--idle-wake-dur) var(--ease-apple),
-              transform var(--idle-wake-dur) var(--ease-apple),
-              border-color var(--idle-wake-dur) var(--ease-apple),
-              box-shadow var(--idle-wake-dur) var(--ease-apple);
-  will-change: opacity, transform;
-}
 
-[data-idle="true"] .t-idle-target {
-  opacity: var(--idle-opacity);
-  transition-duration: var(--idle-fade-dur);
-}
-
-/* 局部聚光唤醒 (Local Spotlight Hover) */
-[data-idle="true"] .t-idle-target:hover {
-  opacity: 1 !important;
-  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.16));
-  transition-duration: var(--idle-wake-dur);
-}
-
-/* 液态玻璃核心表面与阴影 */
+/* 1. 液态玻璃高透水膜核心容器 */
 .liquid-glass-surface {
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
   box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.08),
               inset 0 1px 1px 0 rgba(255, 255, 255, 0.35);
-  transition: box-shadow var(--idle-wake-dur) var(--ease-apple),
-              border-color var(--idle-wake-dur) var(--ease-apple);
+  transition: background var(--idle-wake-dur) var(--ease-apple-wake),
+              border-color var(--idle-wake-dur) var(--ease-apple-wake),
+              box-shadow var(--idle-wake-dur) var(--ease-apple-wake),
+              backdrop-filter var(--idle-wake-dur) var(--ease-apple-wake),
+              -webkit-backdrop-filter var(--idle-wake-dur) var(--ease-apple-wake);
 }
 
 [data-idle="true"] .liquid-glass-surface {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05),
-              inset 0 1px 1px 0 rgba(255, 255, 255, 0.18);
+  background-color: var(--idle-surface-bg) !important;
+  border-color: rgba(255, 255, 255, 0.20) !important;
+  backdrop-filter: blur(var(--idle-blur)) saturate(var(--idle-saturate)) !important;
+  -webkit-backdrop-filter: blur(var(--idle-blur)) saturate(var(--idle-saturate)) !important;
+  box-shadow: 0 2px 14px 0 rgba(0, 0, 0, 0.05),
+              inset 0 1px 1px 0 rgba(255, 255, 255, 0.28) !important;
   transition-duration: var(--idle-fade-dur);
+  transition-timing-function: var(--ease-apple-settle);
 }
 
 [data-idle="true"] .liquid-glass-surface:hover,
 .liquid-glass-surface:hover {
-  box-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.18),
-              inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.65);
-  transition-duration: var(--idle-wake-dur);
+  background-color: rgba(255, 255, 255, 0.82) !important;
+  border-color: rgba(255, 255, 255, 0.65) !important;
+  box-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.20),
+              inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.70) !important;
+  transition-duration: var(--idle-wake-dur) !important;
+  transition-delay: 0ms !important;
 }
 
-/* 图标幽灵半透明呼吸质感 */
-[data-idle="true"] .shortcut-icon-container img,
-[data-idle="true"] .shortcut-icon-container svg {
+/* 2. 顶栏配置按钮群（错峰层 1：0ms 最先微隐融于背景） */
+.t-idle-topbar {
+  transition: opacity var(--idle-wake-dur) var(--ease-apple-wake),
+              transform var(--idle-wake-dur) var(--ease-apple-wake);
+}
+[data-idle="true"] .t-idle-topbar {
+  opacity: 0.38;
+  transition-duration: var(--idle-fade-dur);
+  transition-timing-function: var(--ease-apple-settle);
+  transition-delay: var(--idle-topbar-delay);
+}
+[data-idle="true"] .t-idle-topbar:hover {
+  opacity: 1 !important;
+  transition-duration: var(--idle-wake-dur);
+  transition-delay: 0ms;
+}
+
+/* 3. 快捷网站图标栏（错峰层 2：180ms 沉降，容器变水膜，图标保留 72% 饱和色彩 + 次表面立体投影） */
+.t-idle-shortcuts {
+  transition: transform var(--idle-wake-dur) var(--ease-apple-wake);
+}
+[data-idle="true"] .t-idle-shortcuts .shortcut-icon-container img,
+[data-idle="true"] .t-idle-shortcuts .shortcut-icon-container svg {
+  opacity: 0.72;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.22));
+  transition: opacity var(--idle-fade-dur) var(--ease-apple-settle),
+              filter var(--idle-fade-dur) var(--ease-apple-settle);
+  transition-delay: var(--idle-shortcuts-delay);
+}
+[data-idle="true"] .t-idle-shortcuts span {
+  opacity: 0.52;
+  transition: opacity var(--idle-fade-dur) var(--ease-apple-settle);
+  transition-delay: var(--idle-shortcuts-delay);
+}
+[data-idle="true"] .t-idle-shortcuts .shortcut-icon-container:hover img,
+[data-idle="true"] .t-idle-shortcuts .shortcut-icon-container:hover svg {
+  opacity: 1 !important;
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.30)) !important;
+  transition-duration: var(--idle-wake-dur);
+  transition-delay: 0ms;
+}
+[data-idle="true"] .t-idle-shortcuts div:hover > span {
+  opacity: 1 !important;
+  transition-duration: var(--idle-wake-dur);
+  transition-delay: 0ms;
+}
+
+/* 4. 搜索框胶囊（错峰层 3：320ms 延时化为晶莹水胶囊，输入字色柔和） */
+.t-idle-search {
+  transition: opacity var(--idle-wake-dur) var(--ease-apple-wake),
+              transform var(--idle-wake-dur) var(--ease-apple-wake);
+}
+[data-idle="true"] .t-idle-search {
+  transition-duration: var(--idle-fade-dur);
+  transition-timing-function: var(--ease-apple-settle);
+  transition-delay: var(--idle-search-delay);
+}
+[data-idle="true"] .t-idle-search input {
   opacity: 0.55;
-  filter: contrast(108%) brightness(105%);
-  transition: opacity var(--idle-fade-dur) var(--ease-apple), filter var(--idle-fade-dur) var(--ease-apple);
+  transition: opacity var(--idle-fade-dur) var(--ease-apple-settle);
+  transition-delay: var(--idle-search-delay);
+}
+[data-idle="true"] .t-idle-search:hover input {
+  opacity: 1 !important;
+  transition-duration: var(--idle-wake-dur);
+  transition-delay: 0ms;
 }
 
-[data-idle="true"] .shortcut-icon-container:hover img,
-[data-idle="true"] .shortcut-icon-container:hover svg {
-  opacity: 1;
-  filter: none;
+/* 5. 主时钟与日期（错峰层 4：450ms 最后柔光定格，绝不发灰发虚） */
+.t-idle-clock {
+  transition: opacity var(--idle-wake-dur) var(--ease-apple-wake),
+              text-shadow var(--idle-wake-dur) var(--ease-apple-wake),
+              transform var(--idle-wake-dur) var(--ease-apple-wake);
+}
+[data-idle="true"] .t-idle-clock {
+  opacity: 0.65;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  transition-duration: var(--idle-fade-dur);
+  transition-timing-function: var(--ease-apple-settle);
+  transition-delay: var(--idle-clock-delay);
+}
+[data-idle="true"] .t-idle-clock:hover {
+  opacity: 1 !important;
   transition-duration: var(--idle-wake-dur);
+  transition-delay: 0ms;
+}
+
+/* 通用向后兼容类名 */
+.t-idle-target {
+  transition: opacity var(--idle-wake-dur) var(--ease-apple-wake),
+              filter var(--idle-wake-dur) var(--ease-apple-wake);
+}
+[data-idle="true"] .t-idle-target {
+  opacity: var(--idle-opacity);
+  transition-duration: var(--idle-fade-dur);
+  transition-timing-function: var(--ease-apple-settle);
+}
+[data-idle="true"] .t-idle-target:hover {
+  opacity: 1 !important;
+  transition-duration: var(--idle-wake-dur);
+  transition-delay: 0ms;
 }
 
 /* ══ 全局降级守卫 ════════════════════════════════════════════
@@ -437,6 +526,14 @@
   .t-check svg path,
   .t-idle-target,
   [data-idle="true"] .t-idle-target,
+  .t-idle-topbar,
+  [data-idle="true"] .t-idle-topbar,
+  .t-idle-shortcuts,
+  [data-idle="true"] .t-idle-shortcuts,
+  .t-idle-search,
+  [data-idle="true"] .t-idle-search,
+  .t-idle-clock,
+  [data-idle="true"] .t-idle-clock,
   .liquid-glass-surface,
   [data-idle="true"] .liquid-glass-surface,
   [data-idle="true"] .shortcut-icon-container img,
