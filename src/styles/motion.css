@@ -62,6 +62,14 @@
   --list-enter-distance: 8px;
   --list-enter-blur: 2px;
   --list-enter-ease: cubic-bezier(0.34, 1.36, 0.64, 1);
+
+  /* ── t-idle-glass 闲置液态玻璃呼吸淡化系统 (MOT-14 & LAY-13) ── */
+  --idle-fade-dur: 600ms;
+  --idle-wake-dur: 200ms;
+  --idle-opacity: 0.38;
+  --idle-glass-opacity: 0.08;
+  --idle-blur: 20px;
+  --ease-apple: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ══ t-digit 数字弹入 ═════════════════════════════════════════
@@ -342,6 +350,67 @@
   will-change: transform, opacity, filter;
 }
 
+/* ══ t-idle-glass 闲置液态玻璃呼吸淡化系统 (MOT-14 & LAY-13) ═══
+ * 闲置达到阈值后进入液态玻璃沉浸态；全域活动毫秒级唤醒；
+ * 支持局部鼠标 Hover 聚光唤醒（Local Spotlight）与幽灵半透明图标。
+ */
+.t-idle-target {
+  transition: opacity var(--idle-wake-dur) var(--ease-apple),
+              filter var(--idle-wake-dur) var(--ease-apple),
+              transform var(--idle-wake-dur) var(--ease-apple),
+              border-color var(--idle-wake-dur) var(--ease-apple),
+              box-shadow var(--idle-wake-dur) var(--ease-apple);
+  will-change: opacity, transform;
+}
+
+[data-idle="true"] .t-idle-target {
+  opacity: var(--idle-opacity);
+  transition-duration: var(--idle-fade-dur);
+}
+
+/* 局部聚光唤醒 (Local Spotlight Hover) */
+[data-idle="true"] .t-idle-target:hover {
+  opacity: 1 !important;
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.16));
+  transition-duration: var(--idle-wake-dur);
+}
+
+/* 液态玻璃核心表面与阴影 */
+.liquid-glass-surface {
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.08),
+              inset 0 1px 1px 0 rgba(255, 255, 255, 0.35);
+  transition: box-shadow var(--idle-wake-dur) var(--ease-apple),
+              border-color var(--idle-wake-dur) var(--ease-apple);
+}
+
+[data-idle="true"] .liquid-glass-surface {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05),
+              inset 0 1px 1px 0 rgba(255, 255, 255, 0.18);
+  transition-duration: var(--idle-fade-dur);
+}
+
+[data-idle="true"] .liquid-glass-surface:hover,
+.liquid-glass-surface:hover {
+  box-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.18),
+              inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.65);
+  transition-duration: var(--idle-wake-dur);
+}
+
+/* 图标幽灵半透明呼吸质感 */
+[data-idle="true"] .shortcut-icon-container img,
+[data-idle="true"] .shortcut-icon-container svg {
+  opacity: 0.55;
+  filter: contrast(108%) brightness(105%);
+  transition: opacity var(--idle-fade-dur) var(--ease-apple), filter var(--idle-fade-dur) var(--ease-apple);
+}
+
+[data-idle="true"] .shortcut-icon-container:hover img,
+[data-idle="true"] .shortcut-icon-container:hover svg {
+  opacity: 1;
+  filter: none;
+  transition-duration: var(--idle-wake-dur);
+}
+
 /* ══ 全局降级守卫 ════════════════════════════════════════════
  * 系统"减少动态效果"（prefers-reduced-motion: reduce）时，
  * 全部动效即时完成：时长/延迟归零、迭代置 1、位移与模糊取消；
@@ -365,9 +434,15 @@
   .origin-menu,
   .t-tabs-sliding,
   .t-check,
-  .t-check svg path {
-    transition-duration: 0.01ms;
-    transition-delay: 0ms;
+  .t-check svg path,
+  .t-idle-target,
+  [data-idle="true"] .t-idle-target,
+  .liquid-glass-surface,
+  [data-idle="true"] .liquid-glass-surface,
+  [data-idle="true"] .shortcut-icon-container img,
+  [data-idle="true"] .shortcut-icon-container svg {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
   }
   .t-digit,
   .t-card-enter,

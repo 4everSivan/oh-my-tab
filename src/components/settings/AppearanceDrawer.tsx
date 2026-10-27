@@ -7,6 +7,7 @@ import {
   AlignStyle,
   ShadowStyle,
   BackgroundType,
+  IdleAppearance,
 } from '../../services/storage/types';
 import { X, RotateCcw, Clock, Search, Image as ImageIcon, Upload, Keyboard, SlidersHorizontal } from 'lucide-react';
 import { wallpaperStorage } from '../../services/storage/wallpaper';
@@ -19,6 +20,7 @@ interface AppearanceDrawerProps {
   clock: ClockAppearance;
   search: SearchAppearance;
   background: BackgroundConfig;
+  idle?: IdleAppearance;
   shortcutKeysEnabled?: boolean;
   onUpdateClock: (clock: Partial<ClockAppearance>) => void;
   onResetClock: () => void;
@@ -26,6 +28,8 @@ interface AppearanceDrawerProps {
   onResetSearch: () => void;
   onUpdateBackground: (bg: Partial<BackgroundConfig>) => void;
   onResetBackground: () => void;
+  onUpdateIdle?: (idle: Partial<IdleAppearance>) => void;
+  onResetIdle?: () => void;
   onUpdateShortcutKeysEnabled?: (enabled: boolean) => void;
 }
 
@@ -35,6 +39,7 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
   clock,
   search,
   background,
+  idle,
   shortcutKeysEnabled = true,
   onUpdateClock,
   onResetClock,
@@ -42,6 +47,8 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
   onResetSearch,
   onUpdateBackground,
   onResetBackground,
+  onUpdateIdle,
+  onResetIdle,
   onUpdateShortcutKeysEnabled,
 }) => {
   const [activeTab, setActiveTab] = useState<'clock' | 'search' | 'background' | 'shortcuts'>('clock');
@@ -669,6 +676,76 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* 沉浸与闲置呼吸淡化设置 (T19 & LAY-13) */}
+              <div className="pt-4 border-t border-black/5 dark:border-white/10 space-y-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="text-xs font-semibold text-stone-800 dark:text-stone-200">
+                      闲置呼吸淡化
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
+                      液态玻璃
+                    </span>
+                  </div>
+                  {onResetIdle && (
+                    <button
+                      onClick={onResetIdle}
+                      className="text-[11px] text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 transition-colors cursor-pointer"
+                    >
+                      恢复默认
+                    </button>
+                  )}
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="pr-3">
+                      <div className="text-xs font-medium text-stone-800 dark:text-stone-200">
+                        开启无操作闲置呼吸淡化
+                      </div>
+                      <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
+                        停止操作后平滑淡化为液态玻璃高透水膜，活动或碰触瞬时唤醒
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={idle?.enabled !== false}
+                      onChange={(e) => onUpdateIdle?.({ enabled: e.target.checked })}
+                      className="w-4 h-4 accent-stone-900 dark:accent-white cursor-pointer"
+                    />
+                  </div>
+
+                  {idle?.enabled !== false && (
+                    <div className="pt-2 border-t border-black/5 dark:border-white/5 space-y-2">
+                      <div className="flex justify-between text-xs text-stone-600 dark:text-stone-400">
+                        <span>闲置触发时间</span>
+                        <span>{idle?.timeoutSeconds ?? 3} 秒</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { sec: 3, label: '3 秒 (灵敏)' },
+                          { sec: 5, label: '5 秒 (舒适)' },
+                          { sec: 10, label: '10 秒 (沉浸)' },
+                        ].map((item) => (
+                          <button
+                            key={item.sec}
+                            type="button"
+                            onClick={() => onUpdateIdle?.({ timeoutSeconds: item.sec })}
+                            className={`py-1.5 px-2 text-xs rounded-lg border text-center transition-all cursor-pointer ${
+                              (idle?.timeoutSeconds ?? 3) === item.sec
+                                ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900 font-medium border-transparent shadow-xs'
+                                : 'border-black/10 dark:border-white/10 text-stone-600 dark:text-stone-400 hover:bg-black/5 dark:hover:bg-white/5'
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 

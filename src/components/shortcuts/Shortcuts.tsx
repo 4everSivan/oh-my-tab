@@ -753,7 +753,7 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
               >
                 {/* 文件夹连续圆角容器 (2x2 四宫格微缩预览，自适应明暗背景) */}
                 <div
-                  className={`relative w-12 h-12 rounded-2xl backdrop-blur-md shadow-sm border flex items-center justify-center overflow-hidden transition-all duration-200 group-hover:shadow-md group-hover:scale-105 ${
+                  className={`shortcut-icon-container liquid-glass-surface relative w-12 h-12 rounded-2xl backdrop-blur-md shadow-sm border flex items-center justify-center overflow-hidden transition-all duration-200 group-hover:shadow-md group-hover:scale-105 ${
                     isDragTarget
                       ? 'ring-2 ring-blue-500 scale-110 border-blue-500'
                       : isExpanded
@@ -880,7 +880,7 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
               title={`${shortcut.name}\n右键查看菜单 / 长按可排序`}
             >
               {/* Icon Container with Squircle Continuous Curve */}
-              <div className="relative w-12 h-12 rounded-2xl bg-white/80 dark:bg-stone-800/80 backdrop-blur-md shadow-sm border border-black/5 dark:border-white/10 flex items-center justify-center overflow-hidden transition-all duration-200 group-hover:shadow-md group-hover:scale-105">
+              <div className="shortcut-icon-container liquid-glass-surface relative w-12 h-12 rounded-2xl bg-white/80 dark:bg-stone-800/80 backdrop-blur-md shadow-sm border border-black/5 dark:border-white/10 flex items-center justify-center overflow-hidden transition-all duration-200 group-hover:shadow-md group-hover:scale-105">
                 {/* 首字母是图标缺失时的独占兜底层（C005）：垫在容器底部，
                     图标 img 加载成功后覆盖其上；onError 隐藏 img 才露出字母 */}
                 <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-stone-700 dark:text-stone-200 uppercase select-none">
