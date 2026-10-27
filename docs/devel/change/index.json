@@ -438,7 +438,7 @@
     "C037": {
       "title": "闲置聚焦态新增 Escape 退出入口：退出闲置但不抢占搜索焦点",
       "type": "Enhancement",
-      "status": "in_progress",
+      "status": "closed",
       "branch": "main",
       "topic": "MotionSystem",
       "created": "2026-10-27",

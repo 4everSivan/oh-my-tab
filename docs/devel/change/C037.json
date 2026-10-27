@@ -4,7 +4,7 @@
   "title": "闲置聚焦态新增 Escape 退出入口：退出闲置但不抢占搜索焦点",
   "version": "0.2.2",
   "type": "Enhancement",
-  "status": "in_progress",
+  "status": "closed",
   "branch": "main",
   "is_hotfix": false,
   "target": {
@@ -49,31 +49,31 @@
     }
   },
   "verification": {
-    "result": null,
-    "run_id": "",
-    "user_quote": "",
-    "signoff": "",
+    "result": true,
+    "run_id": "local-20261027-16",
+    "user_quote": "“签收”， 提交并推送",
+    "signoff": "sivan (AI代签)",
     "checks": [
       {
         "item": "自动化测试",
         "true_if": "全量单测全绿、退出码 0，且含 Escape 白名单与放行条件的断言",
         "false_if": "存在失败，或缺少对应断言",
         "evidence": "npm test → tests 230 / pass 230 / fail 0；tests/idle-liquid-glass.test.cjs 断言更新为「闲置态只有 ` 与 Escape 可唤醒」与「suspended 只放行 ` 与 Escape」，8 项全绿；npm run build 退出码 0。",
-        "result": null
+        "result": true
       },
       {
         "item": "行为实测",
         "true_if": "闲置态按 Escape 恢复整页且不聚焦搜索框；其他字母键仍不唤醒；点击搜索与 ` 仍进入输入态",
         "false_if": "Escape 无反应、或把焦点抢进搜索框、或放行了其他按键",
         "evidence": "真实 Chrome 156 加载 local/dist 实测：idle（搜索框 0.380、9/9 隐去）→ 按 Escape → data-idle=false、9/9 恢复、activeElement 仍为 BODY；再次闲置后按 x → 仍 idle、9/9 隐去；按 ` → data-idle=false 且 activeElement 为 INPUT。",
-        "result": null
+        "result": true
       },
       {
         "item": "反向影响排查",
         "true_if": "非闲置态 Escape 级联退出、搜索聚焦态 Escape 失焦、其他快捷键与闲置避让均不受影响",
         "false_if": "非闲置态 Escape 行为被改变，或闲置避让失效",
         "evidence": "suspended 仅在 isIdle 为真时生效，非闲置态 Escape 分支（onCloseTopLayer → 搜索失焦）代码未改动；isGuarded 逻辑未改动；230 项测试全绿。",
-        "result": null
+        "result": true
       }
     ]
   },
@@ -87,7 +87,11 @@
   "gate": {
     "tool": "adflow-verify",
     "version": "1.6.0",
-    "ran_at": "",
-    "exit_code": null
+    "ran_at": "2026-10-27",
+    "exit_code": 0,
+    "from_status": "in_progress",
+    "target_status": "closed",
+    "signed_quote": "“签收”， 提交并推送",
+    "signed_rejection_count": 0
   }
 }
