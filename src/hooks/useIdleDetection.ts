@@ -15,14 +15,18 @@ export interface UseIdleDetectionReturn {
   forceIdle: () => void;
 }
 
+/** 指针累计位移阈值：小于它视为静止或抖动，不重置倒计时 (C038) */
+const POINTER_ACTIVITY_DISTANCE_PX = 4;
+
 /**
  * useIdleDetection
  * 闲置感知与防抖唤醒 Hook (T19 & MOT-14 & LAY-13)
  * 支持交互输入/抽屉打开避让守卫。
  *
- * 唤醒事件只含键盘：鼠标移动、滚轮与滚动一律不计为活动，否则闲置态会被
- * 无意的指针微动立刻打断，"只显示搜索框"永远维持不住。鼠标侧的高亮与
- * 唤醒由 CSS :hover 与搜索框上的显式指针处理器分别承担（见 App.tsx）。
+ * 活动判定分两段 (C038)：还没进入闲置时，键盘与指针（移动/按下/滚轮）都算活动，
+ * 否则用户只是在用鼠标划动页面、一次都没点，也会被 3 秒倒计时判定为"无操作"而淡出。
+ * 已进入闲置后仍是显式入口制：指针事件一律不算唤醒，只有点击搜索框与 ` / Escape
+ * 退出，避免指针微动把"只显示搜索框"立刻打断。指针位移用累计 4px 阈值过滤静止抖动。
  */
 export function useIdleDetection({
   enabled = true,
@@ -46,10 +50,13 @@ export function useIdleDetection({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastActiveTimeRef = useRef<number>(Date.now());
+  // 上一次被认定为活动的指针位置：用它累计位移，慢速滑动也不会被单帧阈值漏掉
+  const lastPointerAnchorRef = useRef<{ x: number; y: number } | null>(null);
 
   const wakeUp = useCallback(() => {
     lastActiveTimeRef.current = Date.now();
-    setRemainingSeconds(timeoutSeconds);
+    // 同值 setState 会被 React 跳过，指针高频活动时不会造成连续重渲染
+    setRemainingSeconds((prev) => (prev === timeoutSeconds ? prev : timeoutSeconds));
 
     if (isIdleRef.current) {
       isIdleRef.current = false;
@@ -122,18 +129,35 @@ export function useIdleDetection({
         wakeUp();
         return;
       }
-      // 闲置态只认 `（反引号）与 Escape 两个退出键：其余按键不打断聚焦态，
-      // 避免随手一个字母就把时钟与图标栏唤回来（快捷键层在闲置态同样挂起，
-      // 见 useKeyboardShortcuts 的 suspended）。
+      // 闲置态只认 `（反引号）与 Escape 两个退出键：其余按键与全部指针事件都不打断
+      // 聚焦态，避免随手一个字母或指针微动就把时钟与图标栏唤回来（快捷键层在闲置态
+      // 同样挂起，见 useKeyboardShortcuts 的 suspended）。
       if (isIdleRef.current) {
         const key = event instanceof KeyboardEvent ? event.key : '';
         if (key !== '`' && key !== '~' && key !== 'Escape') return;
+        resetTimer();
+        return;
       }
+
+      // 未闲置时指针移动按累计位移判定：静止指针 1~2px 的抖动不重置倒计时，
+      // 而慢速滑动会持续累计，不会被单帧阈值漏掉 (C038)
+      if (event.type === 'pointermove' && event instanceof PointerEvent) {
+        const anchor = lastPointerAnchorRef.current;
+        const moved = anchor ? Math.hypot(event.clientX - anchor.x, event.clientY - anchor.y) : Infinity;
+        if (moved < POINTER_ACTIVITY_DISTANCE_PX) return;
+        lastPointerAnchorRef.current = { x: event.clientX, y: event.clientY };
+      } else if (event instanceof PointerEvent) {
+        lastPointerAnchorRef.current = { x: event.clientX, y: event.clientY };
+      } else {
+        // 键盘与滚轮活动后清空锚点，让下一次指针移动重新作为活动起点
+        lastPointerAnchorRef.current = null;
+      }
+
       resetTimer();
     };
 
-    // 仅键盘视为"显式活动"：` 聚焦搜索、任意按键都意味着用户回到工作台
-    const events = ['keydown'];
+    // 键盘与指针都是"显式活动"：闲置前任意输入都重置倒计时，闲置后由上面的白名单收窄
+    const events = ['keydown', 'pointermove', 'pointerdown', 'wheel'];
     events.forEach((evt) => {
       window.addEventListener(evt, handleActivity, { passive: true });
     });

@@ -77,21 +77,30 @@ test('T19: useIdleDetection Hook 具备严谨的防抖重置、唤醒事件集�
   const hookTs = fs.readFileSync(path.join(ROOT, 'src/hooks/useIdleDetection.ts'), 'utf-8');
   assert.ok(hookTs.includes('export function useIdleDetection'), '必须导出 useIdleDetection 函数');
   assert.ok(hookTs.includes('isGuarded'), '必须支持 isGuarded 避让状态');
-  assert.ok(hookTs.includes("const events = ['keydown'];"), '唤醒事件集只应包含键盘');
-  assert.ok(
-    !/const events = \[[^\]]*'mousemove'/.test(hookTs),
-    'mousemove 不得作为唤醒事件：闲置态移动鼠标只能高亮搜索框，不能唤回时钟与图标栏'
+
+  // C038：闲置前的活动事件扩到指针，否则用户只动鼠标不点键盘也会被判"无操作"
+  const eventsMatch = hookTs.match(/const events = (\[[^\]]*\]);/);
+  assert.ok(eventsMatch, '必须声明活动事件集');
+  const eventNames = JSON.parse(eventsMatch[1].replace(/'/g, '"'));
+  assert.deepEqual(
+    [...eventNames].sort(),
+    ['keydown', 'pointerdown', 'pointermove', 'wheel'],
+    '未闲置时键盘、指针移动/按下与滚轮都必须计入活动事件'
   );
   assert.ok(
-    !/const events = \[[^\]]*'scroll'/.test(hookTs) && !/const events = \[[^\]]*'wheel'/.test(hookTs),
-    'scroll/wheel 不得作为唤醒事件'
+    !/const events = \[[^\]]*'scroll'/.test(hookTs),
+    'scroll 不得作为活动事件：滚动条与程序化滚动都会触发，改由 pointerdown/pointermove 承载'
+  );
+  assert.ok(
+    hookTs.includes('POINTER_ACTIVITY_DISTANCE_PX'),
+    '指针移动必须按累计位移阈值过滤静止抖动，避免指针微动让页面永不闲置'
+  );
+  assert.ok(
+    /if \(isIdleRef\.current\)[\s\S]{0,600}?key !== '`'[\s\S]{0,80}?key !== 'Escape'\) return;[\s\S]{0,40}?resetTimer\(\);/,
+    '进入闲置后指针事件必须提前返回，只有 ` 与 Escape 重置倒计时（显式唤醒入口制）'
   );
   assert.ok(hookTs.includes('resetTimer'), '必须导出 resetTimer');
   assert.ok(hookTs.includes('forceIdle'), '必须导出 forceIdle');
-  assert.ok(
-    /if \(isIdleRef\.current\)[\s\S]{0,260}?key !== '`'[\s\S]{0,80}?key !== 'Escape'/.test(hookTs),
-    '闲置态只有 ` 与 Escape 可唤醒，其余按键不得打断聚焦态'
-  );
 
   // 快捷键层在闲置态必须整体挂起，避免在隐去的界面上开抽屉/弹窗
   const kbdTs = fs.readFileSync(path.join(ROOT, 'src/hooks/useKeyboardShortcuts.ts'), 'utf-8');
