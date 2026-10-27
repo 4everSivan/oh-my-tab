@@ -689,7 +689,7 @@ export const App: React.FC = () => {
           isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
-        <div className="t-idle-topbar text-xs font-semibold tracking-wider uppercase opacity-60" style={{ color: textColor }}>
+        <div className="t-idle-target text-xs font-semibold tracking-wider uppercase opacity-60" style={{ color: textColor }}>
           oh-my-tab
         </div>
 
@@ -702,7 +702,7 @@ export const App: React.FC = () => {
               setIsFeedSidebarOpen(false);
               setIsDrawerOpen(false);
             }}
-            className={`t-idle-topbar liquid-glass-surface relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
+            className={`t-idle-target liquid-glass-surface relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
               isHelpOpen ? 'ring-2 ring-stone-400 dark:ring-stone-500 bg-white dark:bg-stone-800' : ''
             }`}
             title="快捷键指南 (?)"
@@ -722,7 +722,7 @@ export const App: React.FC = () => {
               setIsFeedSidebarOpen(false);
               setIsDrawerOpen(false);
             }}
-            className={`t-idle-topbar liquid-glass-surface relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
+            className={`t-idle-target liquid-glass-surface relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
               isAddModalOpen ? 'ring-2 ring-stone-400 dark:ring-stone-500 bg-white dark:bg-stone-800' : ''
             }`}
             title="添加组件 (a)"
@@ -742,7 +742,7 @@ export const App: React.FC = () => {
               setIsHelpOpen(false);
               setIsAddModalOpen(false);
             }}
-            className={`t-idle-topbar liquid-glass-surface relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
+            className={`t-idle-target liquid-glass-surface relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
               isFeedSidebarOpen ? 'ring-2 ring-stone-400 dark:ring-stone-500 bg-white dark:bg-stone-800' : ''
             }`}
             title={`订阅消息 (${unreadCount} 条未读) (b)`}
@@ -767,7 +767,7 @@ export const App: React.FC = () => {
               setIsHelpOpen(false);
               setIsAddModalOpen(false);
             }}
-            className={`t-idle-topbar liquid-glass-surface relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
+            className={`t-idle-target liquid-glass-surface relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
               isDrawerOpen ? 'ring-2 ring-stone-400 dark:ring-stone-500 bg-white dark:bg-stone-800' : ''
             }`}
             title="外观设置 (e)"
@@ -785,7 +785,7 @@ export const App: React.FC = () => {
       {/* Main Workbench Area */}
       <main className="flex-1 flex flex-col items-center justify-start w-full px-4 z-0">
         {/* Clock & Date */}
-        <div ref={clockContainerRef} className="w-full t-idle-clock">
+        <div ref={clockContainerRef} className="w-full t-idle-target">
           <Clock
             appearance={clock}
             isCollapsed={isCollapsed}
@@ -796,7 +796,7 @@ export const App: React.FC = () => {
         </div>
 
         {/* Search Bar */}
-        <div ref={searchContainerRef} className="w-full t-idle-search">
+        <div ref={searchContainerRef} className="w-full t-idle-target">
           <SearchBar
             appearance={search}
             engineId={engine}
@@ -816,7 +816,7 @@ export const App: React.FC = () => {
           aria-hidden={isCollapsed}
         >
           {/* Shortcuts Navigation */}
-          <div className="w-full mt-6 t-idle-shortcuts">
+          <div className="w-full mt-6 t-idle-target">
             <Shortcuts
               shortcuts={shortcuts}
               groups={shortcutGroups}
@@ -842,7 +842,7 @@ export const App: React.FC = () => {
       </main>
 
       {/* Footer / Hint */}
-      <footer className="w-full py-4 text-center select-none text-[11px] opacity-40 hover:opacity-70 transition-opacity t-idle-topbar" style={{ color: textColor }}>
+      <footer className="w-full py-4 text-center select-none text-[11px] opacity-40 hover:opacity-70 transition-opacity t-idle-target" style={{ color: textColor }}>
         {isCollapsed ? '点击时间可展开工作台' : '点击时间进入极简模式'} · 按 <button type="button" onClick={() => {
           setIsHelpOpen(true);
           setIsDrawerOpen(false);
