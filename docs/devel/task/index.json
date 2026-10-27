@@ -43,7 +43,7 @@
       "tasks": [
         "T19"
       ],
-      "status": "in_progress"
+      "status": "completed"
     }
   },
   "topics": {
@@ -327,7 +327,7 @@
     },
     "T19": {
       "title": "时间和搜索框、web图标栏与配置按钮的液态玻璃闲置淡化系统",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "feat/T19-idle-liquid-glass",
       "milestone": "M3-v0.3.0-视觉质感突破与智能交互",
       "depends_on": [

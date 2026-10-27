@@ -4,7 +4,7 @@
   "title": "时间和搜索框、web图标栏与配置按钮的液态玻璃闲置淡化系统",
   "version": "v0.3.0",
   "milestone": "M3-v0.3.0-视觉质感突破与智能交互",
-  "status": "in_progress",
+  "status": "completed",
   "branch": "feat/T19-idle-liquid-glass",
   "depends_on": [
     "T05",
@@ -68,8 +68,8 @@
   "acceptance": {
     "result": true,
     "run_id": "local-20261027-14",
-    "user_quote": "",
-    "signoff": "",
+    "user_quote": "合并到主分支",
+    "signoff": "sivan (AI代签)",
     "checks": [
       {
         "item": "架构纯度与边界",
@@ -95,7 +95,7 @@
     "version": "1.6.0",
     "ran_at": "2026-10-27",
     "exit_code": 0,
-    "from_status": "in_progress",
+    "from_status": "completed",
     "target_status": "completed"
   }
 }
