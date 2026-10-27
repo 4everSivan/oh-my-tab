@@ -454,7 +454,7 @@
     "C038": {
       "title": "修复闲置误判：鼠标在页面上移动但未点击仍按倒计时进入闲置聚焦",
       "type": "BugFix",
-      "status": "verified",
+      "status": "closed",
       "branch": "fix/C038-idle-pointer-activity",
       "topic": "MotionSystem",
       "created": "2026-10-27",

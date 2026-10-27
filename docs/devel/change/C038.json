@@ -4,7 +4,7 @@
   "title": "修复闲置误判：鼠标在页面上移动但未点击仍按倒计时进入闲置聚焦",
   "version": "0.2.3",
   "type": "BugFix",
-  "status": "verified",
+  "status": "closed",
   "branch": "fix/C038-idle-pointer-activity",
   "is_hotfix": false,
   "target": {
@@ -95,7 +95,7 @@
   "sync": {
     "design_pinned": true,
     "changelog": true,
-    "commit": "",
+    "commit": "4a08d28",
     "tag": ""
   },
   "gate": {
@@ -104,7 +104,7 @@
     "ran_at": "2026-10-27",
     "exit_code": 0,
     "from_status": "verified",
-    "target_status": "verified",
+    "target_status": "closed",
     "signed_quote": "确认，提交并推送",
     "signed_rejection_count": 0
   }
