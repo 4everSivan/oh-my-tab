@@ -1,7 +1,7 @@
 {
   "$schema": "https://ad-flow.org/schemas/task-index.v1.json",
   "phase": "Phase 3 - 扩展生态与深度集成 (v0.3.0)",
-  "updated_at": "2026-10-14",
+  "updated_at": "2026-10-27",
   "milestones": {
     "M1": {
       "title": "M1-v0.1.0-首发里程碑 (已发版归档)",
@@ -36,6 +36,14 @@
       ],
       "archive": "docs/archive/v0.2.0/task/",
       "status": "completed"
+    },
+    "M3": {
+      "title": "M3-v0.3.0-视觉质感突破与智能交互",
+      "description": "交付时间和搜索框、web图标栏与配置按钮的液态玻璃闲置呼吸淡化系统 (T19)",
+      "tasks": [
+        "T19"
+      ],
+      "status": "completed"
     }
   },
   "topics": {
@@ -64,7 +72,8 @@
         "T05",
         "T09",
         "T10",
-        "T17"
+        "T17",
+        "T19"
       ]
     },
     "ProductivityWidgets": {
@@ -315,6 +324,18 @@
       ],
       "archive": "docs/archive/v0.2.0/task/T18.json",
       "file": "docs/archive/v0.2.0/task/T18.json"
+    },
+    "T19": {
+      "title": "时间和搜索框、web图标栏与配置按钮的液态玻璃闲置淡化系统",
+      "status": "completed",
+      "branch": "feat/T19-idle-liquid-glass",
+      "milestone": "M3-v0.3.0-视觉质感突破与智能交互",
+      "depends_on": [
+        "T05",
+        "T09",
+        "T10"
+      ],
+      "file": "docs/devel/task/T19.json"
     }
   }
 }

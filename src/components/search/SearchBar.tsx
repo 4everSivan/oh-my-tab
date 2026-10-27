@@ -94,6 +94,7 @@ interface SearchBarProps {
   onCycleEngine?: (direction: 'next' | 'prev') => void;
   textColor?: string;
   tone?: 'light' | 'dark';
+  onFocusChange?: (focused: boolean) => void;
 }
 
 export const SearchBar: React.FC<SearchBarProps> = ({
@@ -104,6 +105,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   onCycleEngine,
   textColor = '#141c20',
   tone = 'dark',
+  onFocusChange,
 }) => {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -318,7 +320,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       >
         <form
           onSubmit={handleSubmit}
-          className={`relative flex items-center transition-all duration-200 border shadow-sm hover:shadow-md focus-within:shadow-md ${
+          className={`liquid-glass-surface relative flex items-center transition-all duration-200 border shadow-sm hover:shadow-md focus-within:shadow-md ${
             tone === 'light'
               ? 'border-white/20'
               : 'border-black/10 dark:border-white/15'
@@ -392,6 +394,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             onChange={handleInputChange}
             onFocus={() => {
               setIsFocused(true);
+              onFocusChange?.(true);
               if (query.trim()) {
                 setShowSuggestions(true);
               }
@@ -399,6 +402,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             }}
             onBlur={() => {
               setIsFocused(false);
+              onFocusChange?.(false);
             }}
             onKeyDown={handleInputKeyDown}
             placeholder={isFocused ? '' : `在 ${currentEngine.name} 中搜索...`}

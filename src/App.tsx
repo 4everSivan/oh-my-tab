@@ -14,6 +14,8 @@ import {
   DEFAULT_SHORTCUTS,
   DEFAULT_SHORTCUT_GROUPS,
   DEFAULT_LAYOUT,
+  DEFAULT_IDLE_APPEARANCE,
+  IdleAppearance,
 } from './services/storage';
 import { kickOffWallpaperPreload } from './services/storage/wallpaper';
 import { Clock } from './components/clock/Clock';
@@ -27,6 +29,7 @@ import { planBackgroundRestore, generateWallpaperThumbnail } from './utils/backg
 // useAdaptiveContrast (C015): 统合原 useWallpaperContrast 与 useSearchContrast 为单管线并清空画布释放 GPU 缓冲
 import { useAdaptiveContrast } from './hooks/useAdaptiveContrast';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useIdleDetection } from './hooks/useIdleDetection';
 import { SlidersHorizontal, Plus, Keyboard, Bell } from 'lucide-react';
 
 // 异步代码分割 (C029): 将非首屏重度浮层抽离主 bundle，削减首次加载 JS 体积与解析耗时
@@ -73,12 +76,22 @@ export const App: React.FC = () => {
   const [shortcutKeysEnabled, setShortcutKeysEnabledState] = useState<boolean>(
     () => boot?.shortcutKeysEnabled ?? true
   );
+  const [idle, setIdle] = useState<IdleAppearance>(() => boot?.idle ?? DEFAULT_IDLE_APPEARANCE);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isFeedSidebarOpen, setIsFeedSidebarOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+
+  // 全域闲置避让守卫 (T19 & MOT-14 & LAY-13): 抽屉、模态展开或搜索聚焦时挂起闲置
+  const isGuarded = isDrawerOpen || isFeedSidebarOpen || isAddModalOpen || isHelpOpen || isSearchFocused;
+  const { isIdle } = useIdleDetection({
+    enabled: idle.enabled,
+    timeoutSeconds: idle.timeoutSeconds,
+    isGuarded,
+  });
 
   // 独立真实 RSS/Atom/脚本订阅消息与源列表 (T18)
   const [feeds, setFeeds] = useState<FeedItem[]>([]);
@@ -147,6 +160,7 @@ export const App: React.FC = () => {
         activeShortcutGroupId: agId,
         layout: l,
         shortcutKeysEnabled: skEnabled,
+        idle: idl,
       } = await storageService.loadAllSettings();
 
       if (!isMounted) return;
@@ -209,6 +223,7 @@ export const App: React.FC = () => {
       if (agId && agId !== boot?.activeShortcutGroupId) setActiveShortcutGroupId(agId);
       if (JSON.stringify(l) !== JSON.stringify(boot?.layout)) setLayout(l);
       if (skEnabled !== undefined && skEnabled !== boot?.shortcutKeysEnabled) setShortcutKeysEnabledState(skEnabled);
+      if (idl && JSON.stringify(idl) !== JSON.stringify(boot?.idle)) setIdle(idl);
     }
     loadAll();
 
@@ -254,6 +269,8 @@ export const App: React.FC = () => {
         if (Array.isArray(newValue)) setLayout(newValue as LayoutItem[]);
       } else if (key === 'settings.shortcutKeysEnabled') {
         if (typeof newValue === 'boolean') setShortcutKeysEnabledState(newValue);
+      } else if (key === 'settings.idle') {
+        if (newValue && typeof newValue === 'object') setIdle(newValue as IdleAppearance);
       }
     });
 
@@ -414,6 +431,16 @@ export const App: React.FC = () => {
     releaseBlobUrl();
     const reset = await storageService.resetBackground();
     setBackground(reset);
+  };
+
+  const handleUpdateIdle = async (updates: Partial<IdleAppearance>) => {
+    const updated = await storageService.setIdle(updates);
+    setIdle(updated);
+  };
+
+  const handleResetIdle = async () => {
+    const reset = await storageService.resetIdle();
+    setIdle(reset);
   };
 
   const handleEngineChange = (newEngine: string) => {
@@ -641,7 +668,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-stone-300 selection:text-stone-900">
+    <div data-idle={isIdle ? 'true' : 'false'} className="relative min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-stone-300 selection:text-stone-900">
       {/* Background layer */}
       <div
         className="fixed inset-0 -z-20 transition-all duration-300"
@@ -662,7 +689,7 @@ export const App: React.FC = () => {
           isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
-        <div className="text-xs font-semibold tracking-wider uppercase opacity-60" style={{ color: textColor }}>
+        <div className="t-idle-target text-xs font-semibold tracking-wider uppercase opacity-60" style={{ color: textColor }}>
           oh-my-tab
         </div>
 
@@ -675,7 +702,7 @@ export const App: React.FC = () => {
               setIsFeedSidebarOpen(false);
               setIsDrawerOpen(false);
             }}
-            className={`relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
+            className={`t-idle-target liquid-glass-surface relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
               isHelpOpen ? 'ring-2 ring-stone-400 dark:ring-stone-500 bg-white dark:bg-stone-800' : ''
             }`}
             title="快捷键指南 (?)"
@@ -695,7 +722,7 @@ export const App: React.FC = () => {
               setIsFeedSidebarOpen(false);
               setIsDrawerOpen(false);
             }}
-            className={`relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
+            className={`t-idle-target liquid-glass-surface relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
               isAddModalOpen ? 'ring-2 ring-stone-400 dark:ring-stone-500 bg-white dark:bg-stone-800' : ''
             }`}
             title="添加组件 (a)"
@@ -715,7 +742,7 @@ export const App: React.FC = () => {
               setIsHelpOpen(false);
               setIsAddModalOpen(false);
             }}
-            className={`relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
+            className={`t-idle-target liquid-glass-surface relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
               isFeedSidebarOpen ? 'ring-2 ring-stone-400 dark:ring-stone-500 bg-white dark:bg-stone-800' : ''
             }`}
             title={`订阅消息 (${unreadCount} 条未读) (b)`}
@@ -740,7 +767,7 @@ export const App: React.FC = () => {
               setIsHelpOpen(false);
               setIsAddModalOpen(false);
             }}
-            className={`relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
+            className={`t-idle-target liquid-glass-surface relative group p-2 rounded-full bg-white/70 dark:bg-stone-850/70 hover:bg-white dark:hover:bg-stone-800 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-xs text-stone-700 dark:text-stone-200 transition-all active:scale-95 cursor-pointer ${
               isDrawerOpen ? 'ring-2 ring-stone-400 dark:ring-stone-500 bg-white dark:bg-stone-800' : ''
             }`}
             title="外观设置 (e)"
@@ -758,7 +785,7 @@ export const App: React.FC = () => {
       {/* Main Workbench Area */}
       <main className="flex-1 flex flex-col items-center justify-start w-full px-4 z-0">
         {/* Clock & Date */}
-        <div ref={clockContainerRef} className="w-full">
+        <div ref={clockContainerRef} className="w-full t-idle-target">
           <Clock
             appearance={clock}
             isCollapsed={isCollapsed}
@@ -769,7 +796,7 @@ export const App: React.FC = () => {
         </div>
 
         {/* Search Bar */}
-        <div ref={searchContainerRef} className="w-full">
+        <div ref={searchContainerRef} className="w-full t-idle-target">
           <SearchBar
             appearance={search}
             engineId={engine}
@@ -778,6 +805,7 @@ export const App: React.FC = () => {
             onCycleEngine={handleCycleEngine}
             textColor={searchTextColor}
             tone={searchTone}
+            onFocusChange={setIsSearchFocused}
           />
         </div>
 
@@ -788,7 +816,7 @@ export const App: React.FC = () => {
           aria-hidden={isCollapsed}
         >
           {/* Shortcuts Navigation */}
-          <div className="w-full mt-6">
+          <div className="w-full mt-6 t-idle-target">
             <Shortcuts
               shortcuts={shortcuts}
               groups={shortcutGroups}
@@ -814,7 +842,7 @@ export const App: React.FC = () => {
       </main>
 
       {/* Footer / Hint */}
-      <footer className="w-full py-4 text-center select-none text-[11px] opacity-40 hover:opacity-70 transition-opacity" style={{ color: textColor }}>
+      <footer className="w-full py-4 text-center select-none text-[11px] opacity-40 hover:opacity-70 transition-opacity t-idle-target" style={{ color: textColor }}>
         {isCollapsed ? '点击时间可展开工作台' : '点击时间进入极简模式'} · 按 <button type="button" onClick={() => {
           setIsHelpOpen(true);
           setIsDrawerOpen(false);
@@ -831,6 +859,7 @@ export const App: React.FC = () => {
           clock={clock}
           search={search}
           background={background}
+          idle={idle}
           shortcutKeysEnabled={shortcutKeysEnabled}
           onUpdateClock={handleUpdateClock}
           onResetClock={handleResetClock}
@@ -838,6 +867,8 @@ export const App: React.FC = () => {
           onResetSearch={handleResetSearch}
           onUpdateBackground={handleUpdateBackground}
           onResetBackground={handleResetBackground}
+          onUpdateIdle={handleUpdateIdle}
+          onResetIdle={handleResetIdle}
           onUpdateShortcutKeysEnabled={handleUpdateShortcutKeysEnabled}
         />
       </Suspense>

@@ -25,6 +25,16 @@ export interface SearchAppearance {
   radius?: number; // 0 - 28, 默认 24
 }
 
+export interface IdleAppearance {
+  enabled: boolean;
+  timeoutSeconds: number; // 3, 5, 10 等
+}
+
+export const DEFAULT_IDLE_APPEARANCE: IdleAppearance = {
+  enabled: true,
+  timeoutSeconds: 3,
+};
+
 export interface BackgroundConfig {
   type: BackgroundType;
   color: string;
@@ -70,6 +80,7 @@ export interface AppSettings {
   activeShortcutGroupId?: string;
   layout: LayoutItem[];
   shortcutKeysEnabled?: boolean;
+  idle?: IdleAppearance;
 }
 
 export const DEFAULT_CLOCK_APPEARANCE: ClockAppearance = {

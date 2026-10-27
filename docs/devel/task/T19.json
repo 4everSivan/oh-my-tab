@@ -1,0 +1,101 @@
+{
+  "$schema": "https://ad-flow.org/schemas/task-card.v1.json",
+  "id": "T19",
+  "title": "时间和搜索框、web图标栏与配置按钮的液态玻璃闲置淡化系统",
+  "version": "v0.3.0",
+  "milestone": "M3-v0.3.0-视觉质感突破与智能交互",
+  "status": "completed",
+  "branch": "feat/T19-idle-liquid-glass",
+  "depends_on": [
+    "T05",
+    "T09",
+    "T10"
+  ],
+  "target": {
+    "module": "WorkspaceAppearance",
+    "design_doc": "docs/devel/design/02-工作台布局与外观.md",
+    "design_topic": "WorkspaceAppearance"
+  },
+  "goal": "为当前项目的时间和搜索框、web图标栏与各种配置按钮增加液态玻璃与图标半透明化的闲置淡化效果；支持交互倒计时自动淡化、全域活动即时唤醒、输入态与抽屉打开态避让守卫、局部悬停聚光唤醒以及外观抽屉个性化配置。",
+  "precheck": {
+    "description": "预检当前任务是否已在代码库中实现或已满足完成条件",
+    "command": "grep -rn 'useIdleDetection' src/ || true",
+    "expected": "",
+    "is_completed": false,
+    "evidence": "预检未发现 useIdleDetection，确认尚未实现"
+  },
+  "callback": {
+    "before": [
+      "git checkout feat/T19-idle-liquid-glass"
+    ],
+    "after": [
+      "npm test",
+      "scripts/adflow-verify --card T19 --to completed --record"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T19-1",
+      "title": "状态机 Hook 与全域交互监听",
+      "capability": "封装 useIdleDetection.ts，监听全域交互事件，支持防抖倒计时、输入/抽屉避让守卫与手动挂起",
+      "done": true
+    },
+    {
+      "id": "T19-2",
+      "title": "液态玻璃与呼吸淡化动效令牌",
+      "capability": "在 motion.css 与 index.css 中补充液态水膜、次表面边缘反光、图标半透明幽灵化与降级守卫",
+      "done": true
+    },
+    {
+      "id": "T19-3",
+      "title": "首页核心区块全面接线与局部聚光",
+      "capability": "在 App.tsx 中联动时钟、搜索框、图标栏与顶栏配置按钮，支持局部 hover 唤醒与输入态保护",
+      "done": true
+    },
+    {
+      "id": "T19-4",
+      "title": "外观抽屉个性化配置与持久化",
+      "capability": "支持在外观设置中切换闲置淡化开关及倒计时时长（3s/5s/10s），持久化至 local storage",
+      "done": true
+    },
+    {
+      "id": "T19-5",
+      "title": "自动化测试与契约守护",
+      "capability": "编写 tests/idle-liquid-glass.test.cjs 确保状态机、避让守卫与 CSS 动效令牌 100% 覆盖",
+      "done": true
+    }
+  ],
+  "acceptance": {
+    "result": true,
+    "run_id": "local-20261027-14",
+    "user_quote": "合并到主分支",
+    "signoff": "sivan (AI代签)",
+    "checks": [
+      {
+        "item": "架构纯度与边界",
+        "true_if": "useIdleDetection 为纯粹的无副作用交互状态机，样式通过 CSS 令牌驱动，零业务耦合",
+        "false_if": "检测到跨层耦合或破坏原有对比度管线",
+        "evidence": "useIdleDetection 为独立的事件感知与计时 Hook，通过 CSS 令牌和 data-idle 状态挂载，零业务入侵",
+        "result": true
+      },
+      {
+        "item": "规则覆盖度",
+        "true_if": "设计方案定义的所有闲置淡化、唤醒、避让与聚光特性在用例与实现中全量覆盖",
+        "false_if": "遗漏任一核心分支或断言",
+        "evidence": "node --test tests/idle-liquid-glass.test.cjs 8 个断言全绿，测试覆盖 230 项全绿",
+        "result": true
+      }
+    ]
+  },
+  "sync": {
+    "commit": "d0f1df1"
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.6.0",
+    "ran_at": "2026-10-27",
+    "exit_code": 0,
+    "from_status": "completed",
+    "target_status": "completed"
+  }
+}

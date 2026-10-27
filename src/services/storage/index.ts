@@ -11,6 +11,8 @@ import {
   DEFAULT_SHORTCUTS,
   DEFAULT_SHORTCUT_GROUPS,
   DEFAULT_LAYOUT,
+  DEFAULT_IDLE_APPEARANCE,
+  IdleAppearance,
 } from './types';
 import { chromeStorageAdapter, IStorageAdapter } from './chromeStorage';
 import { wallpaperStorage, WallpaperStorage } from './wallpaper';
@@ -25,6 +27,7 @@ const STORAGE_KEYS = {
   ACTIVE_SHORTCUT_GROUP_ID: 'settings.activeShortcutGroupId',
   LAYOUT: 'settings.layout',
   SHORTCUT_KEYS_ENABLED: 'settings.shortcutKeysEnabled',
+  IDLE: 'settings.idle',
   WIDGET_CONTENT_PREFIX: 'widgets/',
 };
 
@@ -40,6 +43,7 @@ export interface BootCache {
   activeShortcutGroupId?: string;
   layout?: LayoutItem[];
   shortcutKeysEnabled?: boolean;
+  idle?: IdleAppearance;
   savedAt?: number;
 }
 
@@ -108,8 +112,9 @@ export class StorageService {
     activeShortcutGroupId: string;
     layout: LayoutItem[];
     shortcutKeysEnabled: boolean;
+    idle: IdleAppearance;
   }> {
-    const [clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout, shortcutKeysEnabled] = await Promise.all([
+    const [clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout, shortcutKeysEnabled, idle] = await Promise.all([
       this.getClock(),
       this.getSearch(),
       this.getEngine(),
@@ -119,10 +124,11 @@ export class StorageService {
       this.getActiveShortcutGroupId(),
       this.getLayout(),
       this.getShortcutKeysEnabled(),
+      this.getIdle(),
     ]);
 
-    updateBootCache({ clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout, shortcutKeysEnabled });
-    return { clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout, shortcutKeysEnabled };
+    updateBootCache({ clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout, shortcutKeysEnabled, idle });
+    return { clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout, shortcutKeysEnabled, idle };
   }
 
   /**
@@ -146,6 +152,7 @@ export class StorageService {
         else if (key === STORAGE_KEYS.ACTIVE_SHORTCUT_GROUP_ID) updateBootCache({ activeShortcutGroupId: change.newValue as string });
         else if (key === STORAGE_KEYS.LAYOUT) updateBootCache({ layout: change.newValue as LayoutItem[] });
         else if (key === STORAGE_KEYS.SHORTCUT_KEYS_ENABLED) updateBootCache({ shortcutKeysEnabled: change.newValue as boolean });
+        else if (key === STORAGE_KEYS.IDLE) updateBootCache({ idle: change.newValue as IdleAppearance });
 
         callback(key, change.newValue);
       }
@@ -333,6 +340,25 @@ export class StorageService {
       updateBootCache({ shortcutKeysEnabled: enabled });
       return enabled;
     });
+  }
+
+  // Idle Fading & Liquid Glass (T19)
+  async getIdle(): Promise<IdleAppearance> {
+    return this.adapter.get<IdleAppearance>(STORAGE_KEYS.IDLE, DEFAULT_IDLE_APPEARANCE);
+  }
+
+  async setIdle(idle: Partial<IdleAppearance>): Promise<IdleAppearance> {
+    return this.mutex.run(async () => {
+      const current = await this.getIdle();
+      const updated: IdleAppearance = { ...current, ...idle };
+      await this.adapter.set(STORAGE_KEYS.IDLE, updated);
+      updateBootCache({ idle: updated });
+      return updated;
+    });
+  }
+
+  async resetIdle(): Promise<IdleAppearance> {
+    return this.setIdle(DEFAULT_IDLE_APPEARANCE);
   }
 }
 
