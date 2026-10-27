@@ -67,7 +67,7 @@
   ],
   "acceptance": {
     "result": true,
-    "run_id": "local-20261027-t19",
+    "run_id": "local-20261027-14",
     "user_quote": "",
     "signoff": "",
     "checks": [
@@ -88,13 +88,13 @@
     ]
   },
   "sync": {
-    "commit": ""
+    "commit": "67e0a21"
   },
   "gate": {
     "tool": "adflow-verify",
     "version": "1.6.0",
     "ran_at": "2026-10-27",
-    "exit_code": 4,
+    "exit_code": 0,
     "from_status": "in_progress",
     "target_status": "completed"
   }
