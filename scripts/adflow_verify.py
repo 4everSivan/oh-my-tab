@@ -5,7 +5,9 @@
 把 ad-flow 的不变量与双轨卡片 SOP 从"散文要求"变成"可机械判定"的门禁：
   * 流程门禁（默认）：状态感知地扫描活跃卡（docs/devel/change、docs/devel/task），
     按每张卡当前的 status 只校验"该状态此刻应成立的前提"（P1-P14）。
-  * 初始化 DoD（--mode init）：核对基础文件、已登记代码规范、禁占位、版本标签。
+  * 初始化 DoD（--mode init）：核对基础文件、已登记代码规范、禁占位、版本标签、校验器副本版本。
+  * 发版预检（--release VERSION）：本批次活跃卡必须已到达本轨终态，只读。
+  * 节点回执（--card ID --receipt）：状态同步后复核，并按固定格式输出该卡回执，只读。
 
 设计原则：
   * 仅用标准库，栈无关——可在任意目标工程里运行。
@@ -15,12 +17,14 @@
   * 新增 ADVISORY 诊断不影响退出码，保持既有门禁标准。
   * 归档区只允许终态卡：非 closed/completed 即 ARCHIVE_NON_TERMINAL 确定性违规
     （v1.1.0 起既有归档前置的机器覆盖；历史冻结卡由人工口径处置，见归档 README）。
+    总账路由与归档目录物理扫描双覆盖，未登记的归档卡同样受检。
   * 里程碑标记与成员任务状态矛盾仅旁路观察（MILESTONE_STATUS_DRIFT）。
   * gate 证伪：声称 exit_code==0 的终态卡，会被独立复算，矛盾即 GATE_CLAIM_CONTRADICTION。
 
 用法：
   adflow-verify [target_dir=.] [--json] [--warn-only] [--mode init]
                 [--card ID [--to verified|closed|completed]] [--record]
+                [--release VERSION] [--card ID --receipt]
 """
 import argparse
 import json
@@ -30,18 +34,23 @@ import sys
 from datetime import date
 from pathlib import Path
 
-VERSION = "1.4.0"
+VERSION = "1.6.0"
 
 # ---- 常量 ----
 TOPIC_RE = re.compile(r"<!--\s*@topic:\s*([A-Za-z0-9_]+)\s*-->")
 TAG_RE = re.compile(r"@ad-flow:\s*initialized(?:\s+v([0-9.]+))?")
+TAG_COMMENT_RE = re.compile(r"<!--\s*@ad-flow:\s*initialized(?:\s+v([0-9.]+))?\s*-->")
+HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
+TOOL_VERSION_RE = re.compile(r'^VERSION\s*=\s*"([^"]*)"', re.M)
 RUNID_RE = re.compile(r"^(\d+|local-[\d\-]+)$")              # 纯数字或 local-YYYYMMDD-HH，禁内网
-CARD_ID_RE = re.compile(r"\b([CT]\d{2,3})\b")                # Cxxx / Txx
+# Cxxx / Txx；用 ASCII 边界而非 \b，中文紧邻卡号（如“修复C001问题”）也能识别。
+CARD_ID_RE = re.compile(r"(?<![A-Za-z0-9_])([CT]\d{2,3})(?![A-Za-z0-9_])")
 SRC_PATH_RE = re.compile(r"(?:^|/)(src|app|lib|cmd|internal)/[\w/.\-]+\.\w+")
 CANNED_QUOTES = {"已确认", "确认", "已通过", "同意", "ok", "yes", "done", "tested", "lgtm"}
 PATH_KEYS = {"files", "file", "paths", "file_path", "filepath", "sources"}
 TERMINAL = {"verified", "closed", "completed"}
 CLOSED = {"closed", "completed"}
+TRACK_TERMINAL = {"change": "closed", "task": "completed"}
 TRANSITIONS = {"change": {"verified", "closed"}, "task": {"completed"}}
 STATUSES = {"change": {"draft", "pending", "in_progress", "rejected", "verified", "closed"},
             "task": {"pending", "in_progress", "completed"}}
@@ -71,6 +80,15 @@ LEGACY_FILES = {
     "docs/standards/task-template.json": "docs/devel/task/template.json",
     "docs/standards/change-template.json": "docs/devel/change/template.json",
     "docs/standards/coding.json": "docs/devel/coding-standards.json",
+}
+# 模板占位符：初始化须渲染为真实项目名与日期；正文中的格式示例不在检查范围。
+PLACEHOLDER_VALUES = {"MyProject", "YYYY-MM-DD"}
+PLACEHOLDER_FIELDS = {
+    "docs/index.json": ("project", "created", "last_change"),
+    "docs/devel/index.json": ("project", "created", "last_change"),
+    "docs/guide/index.json": ("project", "created", "last_change"),
+    "docs/devel/change/index.json": ("updated_at",),
+    "docs/devel/task/index.json": ("updated_at",),
 }
 
 
@@ -174,6 +192,17 @@ def runid_ok(rid):
     return bool(RUNID_RE.match(rid)) and "http" not in rid and "://" not in rid
 
 
+def mentions(text, cid):
+    """卡号整词出现：C001 不命中 C0011，HTML 注释中的语法示例不算互链。"""
+    text = HTML_COMMENT_RE.sub("", text or "")
+    return re.search(r"(?<![A-Za-z0-9_])%s(?![A-Za-z0-9_])" % re.escape(cid), text) is not None
+
+
+def norm_version(v):
+    """发布批次比较忽略前导 v：`v0.1.0` 与 `0.1.0` 视为同一批次。"""
+    return v.strip().lstrip("vV") if isinstance(v, str) else ""
+
+
 def check_card_shape(ctx, card, cid, rel, full=True):
     """仅校验后续读取必需的类型；归档卡只读取身份和状态。"""
     valid = True
@@ -204,9 +233,10 @@ def check_card_shape(ctx, card, cid, rel, full=True):
     deps = card.get("depends_on")
     require(deps is None or (isinstance(deps, list) and all(isinstance(d, str) for d in deps)),
             "depends_on", "字符串数组或 null")
-    rejections = card.get("rejections")
-    require(rejections is None or (isinstance(rejections, list) and
-            all(isinstance(r, dict) for r in rejections)), "rejections", "对象数组或 null")
+    for field in ("rejections", "changes", "tasks"):
+        value = card.get(field)
+        require(value is None or (isinstance(value, list) and
+                all(isinstance(item, dict) for item in value)), field, "对象数组或 null")
     return valid
 
 
@@ -302,8 +332,7 @@ def check_state(ctx, card, cid, rel, track):
             ctx.hard("COMMIT_NOT_ANCESTOR", cid, rel, "sync.commit 非 HEAD 祖先（疑伪造）: %s" % commit)
         # P9 CHANGELOG 互链（软）
         if status == "closed":
-            cl = ctx.read_text("CHANGELOG.md") or ""
-            if cid not in cl:
+            if not mentions(ctx.read_text("CHANGELOG.md"), cid):
                 ctx.soft("CHANGELOG_LINK_MISSING", cid, rel, "closed 卡号未出现在 CHANGELOG.md")
         # P12 前置闭环（任务卡 completed）
         if status == "completed":
@@ -473,13 +502,89 @@ def check_version(ctx, required=False):
     elif tag and tag.group(1) and ver and tag.group(1) != ver:
         ctx.hard("VERSION_DRIFT", None, "AGENTS.md",
                  "AGENTS.md 标签 v%s 与 docs/index.json adflow_version=%s 不一致" % (tag.group(1), ver))
+    # 只读首个标签；残留的旧标签会让技能的版本路由产生歧义，旁路提示清理。
+    tagged = {v for v in TAG_COMMENT_RE.findall(am) if v}
+    if len(tagged) > 1:
+        ctx.advisory("TAG_DUPLICATE", None, "AGENTS.md",
+                     "存在多个版本不同的初始化标签: %s（升级应只保留当前标签）"
+                     % ", ".join("v" + v for v in sorted(tagged)))
+
+
+def check_tool_version(ctx, ver):
+    """已安装校验器副本须与治理版本一致，否则升级后项目仍在运行旧门禁。"""
+    txt = ctx.read_text(TOOL_FILES[0])
+    if txt is None or not isinstance(ver, str) or not ver:
+        return
+    m = TOOL_VERSION_RE.search(txt)
+    tool_ver = m.group(1) if m else None
+    if tool_ver != ver:
+        ctx.hard("TOOL_VERSION_DRIFT", None, TOOL_FILES[0],
+                 "校验器副本版本 %s 与 docs/index.json adflow_version=%s 不一致（升级须同步校验器副本）"
+                 % (tool_ver or "未知", ver))
+
+
+def check_placeholders(ctx):
+    """模板占位符未渲染仅旁路提示：只看 JSON 元数据字段与 Markdown 文首元数据行。"""
+    for rel, fields in PLACEHOLDER_FIELDS.items():
+        data = ctx.load_json(rel) if ctx.exists(rel) else None
+        left = [k for k in fields if isinstance(data, dict) and isinstance(data.get(k), str)
+                and data[k] in PLACEHOLDER_VALUES]
+        if left:
+            ctx.advisory("PLACEHOLDER_UNRENDERED", None, rel, "模板占位符未渲染: %s" % ", ".join(left))
+    for rel in BASE_FILES:
+        if not rel.endswith(".md"):
+            continue
+        head = (ctx.read_text(rel) or "").splitlines()[:6]
+        if any(("**created**" in line or "**last-change**" in line or "MyProject" in line)
+               and any(p in line for p in PLACEHOLDER_VALUES) for line in head):
+            ctx.advisory("PLACEHOLDER_UNRENDERED", None, rel, "文首元数据仍为模板占位符（项目名或日期）")
+
+
+def check_archived_terminal(ctx, card, cid, rel, track):
+    # 归档区只允许终态卡：这是 v1.1.0 起既有归档前置的机器覆盖，非新增追溯门槛。
+    if card.get("status") in STATUSES[track] and card.get("status") not in CLOSED:
+        ctx.hard("ARCHIVE_NON_TERMINAL", cid, rel,
+                 "归档卡处于非终态 %r（归档前置：C 卡 closed / T 卡 completed；"
+                 "历史冻结卡按归档 README「历史批次账实修复」人工处置）" % card.get("status"))
+
+
+def scan_archive(ctx, routed):
+    """物理扫描归档区：未经总账路由的卡同样只允许终态，未登记本身仅旁路提示。"""
+    base = ctx.root / "docs" / "archive"
+    if not base.is_dir():
+        return
+    for jf in sorted(base.rglob("*.json")):
+        rel = str(jf.relative_to(ctx.root))
+        track = jf.parent.name
+        if (track not in STATUSES or jf.name == "index.json" or rel in routed
+                or len(Path(rel).parts) < 5):
+            continue
+        try:
+            card = json.loads(jf.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001  总账快照、测试报告等非卡片资料不在本检查范围
+            continue
+        if not isinstance(card, dict):
+            continue
+        cid = card.get("id", jf.stem)
+        # 卡号文件名或 id 可识别缺状态卡，报告等非卡片 JSON 仍跳过。
+        if ("status" not in card and not CARD_ID_RE.fullmatch(jf.stem)
+                and not (isinstance(cid, str) and CARD_ID_RE.fullmatch(cid))):
+            continue
+        if not check_card_shape(ctx, card, cid, rel, full=False):
+            continue
+        check_status(ctx, card, cid, rel, track)
+        check_archived_terminal(ctx, card, cid, rel, track)
+        ctx.advisory("ARCHIVE_UNREGISTERED", cid, rel,
+                     "归档卡未经现行总账路由（缺登记或 file 未指向此处），依赖与主题查询不可达")
 
 
 # ---- 采集活跃卡 ----
 def collect_cards(ctx):
     ctx.all_ids = {}
+    ctx.entries = {}  # 卡号 -> 总账登记条目，供发版预检回退读取 version
     cards = []  # (rel, dict, cid)
     seen_paths = set()
+    routed = set()  # 总账引用过的归档路径，物理扫描不重复报告
 
     def register(rel, card, cid, active):
         if rel in seen_paths:
@@ -518,6 +623,8 @@ def collect_cards(ctx):
                 ctx.hard("INDEX_FILE_INVALID", cid, idx_rel, "索引 file 必须位于目标项目内: %s" % f)
                 continue
             archived = Path(rel).parts[:2] == ("docs", "archive")
+            if archived:
+                routed.add(rel)
             if ((archived and (len(Path(rel).parts) < 5 or Path(rel).parent.name != track)) or
                     (not archived and str(Path(rel).parent) != sub)):
                 ctx.hard("INDEX_FILE_INVALID", cid, idx_rel,
@@ -533,12 +640,8 @@ def collect_cards(ctx):
             if not check_card_shape(ctx, card, actual_id, rel, full=not archived):
                 continue
             check_status(ctx, card, actual_id, rel, track)
-            # 归档区只允许终态卡：这是 v1.1.0 起既有归档前置的机器覆盖，非新增追溯门槛。
-            if archived and card.get("status") in STATUSES[track] \
-                    and card.get("status") not in CLOSED:
-                ctx.hard("ARCHIVE_NON_TERMINAL", actual_id, rel,
-                         "归档卡处于非终态 %r（归档前置：C 卡 closed / T 卡 completed；"
-                         "历史冻结卡按归档 README「历史批次账实修复」人工处置）" % card.get("status"))
+            if archived:
+                check_archived_terminal(ctx, card, actual_id, rel, track)
             if actual_id != cid:
                 ctx.hard("INDEX_ID_DRIFT", cid, idx_rel,
                          "索引 %s 指向了身份为 %s 的卡片: %s" % (cid, actual_id, f))
@@ -546,6 +649,7 @@ def collect_cards(ctx):
             if ent.get("status") != card.get("status"):
                 ctx.hard("INDEX_STATUS_DRIFT", cid, idx_rel,
                          "索引状态 %r 与卡片 %r 不一致" % (ent.get("status"), card.get("status")))
+            ctx.entries.setdefault(cid, ent)
             register(rel, card, cid, active=not archived)
 
         # 保留物理扫描，发现未登记、错误路由，以及与归档卡撞号的活跃卡。
@@ -578,6 +682,7 @@ def collect_cards(ctx):
                 if isinstance(f, str) and (ctx.root / f).resolve() != jf.resolve():
                     ctx.hard("INDEX_FILE_DRIFT", cid, idx_rel,
                              "索引 file 未指向该活跃卡: %s（实际 %s）" % (f, rel))
+    scan_archive(ctx, routed)
     return cards
 
 
@@ -595,6 +700,37 @@ def check_advisories(ctx, cards):
                              "验收项为空或未全部为 true；结构门禁不能替代业务验收")
         if "/devel/task/" in rel:
             task_cards[cid] = (rel, card)
+            if card.get("status") in TERMINAL:
+                # T 卡同样遵守“人工核验代签”；旧卡没有代签字段，只旁路提示，不追溯提高门槛。
+                acc = card.get("acceptance") or {}
+                if not str(acc.get("user_quote") or "").strip() or not str(acc.get("signoff") or "").strip():
+                    ctx.advisory("TASK_SIGNOFF_MISSING", cid, rel,
+                                 "completed 任务卡缺少 acceptance.user_quote 或 signoff"
+                                 "（须在会话中取得人类明确确认后代签）")
+                if any(t.get("done") is not True for t in card.get("tasks") or []):
+                    ctx.advisory("TASKS_NOT_ALL_DONE", cid, rel,
+                                 "completed 任务卡仍有 tasks[].done 不为 true 的能力单元")
+            # 开工条件：前置任务均已 completed；缺失前置已由 DEP_DANGLING 硬阻断。
+            if card.get("status") == "in_progress":
+                for dep in card.get("depends_on", []) or []:
+                    dc = ctx.all_ids.get(dep)
+                    if dc is not None and dc.get("status") != "completed":
+                        ctx.advisory("DEP_NOT_READY", cid, rel,
+                                     "前置任务 %s 状态为 %r，本卡已 in_progress（应先完成前置再开工）"
+                                     % (dep, dc.get("status")))
+        else:
+            # 驳回作废此前的确认：驳回卡不应保留原话，返工后的终态也不能沿用 gate 记录过的驳回前原话。
+            quote = str((card.get("verification") or {}).get("user_quote") or "").strip()
+            gate = card.get("gate") or {}
+            signed = gate.get("signed_rejection_count")
+            if quote and card.get("status") == "rejected":
+                ctx.advisory("SIGNOFF_STALE", cid, rel,
+                             "rejected 卡仍保留驳回前的 user_quote；应清空 user_quote/signoff，"
+                             "返工后重新取得人工确认")
+            elif (quote and card.get("status") in TERMINAL and isinstance(signed, int)
+                  and len(card.get("rejections") or []) > signed and quote == gate.get("signed_quote")):
+                ctx.advisory("SIGNOFF_STALE", cid, rel,
+                             "user_quote 仍是驳回前已记录的确认原话；返工后须取得新的人工确认")
 
     visited, active, path = set(), set(), []
 
@@ -637,6 +773,34 @@ def propose_state(ctx, cards, cid, status):
     ctx.proposed_id = cid
 
 
+# ---- 发版预检 ----
+def check_release(ctx, cards, release):
+    """本批次活跃卡必须已到达本轨终态；归档区由 ARCHIVE_NON_TERMINAL 覆盖。
+
+    卡片 version 缺失时回退读取总账登记；仍无法归属的未收口卡交人工划定批次。
+    """
+    target = norm_version(release)
+    for rel, card, cid in cards:
+        track = "change" if "/devel/change/" in rel else "task"
+        if card.get("status") == TRACK_TERMINAL[track]:
+            continue
+        version = norm_version(card.get("version")) or norm_version(
+            (ctx.entries.get(cid) or {}).get("version"))
+        if not version:
+            ctx.soft("RELEASE_SCOPE_UNKNOWN", cid, rel,
+                     "未收口卡未填写 version，无法判定是否属于 %s 批次（先补批次或显式延后）" % release)
+        elif version == target:
+            ctx.hard("RELEASE_NOT_TERMINAL", cid, rel,
+                     "发布批次 %s 内的卡处于 %r（C 卡须 closed，T 卡须 completed）"
+                     % (release, card.get("status")))
+    in_batch = [cid for cid, card in ctx.all_ids.items()
+                if target in (norm_version(card.get("version")),
+                              norm_version((ctx.entries.get(cid) or {}).get("version")))]
+    if not in_batch:
+        ctx.advisory("RELEASE_BATCH_EMPTY", None, "-",
+                     "未找到 version 为 %s 的卡片；核对版本拼写或确认本次发布确无卡片" % release)
+
+
 # ---- 初始化 DoD ----
 def run_init(ctx):
     def require_file(f, allow_legacy=False):
@@ -674,6 +838,8 @@ def run_init(ctx):
         ctx.hard("PLACEHOLDER_DESIGN_EXISTS", None, PLACEHOLDER, "存在禁用占位设计文档")
     check_legacy_templates(ctx)
     check_version(ctx, required=True)
+    check_tool_version(ctx, docs_index.get("adflow_version"))
+    check_placeholders(ctx)
 
 
 # ---- --record：把本次真实结果回写进卡片 gate 块 ----
@@ -686,12 +852,134 @@ def record_gates(ctx, cards, selected=None):
         p = ctx.root / rel
         # 重新读取实际卡片，候选状态只用于校验，不能随 gate 回写落盘。
         actual = json.loads(p.read_text(encoding="utf-8"))
+        prev = actual.get("gate") if isinstance(actual.get("gate"), dict) else {}
         gate = {"tool": "adflow-verify", "version": VERSION,
                 "ran_at": date.today().isoformat(), "exit_code": code}
         if cid == ctx.proposed_id:
+            # 同时记下预检时的真实状态，回执据此显示 from → to，不靠推断。
+            gate["from_status"] = actual.get("status")
             gate["target_status"] = card["status"]
+        # 代签指纹：记下本次依据的确认原话与当时的驳回次数，供驳回后识别沿用旧原话。
+        # 已判定过期时保留旧指纹，SIGNOFF_STALE 持续可见，直到写入新的确认原话。
+        signature = {k: prev[k] for k in ("signed_quote", "signed_rejection_count") if k in prev}
+        quote = str((actual.get("verification") or {}).get("user_quote") or "").strip()
+        stale = any(f["code"] == "SIGNOFF_STALE" and f["card"] == cid for f in ctx.findings)
+        if "/devel/change/" in rel and quote and not stale:
+            signature = {"signed_quote": quote,
+                         "signed_rejection_count": len(actual.get("rejections") or [])}
+        gate.update(signature)
         actual["gate"] = gate
         p.write_text(json.dumps(actual, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+# ---- --receipt：按固定格式输出卡片节点回执 ----
+RECEIPT_TODO = {
+    "未覆盖": "〈执行者填写：未验证的运行态、人工验收缺口或残余风险；没有写“无”〉",
+    "需要你": "〈执行者填写：需要人类确认、授权或决策的事项；没有写“无”〉",
+}
+
+
+def cell(value):
+    """单行文本：折叠换行、转义表格竖线，空值显示为 —。"""
+    text = " ".join(str(value).split()) if value not in (None, "") else ""
+    return text.replace("|", "\\|") or "—"
+
+
+def mark(result):
+    return "✓" if result is True else ("✗" if result is False else "待定")
+
+
+def issue_summary(ctx, cid):
+    """按严重度聚合问题码；与本卡相关的码加 [本卡] 标注。ADVISORY 段始终输出。"""
+    parts = []
+    for sev in ("ERROR", "WARN", "ADVISORY"):
+        counts, own = {}, set()
+        for f in ctx.findings:
+            if f["sev"] == sev:
+                counts[f["code"]] = counts.get(f["code"], 0) + 1
+                if f["card"] == cid:
+                    own.add(f["code"])
+        items = []
+        for code, n in sorted(counts.items()):
+            tag = ("[本卡]" if n == 1 else "[含本卡]") if code in own else ""
+            items.append("%s%s%s" % (code, "×%d" % n if n > 1 else "", tag))
+        if items or sev == "ADVISORY":
+            parts.append("%s %s" % (sev, ", ".join(items) or "无"))
+    return " · ".join(parts)
+
+
+def render_receipt(ctx, card, cid, rel, track, code):
+    """事实行全部取自卡片与本次复核；执行者只替换「未覆盖」「需要你」两行。"""
+    gate = card.get("gate") if isinstance(card.get("gate"), dict) else {}
+    status = card.get("status")
+    head = status
+    if gate.get("from_status") and gate.get("target_status") == status:
+        head = "%s → %s" % (gate["from_status"], status)
+    target = card.get("target") or {}
+    doc = target.get("design_doc")
+    proof = card.get("verification" if track == "change" else "acceptance")
+    proof = proof if isinstance(proof, dict) else {}
+    sync = card.get("sync") if isinstance(card.get("sync"), dict) else {}
+
+    lines = ["### %s · %s · %s" % (cid, cell(card.get("title")), cell(head)),
+             "批次 %s · 分支 %s · 设计 %s @%s" % (
+                 cell(card.get("version")), cell(card.get("branch")),
+                 cell(Path(doc).name if isinstance(doc, str) and doc else None),
+                 cell(target.get("design_topic"))),
+             "", "| 验收项 | 结果 | 证据 |", "|---|---|---|"]
+    checks = checks_of(card)
+    lines += ["| %s | %s | %s |" % (cell(c.get("item")), mark(c.get("result")), cell(c.get("evidence")))
+              for c in checks] or ["| （未定义验收项） | — | — |"]
+    lines.append("")
+
+    gate_bits = ["复核 Exit %d" % code]
+    if gate.get("exit_code") is not None:
+        gate_bits.append("gate 记录 Exit %s（%s）" % (gate.get("exit_code"), cell(gate.get("ran_at"))))
+    gate_bits += ["run_id %s" % cell(proof.get("run_id")), issue_summary(ctx, cid)]
+    lines.append("- 门禁：" + " · ".join(gate_bits))
+
+    # 收口前尚未到期的同步项显示“待…”，收口后仍缺失才显示为缺口。
+    done = status in CLOSED
+    commit = str(sync.get("commit") or "")
+    if re.fullmatch(r"[0-9a-f]{8,40}", commit):
+        commit = commit[:7]
+    sync_bits = ["commit %s" % (cell(commit) if commit else "缺失" if done else "待回填")]
+    quote = str(proof.get("user_quote") or "").strip()
+    if status == "rejected":
+        human = "已驳回，返工后重新请求确认"
+    elif quote:
+        human = "「%s」— %s" % (cell(quote), cell(proof.get("signoff")))
+    else:
+        human = "待人工确认"
+    if track == "change":
+        logged = mentions(ctx.read_text("CHANGELOG.md"), cid)
+        sync_bits.append("CHANGELOG %s" % ("✓" if logged else "未登记" if done else "待登记"))
+        design = card.get("design") if isinstance(card.get("design"), dict) else {}
+        sync_bits.append("设计回写 %s" % ("不涉及" if design.get("modified") is False else
+                                        "✓" if sync.get("design_pinned") is True else
+                                        "未回写" if done else "待回写"))
+        changes = [c.get("after") for c in card.get("changes") or [] if isinstance(c, dict) and c.get("after")]
+        delta = "；".join(cell(a) for a in changes) or "（卡片未填写 changes）"
+    else:
+        deps = []
+        for dep in card.get("depends_on") or []:
+            dc = ctx.all_ids.get(dep)
+            state = (dc or {}).get("status")
+            deps.append("%s %s" % (dep, "✓" if state == "completed" else cell(state or "缺失")))
+        sync_bits.append("依赖 %s" % (", ".join(deps) or "无"))
+        tasks = [t for t in card.get("tasks") or [] if isinstance(t, dict)]
+        delta = "；".join("%s %s %s" % (cell(t.get("id")), cell(t.get("title")), mark(t.get("done")))
+                         for t in tasks) or "（卡片未填写 tasks）"
+    lines.append("- 同步：" + " · ".join(sync_bits))
+    lines.append("- 人工：" + human)
+    rejections = [r for r in card.get("rejections") or [] if isinstance(r, dict)]
+    if rejections:
+        last = rejections[-1]
+        lines.append("- 驳回：共 %d 次，最近 %s：%s" % (len(rejections), cell(last.get("date")),
+                                               cell(last.get("reason"))))
+    lines.append("- 改动：" + delta)
+    lines += ["- %s：%s" % item for item in RECEIPT_TODO.items()]
+    return "\n".join(lines)
 
 
 # ---- 报告 ----
@@ -702,7 +990,7 @@ def summarize(ctx):
     return errs, warns, code
 
 
-def report(ctx, mode, as_json, warn_only):
+def report(ctx, mode, as_json, warn_only, release=None, receipt=None):
     errs, warns, code = summarize(ctx)
     if warn_only:
         for f in ctx.findings:
@@ -711,13 +999,22 @@ def report(ctx, mode, as_json, warn_only):
         errs, warns, code = summarize(ctx)
     advisories = [f for f in ctx.findings if f["sev"] == "ADVISORY"]
     if as_json:
-        print(json.dumps({"tool": "adflow-verify", "version": VERSION, "mode": mode,
-                          "target": str(ctx.root), "exit_code": code,
-                          "summary": {"errors": len(errs), "warnings": len(warns),
-                                      "advisories": len(advisories)},
-                          "findings": ctx.findings}, ensure_ascii=False, indent=2))
+        out = {"tool": "adflow-verify", "version": VERSION, "mode": mode,
+               "target": str(ctx.root), "exit_code": code,
+               "summary": {"errors": len(errs), "warnings": len(warns),
+                           "advisories": len(advisories)},
+               "findings": ctx.findings}
+        if release:
+            out["release"] = release
+        if receipt:
+            out["receipt"] = receipt
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+    elif receipt:
+        # 文本模式只输出回执本身，便于原样转交；问题明细用 --json 查看。
+        print(receipt)
     else:
-        print("adflow-verify v%s  mode=%s  target=%s" % (VERSION, mode, ctx.root))
+        print("adflow-verify v%s  mode=%s%s  target=%s"
+              % (VERSION, mode, "  release=%s" % release if release else "", ctx.root))
         for f in ctx.findings:
             loc = f["path"] if f["card"] in (None, "-") else "%s [%s]" % (f["path"], f["card"])
             print("  [%s] %-24s %s: %s" % (f["sev"], f["code"], loc, f["msg"]))
@@ -737,15 +1034,31 @@ def main(argv=None):
     ap.add_argument("--record", action="store_true", help="把本次各卡真实结果回写进卡片 gate 块")
     ap.add_argument("--card", help="限定 --record 的卡号；搭配 --to 预检该卡拟转入状态")
     ap.add_argument("--to", choices=["verified", "closed", "completed"], help="仅在内存预检目标状态")
+    ap.add_argument("--release", metavar="VERSION",
+                    help="发版/归档前只读预检：该批次活跃卡须全部 closed/completed")
+    ap.add_argument("--receipt", action="store_true",
+                    help="状态同步后只读复核，并按固定格式输出 --card 指定卡的节点回执")
     args = ap.parse_args(argv)
     if args.to and not args.card:
         ap.error("--to 需要 --card")
-    if args.mode == "init" and (args.card or args.to or args.record):
-        ap.error("初始化检查不支持 --card/--to/--record")
+    if args.mode == "init" and (args.card or args.to or args.record or args.receipt
+                                or args.release is not None):
+        ap.error("初始化检查不支持 --card/--to/--record/--receipt/--release")
     if args.warn_only and args.record:
         ap.error("--warn-only 不可与 --record 合用；试点降级不得写入正式 gate")
+    if args.receipt:
+        if not args.card:
+            ap.error("--receipt 需要 --card")
+        if args.to or args.record or args.warn_only:
+            ap.error("--receipt 在状态同步后只读复核，不可与 --to/--record/--warn-only 合用")
+    if args.release is not None:
+        if not norm_version(args.release):
+            ap.error("--release 需要非空版本号，如 v0.1.0")
+        if args.card or args.record:
+            ap.error("--release 为只读批次预检，不可与 --card/--to/--record 合用")
 
     ctx = Ctx(args.target_dir)
+    receipt = None
     if args.mode == "init":
         run_init(ctx)
     else:
@@ -761,11 +1074,19 @@ def main(argv=None):
             check_card(ctx, card, cid, rel, track)
         check_globals(ctx)
         check_advisories(ctx, cards)
+        if args.release is not None:
+            check_release(ctx, cards, args.release)
         if args.record and not any(f["code"] in {"TRANSITION_CARD", "TRANSITION_STATE", "ID_DUPLICATE"}
                                    for f in ctx.findings):
             record_gates(ctx, cards, args.card)
+        if args.receipt:
+            matches = [(rel, card) for rel, card, cid in cards if cid == args.card]
+            if len(matches) == 1:
+                rel, card = matches[0]
+                track = "change" if "/devel/change/" in rel else "task"
+                receipt = render_receipt(ctx, card, args.card, rel, track, summarize(ctx)[2])
 
-    code = report(ctx, args.mode, args.json, args.warn_only)
+    code = report(ctx, args.mode, args.json, args.warn_only, args.release, receipt)
     return code
 
 

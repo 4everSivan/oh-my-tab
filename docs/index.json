@@ -1,7 +1,7 @@
 {
   "$schema": "adflow-docs-index-v1",
   "project": "oh-my-tab",
-  "adflow_version": "1.4.0",
+  "adflow_version": "1.6.0",
   "created": "2026-10-07",
   "last_change": "2026-10-14",
   "status": "active",
