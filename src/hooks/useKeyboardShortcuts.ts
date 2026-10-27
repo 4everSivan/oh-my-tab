@@ -19,6 +19,8 @@ export interface UseKeyboardShortcutsOptions {
   onToggleCollapse?: () => void;
   /** 搜索输入框 DOM 引用 */
   searchInputRef?: React.RefObject<HTMLInputElement>;
+  /** 闲置聚焦态：除 ` 聚焦搜索外，其余单键快捷键全部休眠 (T19) */
+  suspended?: boolean;
 }
 
 /**
@@ -54,9 +56,14 @@ export function useKeyboardShortcuts({
   onToggleAddModal,
   onToggleCollapse,
   searchInputRef,
+  suspended = false,
 }: UseKeyboardShortcutsOptions) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      // 闲置聚焦态：界面只剩淡化的搜索框，此时除 ` 之外的快捷键一律休眠，
+      // 否则 a / e / b 会在看不见的界面上直接开弹窗抽屉。` 仍可唤醒并聚焦搜索。
+      if (suspended && e.key !== '`' && e.key !== '~') return;
+
       const activeEl = document.activeElement;
       const isSearchFocused = !!(
         searchInputRef?.current && activeEl === searchInputRef.current
@@ -160,6 +167,7 @@ export function useKeyboardShortcuts({
       onToggleAddModal,
       onToggleCollapse,
       searchInputRef,
+      suspended,
     ]
   );
 

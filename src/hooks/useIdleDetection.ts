@@ -17,8 +17,12 @@ export interface UseIdleDetectionReturn {
 
 /**
  * useIdleDetection
- * 全域闲置感知与防抖唤醒 Hook (T19 & MOT-14 & LAY-13)
- * 监听全域用户交互事件，支持交互输入/抽屉打开避让守卫
+ * 闲置感知与防抖唤醒 Hook (T19 & MOT-14 & LAY-13)
+ * 支持交互输入/抽屉打开避让守卫。
+ *
+ * 唤醒事件只含键盘：鼠标移动、滚轮与滚动一律不计为活动，否则闲置态会被
+ * 无意的指针微动立刻打断，"只显示搜索框"永远维持不住。鼠标侧的高亮与
+ * 唤醒由 CSS :hover 与搜索框上的显式指针处理器分别承担（见 App.tsx）。
  */
 export function useIdleDetection({
   enabled = true,
@@ -113,15 +117,22 @@ export function useIdleDetection({
       return;
     }
 
-    const handleActivity = () => {
+    const handleActivity = (event: Event) => {
       if (isGuardedRef.current) {
         wakeUp();
         return;
       }
+      // 闲置态只认 `（反引号）：其余按键不打断聚焦态，避免随手一个字母就把
+      // 时钟与图标栏唤回来（快捷键层在闲置态同样挂起，见 useKeyboardShortcuts）。
+      if (isIdleRef.current) {
+        const key = event instanceof KeyboardEvent ? event.key : '';
+        if (key !== '`' && key !== '~') return;
+      }
       resetTimer();
     };
 
-    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'wheel'];
+    // 仅键盘视为"显式活动"：` 聚焦搜索、任意按键都意味着用户回到工作台
+    const events = ['keydown'];
     events.forEach((evt) => {
       window.addEventListener(evt, handleActivity, { passive: true });
     });

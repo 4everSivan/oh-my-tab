@@ -87,7 +87,7 @@ export const App: React.FC = () => {
 
   // 全域闲置避让守卫 (T19 & MOT-14 & LAY-13): 抽屉、模态展开或搜索聚焦时挂起闲置
   const isGuarded = isDrawerOpen || isFeedSidebarOpen || isAddModalOpen || isHelpOpen || isSearchFocused;
-  const { isIdle } = useIdleDetection({
+  const { isIdle, resetTimer: wakeFromIdle } = useIdleDetection({
     enabled: idle.enabled,
     timeoutSeconds: idle.timeoutSeconds,
     isGuarded,
@@ -553,6 +553,17 @@ export const App: React.FC = () => {
     return false;
   };
 
+  // 闲置态唯一唤醒入口之一：点击搜索框。鼠标移动只在 CSS 层高亮搜索框，
+  // 不会唤回时钟与图标栏；点击才恢复整页并进入输入态（` 键走 onFocusSearch）。
+  const handleSearchPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isIdle) return;
+    wakeFromIdle();
+    const target = event.target as HTMLElement;
+    if (!target.closest('button, input')) {
+      searchInputRef.current?.focus();
+    }
+  };
+
   useKeyboardShortcuts({
     onFocusSearch: () => {
       searchInputRef.current?.focus();
@@ -606,6 +617,7 @@ export const App: React.FC = () => {
     },
     onToggleCollapse: () => setIsCollapsed((prev) => !prev),
     searchInputRef,
+    suspended: isIdle,
   });
 
   const handleShortcutsChange = async (newShortcuts: Shortcut[]) => {
@@ -795,8 +807,12 @@ export const App: React.FC = () => {
           />
         </div>
 
-        {/* Search Bar */}
-        <div ref={searchContainerRef} className="w-full t-idle-target">
+        {/* Search Bar（闲置态唯一保留的交互面：只淡化不高亮期间不唤醒整页） */}
+        <div
+          ref={searchContainerRef}
+          className="w-full t-idle-search"
+          onPointerDown={handleSearchPointerDown}
+        >
           <SearchBar
             appearance={search}
             engineId={engine}
@@ -832,7 +848,7 @@ export const App: React.FC = () => {
           </div>
 
           {/* 12-Column Responsive Widgets Area */}
-          <div className="w-full mt-4">
+          <div className="w-full mt-4 t-idle-target">
             <GridContainer
               layout={layout}
               onRemoveWidget={handleRemoveWidget}

@@ -677,12 +677,12 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
                 </div>
               )}
 
-              {/* 沉浸与闲置呼吸淡化设置 (T19 & LAY-13) */}
+              {/* 沉浸与闲置聚焦淡化设置 (T19 & LAY-13) */}
               <div className="pt-4 border-t border-black/5 dark:border-white/10 space-y-4">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center space-x-1.5">
                     <span className="text-xs font-semibold text-stone-800 dark:text-stone-200">
-                      闲置呼吸淡化
+                      闲置聚焦淡化
                     </span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
                       液态玻璃
@@ -702,10 +702,10 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
                   <div className="flex items-center justify-between">
                     <div className="pr-3">
                       <div className="text-xs font-medium text-stone-800 dark:text-stone-200">
-                        开启无操作闲置呼吸淡化
+                        开启无操作闲置聚焦淡化
                       </div>
                       <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
-                        停止操作后平滑淡化为液态玻璃高透水膜，活动或碰触瞬时唤醒
+                        停止操作后时钟、顶栏、网站图标与页脚平滑淡出，只留下淡化的搜索框；移动鼠标仅高亮搜索框，点击搜索框或按 \` 才唤回并进入输入
                       </div>
                     </div>
                     <input

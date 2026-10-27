@@ -63,12 +63,10 @@
   --list-enter-blur: 2px;
   --list-enter-ease: cubic-bezier(0.34, 1.36, 0.64, 1);
 
-  /* ── t-idle-glass 闲置液态玻璃呼吸淡化系统 (MOT-14 & LAY-13) ── */
-  --idle-fade-dur: 1000ms;
-  --idle-wake-dur: 200ms;
-  --idle-opacity: 0.38;
-  --idle-glass-opacity: 0.08;
-  --idle-blur: 20px;
+  /* ── t-idle-glass 闲置聚焦淡化系统 (MOT-14 & LAY-13) ── */
+  --idle-fade-dur: 1000ms;  /* 淡出/淡化的统一时长 */
+  --idle-wake-dur: 200ms;   /* 任意交互唤醒整页的时长 */
+  --idle-opacity: 0.38;     /* 搜索框在闲置态保留的透明度（其余区块隐去） */
   --ease-idle-fade: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-idle-wake: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-apple: cubic-bezier(0.16, 1, 0.3, 1);
@@ -352,49 +350,49 @@
   will-change: transform, opacity, filter;
 }
 
-/* ══ t-idle-glass 闲置液态玻璃呼吸淡化系统 (MOT-14 & LAY-13) ═══
- * 闲置达到阈值后平滑过渡进入液态玻璃沉浸态；全域活动毫秒级唤醒；
- * 支持局部鼠标 Hover 聚光唤醒（Local Spotlight）与幽灵半透明图标。
- */
+/* ══ t-idle-glass 闲置聚焦淡化系统 (MOT-14 & LAY-13) ══════════
+ * 闲置达到阈值后，时钟、顶栏按钮群、网站图标栏与页脚在 --idle-fade-dur
+ * 内淡出隐去，只保留搜索框作为唯一常亮入口；任意全域活动以
+ * --idle-wake-dur 唤醒整页。隐去后同时让出指针事件，杜绝不可见点击目标。 */
 .t-idle-target,
 .t-idle-topbar,
 .t-idle-shortcuts,
-.t-idle-search,
-.t-idle-clock {
-  transition: opacity var(--idle-wake-dur) var(--ease-idle-wake),
-              filter var(--idle-wake-dur) var(--ease-idle-wake),
-              transform var(--idle-wake-dur) var(--ease-idle-wake),
-              border-color var(--idle-wake-dur) var(--ease-idle-wake),
-              box-shadow var(--idle-wake-dur) var(--ease-idle-wake);
-  will-change: opacity, transform;
+.t-idle-clock,
+.t-idle-search {
+  transition: opacity var(--idle-wake-dur) var(--ease-idle-wake);
+  will-change: opacity;
 }
 
 [data-idle="true"] .t-idle-target,
 [data-idle="true"] .t-idle-topbar,
 [data-idle="true"] .t-idle-shortcuts,
-[data-idle="true"] .t-idle-search,
 [data-idle="true"] .t-idle-clock {
-  opacity: var(--idle-opacity);
-  transition-property: opacity, filter, transform, border-color, box-shadow !important;
+  opacity: 0;
+  pointer-events: none;
+  transition-property: opacity !important;
   transition-duration: var(--idle-fade-dur) !important;
   transition-timing-function: var(--ease-idle-fade) !important;
   transition-delay: 0ms !important;
 }
 
-/* 局部聚光唤醒 (Local Spotlight Hover) */
-[data-idle="true"] .t-idle-target:hover,
-[data-idle="true"] .t-idle-topbar:hover,
-[data-idle="true"] .t-idle-shortcuts:hover,
-[data-idle="true"] .t-idle-search:hover,
-[data-idle="true"] .t-idle-clock:hover {
-  opacity: 1 !important;
-  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.16));
+/* 搜索框是闲置态唯一保留的元素：同样淡出到 --idle-opacity，但不隐去、不让出指针事件 */
+[data-idle="true"] .t-idle-search {
+  opacity: var(--idle-opacity);
+  transition-property: opacity !important;
+  transition-duration: var(--idle-fade-dur) !important;
+  transition-timing-function: var(--ease-idle-fade) !important;
+  transition-delay: 0ms !important;
+}
+
+/* 闲置态指针扫过：只点亮搜索框这一块，时钟与图标栏保持隐去（移动鼠标不唤醒整页） */
+[data-idle="true"] .t-idle-search:hover {
+  opacity: 1;
   transition-duration: var(--idle-wake-dur) !important;
   transition-timing-function: var(--ease-idle-wake) !important;
   transition-delay: 0ms !important;
 }
 
-/* 液态玻璃核心表面与阴影 */
+/* 液态玻璃核心表面与阴影（搜索框在闲置态仍是唯一保留的交互面，故不设闲置态变体） */
 .liquid-glass-surface {
   box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.08),
               inset 0 1px 1px 0 rgba(255, 255, 255, 0.35);
@@ -402,42 +400,9 @@
               border-color var(--idle-wake-dur) var(--ease-idle-wake);
 }
 
-[data-idle="true"] .liquid-glass-surface {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05),
-              inset 0 1px 1px 0 rgba(255, 255, 255, 0.18);
-  transition-property: box-shadow, border-color !important;
-  transition-duration: var(--idle-fade-dur) !important;
-  transition-timing-function: var(--ease-idle-fade) !important;
-}
-
-[data-idle="true"] .liquid-glass-surface:hover,
 .liquid-glass-surface:hover {
   box-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.18),
               inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.65);
-  transition-duration: var(--idle-wake-dur) !important;
-  transition-timing-function: var(--ease-idle-wake) !important;
-}
-
-/* 图标幽灵半透明呼吸质感 */
-.shortcut-icon-container img,
-.shortcut-icon-container svg {
-  transition: opacity var(--idle-wake-dur) var(--ease-idle-wake),
-              filter var(--idle-wake-dur) var(--ease-idle-wake);
-}
-
-[data-idle="true"] .shortcut-icon-container img,
-[data-idle="true"] .shortcut-icon-container svg {
-  opacity: 0.55;
-  filter: contrast(108%) brightness(105%);
-  transition-property: opacity, filter !important;
-  transition-duration: var(--idle-fade-dur) !important;
-  transition-timing-function: var(--ease-idle-fade) !important;
-}
-
-[data-idle="true"] .shortcut-icon-container:hover img,
-[data-idle="true"] .shortcut-icon-container:hover svg {
-  opacity: 1 !important;
-  filter: none !important;
   transition-duration: var(--idle-wake-dur) !important;
   transition-timing-function: var(--ease-idle-wake) !important;
 }
@@ -466,21 +431,29 @@
   .t-tabs-sliding,
   .t-check,
   .t-check svg path,
-  .t-idle-target,
-  [data-idle="true"] .t-idle-target,
-  .t-idle-topbar,
-  [data-idle="true"] .t-idle-topbar,
-  .t-idle-shortcuts,
-  [data-idle="true"] .t-idle-shortcuts,
-  .t-idle-search,
-  [data-idle="true"] .t-idle-search,
-  .t-idle-clock,
-  [data-idle="true"] .t-idle-clock,
-  .liquid-glass-surface,
-  [data-idle="true"] .liquid-glass-surface,
-  [data-idle="true"] .shortcut-icon-container img,
-  [data-idle="true"] .shortcut-icon-container svg {
+  .liquid-glass-surface {
     transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+  /* 闲置淡化例外：它只有透明度通道，无位移/缩放/模糊，属低频状态反馈而非
+   * 运动刺激。归零会让"淡出至只留搜索框"退化为瞬跳、整套系统等于不可见，
+   * 故保留 opacity 过渡与 fade 时长，其余通道一律不走过渡。 */
+  .t-idle-target,
+  .t-idle-topbar,
+  .t-idle-shortcuts,
+  .t-idle-clock,
+  .t-idle-search {
+    transition-property: opacity !important;
+    transition-duration: var(--idle-wake-dur) !important;
+    transition-delay: 0ms !important;
+  }
+  [data-idle="true"] .t-idle-target,
+  [data-idle="true"] .t-idle-topbar,
+  [data-idle="true"] .t-idle-shortcuts,
+  [data-idle="true"] .t-idle-clock,
+  [data-idle="true"] .t-idle-search {
+    transition-property: opacity !important;
+    transition-duration: var(--idle-fade-dur) !important;
     transition-delay: 0ms !important;
   }
   .t-digit,
