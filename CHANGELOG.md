@@ -1,10 +1,20 @@
 # 变更日志 (CHANGELOG)
 
-> **created**: 2026-10-07 ｜ **last-change**: 2026-10-14 ｜ **status**: active
+> **created**: 2026-10-07 ｜ **last-change**: 2026-10-27 ｜ **status**: active
 
 遵循 Keep a Changelog 与项目统一 SemVer。
 
 ## [Unreleased]
+
+### Fixed
+
+- **会话级壁纸 Blob URL 落盘导致首帧缩略图直出失效 (C032)**：1) StorageService 新增 toPersistedBackground 统一出口：setBackground 在写入 chrome.storage 与启动快照前剥离会话级 `imageBlobUrl`，getBackground、getBootCache 与跨标签 onSettingsChanged 读取时同样剥离并兼容已被写入死链的旧数据，重申设计 04「imageBlobUrl 不作为持久化事实」契约；2) App 壁纸 Blob URL 生命周期收敛为 adoptBlobUrl / releaseBlobUrl 两个入口并记录对应 imageId，跨标签背景变更经 applyExternalBackground 处理：imageId 未变则复用本页地址、变化则按 imageId 从 IndexedDB 重建、非图片背景回收地址，杜绝多标签互相合并失效 Blob URL；3) 启动首帧在 Blob 就绪前回落 C029 previewUrl 模糊缩略图直出，新增 4 项针对真实 StorageService 的回归测试。
+
+- **纯日期订阅时间在西半球时区显示为前一天 (C033)**：订阅源仅给出纯日期（`YYYY-MM-DD`）时按 ECMAScript 规范解析为 UTC 零点、再以本地时区格式化，UTC 以西时区回退一天（且 T18 单测在 America/New_York 下失败）。现 formatRelativeTime 对纯日期（允许首尾空白）按本地日历日 `new Date(y, m-1, d)` 解析，带时间/时区的时间戳与数值保持原生解析；T18 测试改为加载真实 `src/services/feed/feedParser.ts` 消除实现漂移，并新增覆盖 5 个时区的专项回归测试。
+
+- **专注计时系统通知图标路径错误导致通知静默失败 (C034)**：host.notify 的 iconUrl 误写为包根 `icon-48.png`（实际位于 `icons/icon-48.png`），Chrome 在 basic 通知图标加载失败时拒绝创建且调用无回调、失败完全静默。现导出 `NOTIFICATION_ICON_PATH` 常量并以 `chrome.runtime.getURL` 解析为包内绝对地址，创建回调在 `runtime.lastError` 时 `console.warn` 告警，通知创建失败不再静默。
+
+- **扩展 manifest 版本与 package.json 漂移：分发包版本声明滞后 (C035)**：v0.2.1 已发版但分发包内 manifest.json 仍声明 0.2.0。新增 `scripts/vite-plugin-manifest-version.ts` 在构建 writeBundle 阶段以 package.json version 覆盖产物 manifest 版本，vite.config.ts 挂载并纳入 tsconfig.node 类型检查；public/manifest.json 同步为当前版本；打包脚本 zip 名改为 `oh-my-tab-v$npm_package_version.zip` 由包管理器运行时注入，消除 package.json / manifest / 分发包名三处手工维护版本号的漂移隐患。
 
 ## [0.2.1] - 2026-10-14
 

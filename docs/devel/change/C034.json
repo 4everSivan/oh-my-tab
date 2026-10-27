@@ -4,7 +4,7 @@
   "title": "修复专注计时系统通知图标路径错误导致通知静默失败",
   "version": "0.2.2",
   "type": "BugFix",
-  "status": "verified",
+  "status": "closed",
   "branch": "fix/C034-notification-icon-path",
   "is_hotfix": false,
   "target": {
@@ -80,15 +80,18 @@
   "rejections": [],
   "sync": {
     "design_pinned": true,
-    "changelog": false,
-    "commit": "",
+    "changelog": true,
+    "commit": "ea90bed",
     "tag": ""
   },
   "gate": {
     "tool": "adflow-verify",
-    "version": "1.4.0",
-    "ran_at": "2026-10-19",
+    "version": "1.6.0",
+    "ran_at": "2026-10-27",
     "exit_code": 0,
-    "target_status": "verified"
+    "from_status": "verified",
+    "target_status": "closed",
+    "signed_quote": "Confirm.（2026-10-19 会话中人类针对 AI 提出的「在真实 Chrome 中按 C032~C035 验收清单逐项确认，确认后代签转 verified」作出的原话回应）",
+    "signed_rejection_count": 0
   }
 }
