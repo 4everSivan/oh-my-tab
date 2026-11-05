@@ -844,6 +844,7 @@ export const App: React.FC = () => {
               background={background}
               onChange={handleShortcutsChange}
               shortcutKeysEnabled={shortcutKeysEnabled}
+              suspended={isIdle}
             />
           </div>
 

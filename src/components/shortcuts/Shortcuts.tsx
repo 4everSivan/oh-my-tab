@@ -35,6 +35,8 @@ export interface ShortcutsProps {
   background?: BackgroundConfig;
   onChange?: (shortcuts: Shortcut[]) => void;
   shortcutKeysEnabled?: boolean;
+  /** 闲置态挂起图标栏键盘操作，不改变持久化快捷键配置。 */
+  suspended?: boolean;
 }
 
 export function getInitial(name: string): string {
@@ -67,6 +69,7 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
   background,
   onChange,
   shortcutKeysEnabled = true,
+  suspended = false,
 }) => {
   // 综合背景色与文本色计算明暗基准 (C020: 毛玻璃抽屉背景自适应)
   const isDark =
@@ -154,6 +157,8 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
 
   // 全局键盘左右方向键 ⬅️ / ➡️ 翻页调度 (T14 & C018 & C030)
   useEffect(() => {
+    if (suspended) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // 避免在用户编辑表单或下拉选择时触发翻页 (C030: 复用统一编辑元素判定，额外覆盖 select)
       if (isEditableElement(e.target)) {
@@ -188,12 +193,13 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [totalPages, expandedFolderId]);
+  }, [suspended, totalPages, expandedFolderId]);
 
   // 网页图标 ⌘ + 数字键 1~6 快捷直达与按住 Command 提示徽标 (T16 & C021: 按当前活动页局部映射)
   useEffect(() => {
-    if (shortcutKeysEnabled === false) {
+    if (suspended || shortcutKeysEnabled === false) {
       setIsCmdPressed(false);
+      setActiveKeySiteId(null);
       return;
     }
 
@@ -248,7 +254,7 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
-  }, [shortcutKeysEnabled, pageShortcuts, expandedFolderId, editingShortcut, isAdding, renameFolder]);
+  }, [suspended, shortcutKeysEnabled, pageShortcuts, expandedFolderId, editingShortcut, isAdding, renameFolder]);
 
   // 全局点击关闭右键菜单
   useEffect(() => {

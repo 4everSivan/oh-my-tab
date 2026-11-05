@@ -1,0 +1,100 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C039",
+  "title": "修复闲置态仍响应网站数字快捷键与方向键翻页",
+  "version": "0.2.3",
+  "type": "BugFix",
+  "status": "verified",
+  "branch": "codex/fix-c039-idle-shortcuts",
+  "is_hotfix": false,
+  "target": {
+    "module": "闲置聚焦与常用网站导航",
+    "component": "App.tsx / Shortcuts.tsx",
+    "design_doc": "docs/devel/design/07-动效系统.md",
+    "design_topic": "MotionSystem"
+  },
+  "why": "闲置状态只传入 useKeyboardShortcuts.suspended；Shortcuts 自行注册的 Cmd/Ctrl + 1~6 与左右方向键监听未感知闲置状态。图标栏被 CSS 隐去后仍会导航、展开文件夹、显示按键反馈或改变隐藏分页，违反显式唤醒入口规则。",
+  "precheck": {
+    "description": "用真实 Shortcuts 键盘 effect 复现闲置态导航与隐藏翻页，并检查 App 的闲置接线",
+    "command": "node --test tests/c039-idle-shortcuts.test.cjs",
+    "expected": "修复前闲置快捷键拦截及 App 接线回归失败；修复后闲置态无导航、展开、翻页或按键提示，唤醒后恢复原行为",
+    "is_completed": false,
+    "evidence": "2026-11-05 修复前执行 node --test tests/c039-idle-shortcuts.test.cjs：8 tests / 3 pass / 5 fail，Exit 1。失败项为 App 未传入闲置状态、闲置数字键仍拦截并导航、隐藏文件夹仍展开、隐藏分页仍切换及活跃转闲置后 2 个 keydown 监听未移除。修复后该 8 项全部通过，纳入 30 项定向回归与 238 项全量测试，均 Exit 0。"
+  },
+  "callback": {
+    "before": [
+      "git status --short --branch",
+      "git branch --show-current"
+    ],
+    "after": [
+      "node --test tests/c039-idle-shortcuts.test.cjs tests/shortcuts-keyboard.test.cjs tests/c030-modifier-key-arrow-guard.test.cjs tests/idle-liquid-glass.test.cjs",
+      "npm test",
+      "npm run build -- --outDir local/build/c039-idle-shortcuts-20261105 --emptyOutDir false",
+      "scripts/adflow-verify --card C039 --record",
+      "scripts/adflow-verify --card C039 --receipt"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "网站数字快捷键、按键提示与隐藏分页",
+      "before": "Shortcuts 不接收闲置状态；独立键盘监听在图标栏隐藏时继续生效",
+      "after": "App 传入 suspended={isIdle}；Shortcuts 挂起数字键与方向键监听，进入挂起时清除 Command 提示和激活反馈；恢复后按既有设置与当前页继续响应",
+      "impact": "仅限制闲置状态的常用网站键盘入口；保留点击搜索、反引号与 Escape 的唤醒规则，以及持久化快捷键开关"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/07-动效系统.md",
+    "topic": "MotionSystem",
+    "modified": true,
+    "rule_diff": {
+      "before": "MOT-14 明确挂起全局单键快捷键，未明确常用网站独立监听的闲置接线",
+      "after": "常用网站组件也接收闲置挂起状态：Cmd/Ctrl + 1~6、Command 提示与左右方向键翻页在闲置态停止；显式唤醒后恢复，持久化开关不变"
+    }
+  },
+  "verification": {
+    "result": true,
+    "run_id": "local-20261105-01",
+    "user_quote": "功能正常，同意验收",
+    "signoff": "sivan (AI代签)",
+    "checks": [
+      {
+        "item": "自动化回归测试",
+        "true_if": "真实键盘 effect 在闲置态不导航、不展开文件夹、不改变分页、不显示提示；唤醒后恢复；全部相关测试与全量测试 Exit 0",
+        "false_if": "闲置态仍产生任一网站键盘副作用、恢复失效或存在失败测试",
+        "evidence": "定向回归 30/30；npm test 238/238（0 失败、0 跳过），均 Exit 0；含 8 项新增回归。日志：local/reports/c039-idle-shortcuts-20261105/npm-test.log。",
+        "result": true
+      },
+      {
+        "item": "类型与构建检查",
+        "true_if": "现有 TypeScript 检查和 Vite 构建 Exit 0，产物位于 local/ 且不清空既有产物",
+        "false_if": "存在类型或构建错误，或产物路径违反隔离约定",
+        "evidence": "npm run build（tsc + Vite）Exit 0，无警告；通过 --outDir local/build/c039-idle-shortcuts-20261105 --emptyOutDir false 输出独立构建。",
+        "result": true
+      },
+      {
+        "item": "真实 Chrome 人工核验",
+        "true_if": "闲置后 Cmd/Ctrl + 数字不打开网站，左右方向键不翻动隐藏图标；显式唤醒后原快捷键恢复，用户明确确认",
+        "false_if": "实测仍有误触、唤醒回归或尚未取得人工确认",
+        "evidence": "2026-11-05 用户先回复「确认」，随后补充具体验收原话「功能正常，同意验收」。本项结论来自人工确认，AI 未独立执行 Chrome 运行态验证。",
+        "result": true
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "",
+    "tag": ""
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.6.0",
+    "ran_at": "2026-11-05",
+    "exit_code": 0,
+    "from_status": "in_progress",
+    "target_status": "verified",
+    "signed_quote": "功能正常，同意验收",
+    "signed_rejection_count": 0
+  }
+}
