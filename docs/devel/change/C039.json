@@ -4,7 +4,7 @@
   "title": "修复闲置态仍响应网站数字快捷键与方向键翻页",
   "version": "0.2.3",
   "type": "BugFix",
-  "status": "verified",
+  "status": "closed",
   "branch": "codex/fix-c039-idle-shortcuts",
   "is_hotfix": false,
   "target": {
@@ -84,16 +84,16 @@
   "sync": {
     "design_pinned": true,
     "changelog": true,
-    "commit": "",
+    "commit": "dd65073",
     "tag": ""
   },
   "gate": {
     "tool": "adflow-verify",
     "version": "1.6.0",
-    "ran_at": "2026-11-05",
+    "ran_at": "2026-11-06",
     "exit_code": 0,
-    "from_status": "in_progress",
-    "target_status": "verified",
+    "from_status": "verified",
+    "target_status": "closed",
     "signed_quote": "功能正常，同意验收",
     "signed_rejection_count": 0
   }
