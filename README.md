@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/logo.png" alt="oh-my-tab logo" width="140" height="140" style="border-radius: 28px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);" />
+  <img src="docs/assets/logo-rounded.png" alt="oh-my-tab logo" width="140" height="140" />
 </p>
 
 <h1 align="center">oh-my-tab</h1>
@@ -169,7 +169,7 @@ npm test
 │   └── utils/               # 纯函数算法（对比度选色 / 壁纸恢复决策 / 交错延迟计算 / 缩放适配）
 ├── tests/                   # 自动化测试套件（168 项用例，node:test 驱动）
 ├── docs/                    # 完整研发中心（设计基线、架构设计、开发变更卡、部署实况）
-│   ├── assets/              # 官方媒体资源库（logo.png 高清原画等）
+│   ├── assets/              # 官方媒体资源库（logo.png 高清原画、logo-rounded.png 圆角版等）
 │   ├── devel/design/        # 现行设计基线（00-总体设计 ~ 07-动效系统）
 │   ├── devel/change/        # 变更卡总账（C001 ~ C023）
 │   └── guide/               # 本地部署与环境指南
