@@ -4,7 +4,7 @@
   "title": "搜索框垂直位置可调（距页面顶部/底部留白，0–100%，仅无组件时生效）",
   "version": "v0.3.0",
   "type": "Enhancement",
-  "status": "in_progress",
+  "status": "closed",
   "branch": "feat/C041-vertical-position",
   "is_hotfix": false,
   "target": {
@@ -63,10 +63,10 @@
     }
   },
   "verification": {
-    "result": null,
+    "result": true,
     "run_id": "local-20261111-02",
-    "user_quote": "",
-    "signoff": "",
+    "user_quote": "确认验收，合入 main",
+    "signoff": "sivan (AI代签)",
     "checks": [
       {
         "item": "自动化测试",
@@ -93,8 +93,8 @@
         "item": "真实 Chrome 扩展人工核验",
         "true_if": "用户在已加载扩展的 Chrome 中确认搜索框垂直位置与上下留白符合预期（含贴顶/贴底/居中）并明确同意验收",
         "false_if": "实测观感不符合预期、出现回归，或尚未取得人工确认",
-        "evidence": "",
-        "result": null
+        "evidence": "2026-11-11 用户在会话中确认验收并授权合入 main，原话「确认验收，合入 main」。本项结论来自人工确认，AI 未在本轮独立执行真实 Chrome 扩展观感核验。",
+        "result": true
       }
     ]
   },
@@ -102,13 +102,17 @@
   "sync": {
     "design_pinned": true,
     "changelog": true,
-    "commit": "",
+    "commit": "b342493",
     "tag": ""
   },
   "gate": {
     "tool": "adflow-verify",
     "version": "1.6.0",
-    "ran_at": "",
-    "exit_code": null
+    "ran_at": "2026-11-11",
+    "exit_code": 0,
+    "from_status": "in_progress",
+    "target_status": "closed",
+    "signed_quote": "确认验收，合入 main",
+    "signed_rejection_count": 0
   }
 }

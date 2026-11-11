@@ -484,7 +484,7 @@
     "C041": {
       "title": "搜索框垂直位置可调（距页面顶部/底部留白，0–100%，仅无组件时生效）",
       "type": "Enhancement",
-      "status": "in_progress",
+      "status": "closed",
       "branch": "feat/C041-vertical-position",
       "topic": "WorkspaceAppearance",
       "created": "2026-11-11",
