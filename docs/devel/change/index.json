@@ -39,7 +39,8 @@
         "C003",
         "C010",
         "C015",
-        "C023"
+        "C023",
+        "C041"
       ]
     },
     "ProductivityWidgets": {
@@ -479,6 +480,15 @@
       "topic": "MotionSystem",
       "created": "2026-11-10",
       "file": "docs/devel/change/C040.json"
+    },
+    "C041": {
+      "title": "搜索框垂直位置可调（距页面顶部/底部留白，0–100%，仅无组件时生效）",
+      "type": "Enhancement",
+      "status": "in_progress",
+      "branch": "feat/C041-vertical-position",
+      "topic": "WorkspaceAppearance",
+      "created": "2026-11-11",
+      "file": "docs/devel/change/C041.json"
     }
   }
 }

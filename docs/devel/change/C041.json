@@ -1,0 +1,114 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C041",
+  "title": "搜索框垂直位置可调（距页面顶部/底部留白，0–100%，仅无组件时生效）",
+  "version": "v0.3.0",
+  "type": "Enhancement",
+  "status": "in_progress",
+  "branch": "feat/C041-vertical-position",
+  "is_hotfix": false,
+  "target": {
+    "module": "首页布局与搜索框外观",
+    "component": "App.tsx / SearchBar.tsx / AppearanceDrawer.tsx / SearchAppearance (storage types)",
+    "design_doc": "docs/devel/design/02-工作台布局与外观.md",
+    "design_topic": "WorkspaceAppearance"
+  },
+  "why": "2026-11-11 用户先提出「搜索栏上下高度调整（任意高度）」，澄清后明确要调的是搜索框距离浏览器页面顶部和底部的垂直留白，不是搜索框自身高度。现状：无组件时搜索区以 fixed top-[calc(50%-15px)] -translate-y-1/2 固定居中，没有任何位置或留白设置（T20 已移除旧「上方间距」），用户无法把搜索框上移、下移或指定距顶/距底的距离。",
+  "precheck": {
+    "description": "用新增回归测试在实现前代码上确认缺失位置字段、缺失解析器与固定居中布局",
+    "command": "node --test tests/c041-vertical-position.test.cjs",
+    "expected": "实现前 verticalPosition 字段/常量/解析器/布局与控件断言失败；实现后全部通过",
+    "is_completed": true,
+    "evidence": "2026-11-11 在实现前代码上执行首版 5 项测试：0 pass / 5 fail，Exit 1（缺 verticalPosition 字段与常量、无 searchAppearance 解析器、App 仍为固定居中、小钟仍在流内、设置面板无控件）。日志：local/reports/c041-vertical-position-20261111/precheck-before.log。实现后同文件 5 项全部通过。"
+  },
+  "callback": {
+    "before": [
+      "git status --short --branch",
+      "git branch -m feat/C041-vertical-position"
+    ],
+    "after": [
+      "node --test tests/c041-vertical-position.test.cjs",
+      "npm test",
+      "npm run build",
+      "scripts/adflow-verify --card C041 --receipt"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "搜索外观数据模型 (LAY-09)",
+      "before": "SearchAppearance 只有 align / width / gap / transparency / blur / radius，没有垂直位置字段；旧配置没有位置信息",
+      "after": "SearchAppearance 新增可选 verticalPosition（0–100）；新增 DEFAULT_SEARCH_POSITION=50、SEARCH_POSITION_MIN=0、SEARCH_POSITION_MAX=100；新增 resolveSearchPosition 解析器：缺失或非有限数回落 50，取整并钳制到 0–100；旧配置无需迁移即可按 50% 渲染",
+      "impact": "搜索外观存储结构向后兼容；恢复搜索默认会一并回到 50%"
+    },
+    {
+      "scope": "首页垂直布局 (LAY-09)",
+      "before": "无组件时搜索区固定为 fixed inset-x-0 top-[calc(50%-15px)] -translate-y-1/2，位置不可调；小钟在流内参与高度计算",
+      "after": "无组件时改为 fixed inset-0 的 flex 纵向布局：上下两个按比例伸缩的占位层夹住搜索框，位置百分比取自 verticalPosition；0% 搜索框顶边贴视口顶边、100% 底边贴视口底边、50% 居中对齐（保持现行默认观感）。小钟改为绝对定位在搜索框上方（间距 10px），不参与垂直定位计算。有组件时维持原顶部布局，位置设置保留但不生效",
+      "impact": "仅无组件首页的垂直定位；组件模式、搜索宽度/对齐/透明度/模糊/圆角均不变"
+    },
+    {
+      "scope": "外观设置控件",
+      "before": "「搜索」分段没有垂直位置控件",
+      "after": "新增「垂直位置」滑块（0–100%，步进 1），右侧显示百分比；按当前视口实时显示「距顶部 X px · 距底部 Y px」，无组件时为实测值，有组件时提示已回到顶部布局不生效；随「恢复搜索默认」复位为 50%",
+      "impact": "外观抽屉搜索分段多一项设置；App 需把实测上下间距传入抽屉"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/02-工作台布局与外观.md",
+    "topic": "WorkspaceAppearance",
+    "modified": true,
+    "rule_diff": {
+      "before": "LAY-09：支持水平位置、宽度、圆角、背景透明度与背景模糊；无组件时小钟与搜索框作为整体垂直居中（搜索框中线对齐视口中线），位置不可调；数据设计 04 搜索外观字段不含垂直位置",
+      "after": "LAY-09 增加垂直位置：search.verticalPosition 取 0–100%（默认 50%，步进 1），无组件时按视口可用高度线性定位，0% 贴顶、100% 贴底、50% 居中，设置面板显示实测距顶/距底像素；小钟绝对定位在搜索框上方 10px、不参与定位；有组件时保留原顶部布局，该设置不生效。数据设计 04 搜索外观字段同步补垂直位置，缺失/非法值回落 50%、越界钳制"
+    }
+  },
+  "verification": {
+    "result": null,
+    "run_id": "local-20261111-02",
+    "user_quote": "",
+    "signoff": "",
+    "checks": [
+      {
+        "item": "自动化测试",
+        "true_if": "新增 C041 回归全部通过，npm test 全量全绿、退出码 0",
+        "false_if": "存在任何测试失败、报错或缺少针对性回归",
+        "evidence": "`node --test tests/c041-vertical-position.test.cjs` 5/5 通过；`npm test` 233 tests / 233 pass / 0 fail / 0 skipped，Exit 0（含新增 5 项；同步更新 layout-appearance 中 T20 的旧固定居中断言为新的比例占位层断言）。日志：local/reports/c041-vertical-position-20261111/npm-test.log。",
+        "result": true
+      },
+      {
+        "item": "类型与构建检查",
+        "true_if": "tsc 与 Vite 构建 Exit 0，产物位于 local/dist",
+        "false_if": "存在类型或构建错误，或产物散落在 local/ 之外",
+        "evidence": "`npm run build`（tsc + vite build）Exit 0，无警告，输出 local/dist（newtab css 52.08 kB / js 240.65 kB）。日志：local/reports/c041-vertical-position-20261111/build.log。",
+        "result": true
+      },
+      {
+        "item": "Dev 页面运行态实测（headless Chrome + CDP）",
+        "true_if": "无组件时默认 50% 搜索框中线对齐视口中线；0% 顶边贴视口顶边、100% 底边贴视口底边；中间值按比例定位；刷新后保留；设置面板显示与实际一致的距顶/距底像素；有组件时回到顶部布局且设置不生效",
+        "false_if": "位置不生效、默认偏移、百分比与实际位置不符、刷新丢失、面板像素值与实测不一致，或有组件时布局被破坏",
+        "evidence": "Chrome 157 headless 访问 Vite dev 页面，读取真实 getBoundingClientRect：旧配置无 verticalPosition 时 form top=377、bottomGap=377，中线 400 与视口中线 400 重合；0% 时 top=0、bottomGap=754；25% 时 top=188.5；75% 时 top=565.5；100% 时 top=754、bottomGap=0（form 高 46）。滑块 30% 刷新前后 top 均为 226.2 且 localStorage 保留；直接写入 120 时渲染钳制到 100%（top=754，面板滑块显示 100），写入 -10 时钳制到 0%；设置面板滑块 min=0 / max=100 / step=1，提示实时显示「当前距顶部 377 px、距底部 377 px」与实际一致。添加 core.todo 组件后 form top=160 回到顶部布局，面板提示「添加组件后回到顶部布局，垂直位置不生效。」保存值仍保留。数据与截图：local/reports/c041-vertical-position-20261111/vertical-position-check.json、bar-{0,25,50-default,30-reloaded,75,100}.png、drawer-vertical-position.png。",
+        "result": true
+      },
+      {
+        "item": "真实 Chrome 扩展人工核验",
+        "true_if": "用户在已加载扩展的 Chrome 中确认搜索框垂直位置与上下留白符合预期（含贴顶/贴底/居中）并明确同意验收",
+        "false_if": "实测观感不符合预期、出现回归，或尚未取得人工确认",
+        "evidence": "",
+        "result": null
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "",
+    "tag": ""
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.6.0",
+    "ran_at": "",
+    "exit_code": null
+  }
+}
