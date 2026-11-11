@@ -76,7 +76,8 @@ test('useKeyboardShortcuts.ts 具备完整的按键监听、输入逃逸与回�
   assert.ok(hookSrc.includes("e.key === '?'"), '必须监听 ? 键用于唤起快捷键指南');
   assert.ok(hookSrc.includes("e.key === 'e'") && hookSrc.includes("e.key === 's'"), '必须监听 e/s 键用于外观抽屉开关');
   assert.ok(hookSrc.includes("e.key === 'a'"), '必须监听 a 键用于添加组件');
-  assert.ok(hookSrc.includes("e.key === 'c'"), '必须监听 c 键用于工作台折叠');
+  assert.ok(hookSrc.includes("e.key.toLowerCase() === 'l'"), '必须监听 l 键用于启动台开关 (T20)');
+  assert.ok(!hookSrc.includes("e.key === 'c'"), 'T20 后不得再监听 c 键工作台折叠');
 
   // 3. 输入态逃逸机制
   assert.ok(hookSrc.includes('if (isEditing)'), '必须具备编辑态避让判断');
@@ -136,6 +137,8 @@ test('App.tsx 集成快捷键调度调度器与 ShortcutsHelpModal (T12 & C013)'
   assert.ok(appSrc.includes('inputRef={searchInputRef}'), 'App 必须将 searchInputRef 传递给 SearchBar');
   assert.ok(appSrc.includes('onCycleEngine={handleCycleEngine}'), 'App 必须将 handleCycleEngine 传递给 SearchBar');
   assert.ok(appSrc.includes('<ShortcutsHelpModal'), 'App 必须挂载 ShortcutsHelpModal 组件');
+  assert.ok(appSrc.includes('onToggleLaunchpad'), 'App 必须接入启动台 L 键开关 (T20)');
+  assert.ok(appSrc.includes('<Launchpad'), 'App 必须挂载启动台组件 (T20)');
 });
 
 test('ShortcutsHelpModal.tsx 具备完整按键清单与 Portal 浮层契约 (T12)', () => {

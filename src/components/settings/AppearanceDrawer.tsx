@@ -1,15 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  ClockAppearance,
   SearchAppearance,
   BackgroundConfig,
-  FontStyle,
   AlignStyle,
-  ShadowStyle,
   BackgroundType,
-  IdleAppearance,
 } from '../../services/storage/types';
-import { X, RotateCcw, Clock, Search, Image as ImageIcon, Upload, Keyboard, SlidersHorizontal } from 'lucide-react';
+import { X, RotateCcw, Search, Image as ImageIcon, Upload, SlidersHorizontal } from 'lucide-react';
 import { wallpaperStorage } from '../../services/storage/wallpaper';
 import { generateWallpaperThumbnail } from '../../utils/background';
 import { useDelayedUnmount } from '../../hooks/useDelayedUnmount';
@@ -17,41 +13,25 @@ import { useDelayedUnmount } from '../../hooks/useDelayedUnmount';
 interface AppearanceDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  clock: ClockAppearance;
   search: SearchAppearance;
   background: BackgroundConfig;
-  idle?: IdleAppearance;
-  shortcutKeysEnabled?: boolean;
-  onUpdateClock: (clock: Partial<ClockAppearance>) => void;
-  onResetClock: () => void;
   onUpdateSearch: (search: Partial<SearchAppearance>) => void;
   onResetSearch: () => void;
   onUpdateBackground: (bg: Partial<BackgroundConfig>) => void;
   onResetBackground: () => void;
-  onUpdateIdle?: (idle: Partial<IdleAppearance>) => void;
-  onResetIdle?: () => void;
-  onUpdateShortcutKeysEnabled?: (enabled: boolean) => void;
 }
 
 export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
   isOpen,
   onClose,
-  clock,
   search,
   background,
-  idle,
-  shortcutKeysEnabled = true,
-  onUpdateClock,
-  onResetClock,
   onUpdateSearch,
   onResetSearch,
   onUpdateBackground,
   onResetBackground,
-  onUpdateIdle,
-  onResetIdle,
-  onUpdateShortcutKeysEnabled,
 }) => {
-  const [activeTab, setActiveTab] = useState<'clock' | 'search' | 'background' | 'shortcuts'>('clock');
+  const [activeTab, setActiveTab] = useState<'search' | 'background'>('search');
   // 上传失败的可见反馈（C001：此前异常被静默吞掉，用户零感知）
   const [uploadError, setUploadError] = useState<string | null>(null);
   // 拖拽悬停高亮（C002：webview 无文件选择器，拖拽是等价上传通道）
@@ -179,19 +159,7 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
 
         {/* Tab Navigation (Segmented Control 防折行设计) */}
         <div className="px-5 pt-3 pb-2 border-b border-black/5 dark:border-white/5">
-          <div className="grid grid-cols-4 p-1 bg-black/5 dark:bg-white/5 rounded-xl gap-1">
-            <button
-              onClick={() => setActiveTab('clock')}
-              className={`py-1.5 px-1.5 text-xs font-medium rounded-lg flex items-center justify-center space-x-1 transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === 'clock'
-                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-xs font-semibold'
-                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'
-              }`}
-              title="时钟与日期设置"
-            >
-              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>时钟</span>
-            </button>
+          <div className="grid grid-cols-2 p-1 bg-black/5 dark:bg-white/5 rounded-xl gap-1">
             <button
               onClick={() => setActiveTab('search')}
               className={`py-1.5 px-1.5 text-xs font-medium rounded-lg flex items-center justify-center space-x-1 transition-all cursor-pointer whitespace-nowrap ${
@@ -216,195 +184,11 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
               <ImageIcon className="w-3.5 h-3.5 flex-shrink-0" />
               <span>壁纸</span>
             </button>
-            <button
-              onClick={() => setActiveTab('shortcuts')}
-              className={`py-1.5 px-1.5 text-xs font-medium rounded-lg flex items-center justify-center space-x-1 transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === 'shortcuts'
-                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-xs font-semibold'
-                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'
-              }`}
-              title="网页图标快捷键"
-            >
-              <Keyboard className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>快捷键</span>
-            </button>
           </div>
         </div>
 
         {/* Tab Contents */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {activeTab === 'clock' && (
-            <div className="space-y-5">
-              {/* Reset Clock */}
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-stone-500 font-medium">时间设置</span>
-                <button
-                  onClick={onResetClock}
-                  className="flex items-center space-x-1 text-xs text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 transition-colors"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>恢复时间默认</span>
-                </button>
-              </div>
-
-              {/* Font */}
-              <div className="space-y-2">
-                <label className="text-xs text-stone-600 dark:text-stone-400">字体风格</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['modern', 'mono', 'serif'] as FontStyle[]).map((font) => (
-                    <button
-                      key={font}
-                      onClick={() => onUpdateClock({ font })}
-                      className={`py-2 text-xs rounded-xl border transition-all ${
-                        clock.font === font
-                          ? 'border-stone-900 dark:border-white bg-black/5 dark:bg-white/10 font-medium'
-                          : 'border-stone-200 dark:border-stone-800 hover:border-stone-300'
-                      }`}
-                    >
-                      {font === 'modern' ? '现代无衬线' : font === 'mono' ? '等宽' : '经典衬线'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Font Size */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs text-stone-600 dark:text-stone-400">
-                  <span>字号大小</span>
-                  <span>{clock.size} px</span>
-                </div>
-                <input
-                  type="range"
-                  min="48"
-                  max="144"
-                  step="4"
-                  value={clock.size}
-                  onChange={(e) => onUpdateClock({ size: Number(e.target.value) })}
-                  className="w-full accent-stone-800 dark:accent-white"
-                />
-              </div>
-
-              {/* Weight */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs text-stone-600 dark:text-stone-400">
-                  <span>字重粗细</span>
-                  <span>{clock.weight}</span>
-                </div>
-                <input
-                  type="range"
-                  min="200"
-                  max="800"
-                  step="100"
-                  value={clock.weight}
-                  onChange={(e) => onUpdateClock({ weight: Number(e.target.value) })}
-                  className="w-full accent-stone-800 dark:accent-white"
-                />
-              </div>
-
-              {/* Top Spacing */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs text-stone-600 dark:text-stone-400">
-                  <span>顶部留白</span>
-                  <span>{clock.top} px</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="240"
-                  step="2"
-                  value={clock.top}
-                  onChange={(e) => onUpdateClock({ top: Number(e.target.value) })}
-                  className="w-full accent-stone-800 dark:accent-white"
-                />
-              </div>
-
-              {/* Alignment */}
-              <div className="space-y-2">
-                <label className="text-xs text-stone-600 dark:text-stone-400">水平位置</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['left', 'center', 'right'] as AlignStyle[]).map((align) => (
-                    <button
-                      key={align}
-                      onClick={() => onUpdateClock({ align })}
-                      className={`py-2 text-xs rounded-xl border transition-all ${
-                        clock.align === align
-                          ? 'border-stone-900 dark:border-white bg-black/5 dark:bg-white/10 font-medium'
-                          : 'border-stone-200 dark:border-stone-800'
-                      }`}
-                    >
-                      {align === 'left' ? '居左' : align === 'center' ? '居中' : '居右'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Timezone (T10) */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs text-stone-600 dark:text-stone-400">
-                  <span>时区设置</span>
-                  <span>{clock.timezone && clock.timezone !== 'auto' ? clock.timezone : '本地系统'}</span>
-                </div>
-                <select
-                  value={clock.timezone || 'auto'}
-                  onChange={(e) => onUpdateClock({ timezone: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 outline-hidden transition-all focus:border-stone-400 dark:focus:border-stone-600 cursor-pointer"
-                >
-                  <option value="auto">自动 (跟随系统本地时区)</option>
-                  <option value="Asia/Shanghai">中国标准时间 (北京/上海 - UTC+8)</option>
-                  <option value="Asia/Hong_Kong">香港时间 (UTC+8)</option>
-                  <option value="Asia/Taipei">台北时间 (UTC+8)</option>
-                  <option value="Asia/Tokyo">日本标准时间 (东京 - UTC+9)</option>
-                  <option value="Asia/Seoul">首尔时间 (UTC+9)</option>
-                  <option value="Asia/Singapore">新加坡时间 (UTC+8)</option>
-                  <option value="Asia/Dubai">迪拜时间 (UTC+4)</option>
-                  <option value="UTC">世界协调时 (UTC)</option>
-                  <option value="Europe/London">伦敦时间 (UTC+0/+1)</option>
-                  <option value="Europe/Paris">巴黎/柏林时间 (UTC+1/+2)</option>
-                  <option value="Europe/Moscow">莫斯科时间 (UTC+3)</option>
-                  <option value="America/New_York">美东时间 (纽约 - UTC-5/-4)</option>
-                  <option value="America/Chicago">美中部时间 (芝加哥 - UTC-6/-5)</option>
-                  <option value="America/Denver">美山地时间 (丹佛 - UTC-7/-6)</option>
-                  <option value="America/Los_Angeles">美西时间 (洛杉矶 - UTC-8/-7)</option>
-                  <option value="Pacific/Auckland">新西兰时间 (奥克兰 - UTC+12/+13)</option>
-                  <option value="Australia/Sydney">悉尼时间 (UTC+10/+11)</option>
-                </select>
-              </div>
-
-              {/* Shadow & Toggles */}
-              <div className="space-y-3 pt-2 border-t border-black/5 dark:border-white/5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-stone-700 dark:text-stone-300">显示日期</span>
-                  <input
-                    type="checkbox"
-                    checked={clock.showDate}
-                    onChange={(e) => onUpdateClock({ showDate: e.target.checked })}
-                    className="rounded accent-stone-800 dark:accent-white w-4 h-4"
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-stone-700 dark:text-stone-300">显示秒数</span>
-                  <input
-                    type="checkbox"
-                    checked={clock.showSeconds}
-                    onChange={(e) => onUpdateClock({ showSeconds: e.target.checked })}
-                    className="rounded accent-stone-800 dark:accent-white w-4 h-4"
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-stone-700 dark:text-stone-300">柔和深色投影</span>
-                  <input
-                    type="checkbox"
-                    checked={clock.shadow === 'soft'}
-                    onChange={(e) =>
-                      onUpdateClock({ shadow: (e.target.checked ? 'soft' : 'none') as ShadowStyle })
-                    }
-                    className="rounded accent-stone-800 dark:accent-white w-4 h-4"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
           {activeTab === 'search' && (
             <div className="space-y-5">
               {/* Reset Search */}
@@ -432,23 +216,6 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
                   step="20"
                   value={search.width}
                   onChange={(e) => onUpdateSearch({ width: Number(e.target.value) })}
-                  className="w-full accent-stone-800 dark:accent-white"
-                />
-              </div>
-
-              {/* Gap */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs text-stone-600 dark:text-stone-400">
-                  <span>上方间距</span>
-                  <span>{search.gap} px</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="120"
-                  step="2"
-                  value={search.gap}
-                  onChange={(e) => onUpdateSearch({ gap: Number(e.target.value) })}
                   className="w-full accent-stone-800 dark:accent-white"
                 />
               </div>
@@ -677,136 +444,9 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
                 </div>
               )}
 
-              {/* 沉浸与闲置聚焦淡化设置 (T19 & LAY-13) */}
-              <div className="pt-4 border-t border-black/5 dark:border-white/10 space-y-4">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-1.5">
-                    <span className="text-xs font-semibold text-stone-800 dark:text-stone-200">
-                      闲置聚焦淡化
-                    </span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
-                      液态玻璃
-                    </span>
-                  </div>
-                  {onResetIdle && (
-                    <button
-                      onClick={onResetIdle}
-                      className="text-[11px] text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 transition-colors cursor-pointer"
-                    >
-                      恢复默认
-                    </button>
-                  )}
-                </div>
-
-                <div className="p-3.5 rounded-xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="pr-3">
-                      <div className="text-xs font-medium text-stone-800 dark:text-stone-200">
-                        开启无操作闲置聚焦淡化
-                      </div>
-                      <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
-                        停止操作后时钟、顶栏、网站图标与页脚平滑淡出，只留下淡化的搜索框；移动鼠标仅高亮搜索框，点击搜索框或按 \` 才唤回并进入输入
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={idle?.enabled !== false}
-                      onChange={(e) => onUpdateIdle?.({ enabled: e.target.checked })}
-                      className="w-4 h-4 accent-stone-900 dark:accent-white cursor-pointer"
-                    />
-                  </div>
-
-                  {idle?.enabled !== false && (
-                    <div className="pt-2 border-t border-black/5 dark:border-white/5 space-y-2">
-                      <div className="flex justify-between text-xs text-stone-600 dark:text-stone-400">
-                        <span>闲置触发时间</span>
-                        <span>{idle?.timeoutSeconds ?? 3} 秒</span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { sec: 3, label: '3 秒 (灵敏)' },
-                          { sec: 5, label: '5 秒 (舒适)' },
-                          { sec: 10, label: '10 秒 (沉浸)' },
-                        ].map((item) => (
-                          <button
-                            key={item.sec}
-                            type="button"
-                            onClick={() => onUpdateIdle?.({ timeoutSeconds: item.sec })}
-                            className={`py-1.5 px-2 text-xs rounded-lg border text-center transition-all cursor-pointer ${
-                              (idle?.timeoutSeconds ?? 3) === item.sec
-                                ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900 font-medium border-transparent shadow-xs'
-                                : 'border-black/10 dark:border-white/10 text-stone-600 dark:text-stone-400 hover:bg-black/5 dark:hover:bg-white/5'
-                            }`}
-                          >
-                            {item.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           )}
 
-          {activeTab === 'shortcuts' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-xs font-semibold text-stone-800 dark:text-stone-200">
-                  常用网站快捷键
-                </h3>
-                <p className="mt-1 text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
-                  按住 ⌘ (Command / Meta) 键时，常用网站当前页前 9 个图标下方平滑浮现 ⌘1~⌘9 按键提示徽标；按下 ⌘ + 数字键瞬时直达网页。
-                </p>
-              </div>
-
-              {/* Toggle Switch */}
-              <div className="p-4 rounded-xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="pr-4">
-                    <div className="text-xs font-medium text-stone-800 dark:text-stone-200">
-                      启用 ⌘ + 数字键选取与按键提示
-                    </div>
-                    <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
-                      按住 Command 浮现 ⌘1~⌘9 提示徽标，支持 ⌘1~9 秒开网站
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={shortcutKeysEnabled !== false}
-                    onChange={(e) => onUpdateShortcutKeysEnabled?.(e.target.checked)}
-                    className="w-4 h-4 accent-stone-900 dark:accent-white cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              {/* Shortcut Cheat Sheet */}
-              <div className="space-y-2">
-                <label className="text-xs text-stone-600 dark:text-stone-400">
-                  当前支持的网页快捷键
-                </label>
-                <div className="space-y-1.5">
-                  {[
-                    { key: '⌘ + 1~9', desc: '秒开常用网站当前页第 1~9 个网页图标' },
-                    { key: '按住 ⌘', desc: '在常用网站图标下方显现实时按键提示徽标' },
-                    { key: '← / →', desc: '在常用网站分页间切换上一页 / 下一页' },
-                  ].map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between py-2 px-3 rounded-xl border border-black/5 dark:border-white/5 bg-black/[0.015] dark:bg-white/[0.02]"
-                    >
-                      <span className="text-xs text-stone-700 dark:text-stone-300">
-                        {item.desc}
-                      </span>
-                      <kbd className="px-2 py-0.5 text-[11px] font-mono font-medium rounded-md bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 border border-black/10 dark:border-white/15 shadow-2xs">
-                        {item.key}
-                      </kbd>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

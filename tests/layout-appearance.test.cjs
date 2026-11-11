@@ -128,39 +128,21 @@ test('body 必须透明：不透明 body 底色会在绘制序上遮蔽 -z-20 �
 });
 
 // ── T10 时钟手动时区设置与搜索框圆角调节契约 ──────────────────
-test('时钟组件支持目标 IANA 时区并能准确换算时间与日期 (T10)', () => {
+test('小钟固定使用本地时区显示时:分与日期，无时钟图标与外观参数 (T20)', () => {
   const clockSrc = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'components', 'clock', 'Clock.tsx'),
     'utf8'
   );
+  assert.ok(clockSrc.includes('export const ClockLine'), 'Clock.tsx 须导出 ClockLine 小钟组件');
+  assert.ok(clockSrc.includes("hourCycle: 'h23'"), '小钟须使用 24 小时制');
   assert.ok(
-    clockSrc.includes('appearance.timezone') && clockSrc.includes("appearance.timezone !== 'auto'"),
-    'Clock.tsx 须检测 appearance.timezone 是否为自定义时区'
+    clockSrc.includes("month: 'long'") && clockSrc.includes("weekday: 'short'") && clockSrc.includes('${monthDay} ${weekday}'),
+    '小钟日期须输出「月日 周几」并以空格分隔'
   );
-  assert.ok(
-    clockSrc.includes('timeZone: targetTimezone') && clockSrc.includes("hourCycle: 'h23'"),
-    'Clock.tsx 须使用 Intl.DateTimeFormat 配合 targetTimezone 与 h23 小时制换算'
-  );
-
-  // 算法校验：验证 UTC、Asia/Tokyo 与 America/New_York 时区转换在确定性时间戳下的正确性
-  const testDate = new Date('2026-10-09T04:30:15Z'); // 04:30:15 UTC
-
-  const formatTestTime = (tz) => {
-    const parts = new Intl.DateTimeFormat('en-GB', {
-      timeZone: tz,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-      hourCycle: 'h23',
-    }).formatToParts(testDate);
-    return `${parts.find(p => p.type === 'hour').value}:${parts.find(p => p.type === 'minute').value}:${parts.find(p => p.type === 'second').value}`;
-  };
-
-  assert.equal(formatTestTime('UTC'), '04:30:15');
-  assert.equal(formatTestTime('Asia/Shanghai'), '12:30:15'); // UTC+8
-  assert.equal(formatTestTime('Asia/Tokyo'), '13:30:15');    // UTC+9
-  assert.equal(formatTestTime('America/New_York'), '00:30:15'); // EDT (UTC-4)
+  assert.ok(clockSrc.includes('mb-[10px]'), '小钟与搜索框之间须保持 10px 间距');
+  assert.ok(!clockSrc.includes('appearance.'), 'T20 后小钟不得再读取可调时钟外观参数');
+  assert.ok(!clockSrc.includes('timezone'), 'T20 后小钟不再支持时区设置');
+  assert.ok(!clockSrc.includes('data-lucide'), '小钟左侧不得再渲染钟表图标');
 });
 
 test('搜索框组件应用动态 borderRadius 样式且移除硬编码 rounded-full (T10)', () => {
@@ -180,28 +162,33 @@ test('搜索框组件应用动态 borderRadius 样式且移除硬编码 rounded-
   );
 });
 
-test('AppearanceDrawer 提供时区选择下拉框与搜索框圆角滑块控件 (T10)', () => {
+test('AppearanceDrawer 只保留搜索/壁纸两段，搜索框保留圆角滑块 (T20)', () => {
   const drawerSrc = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'components', 'settings', 'AppearanceDrawer.tsx'),
     'utf8'
   );
-  // 1. 时钟面板包含时区选择器
-  assert.ok(
-    drawerSrc.includes('时区设置') && drawerSrc.includes('onUpdateClock({ timezone: e.target.value })'),
-    'AppearanceDrawer 时钟面板须有时区设置下拉框与更新回调'
-  );
-  assert.ok(
-    drawerSrc.includes('Asia/Shanghai') && drawerSrc.includes('America/New_York') && drawerSrc.includes('UTC'),
-    '时区下拉框须包含主要代表性时区选项'
-  );
-  // 2. 搜索框面板包含圆角大小滑块
+  assert.ok(drawerSrc.includes('grid grid-cols-2'), '外观设置须收口为两段式 Tab');
+  assert.ok(!drawerSrc.includes('时区设置'), 'T20 后不得再有时区设置');
+  assert.ok(!drawerSrc.includes('onUpdateClock'), 'T20 后不得再有时钟外观更新回调');
+  assert.ok(!drawerSrc.includes('闲置'), 'T20 后不得再有闲置淡化配置');
   assert.ok(
     drawerSrc.includes('圆角大小') && drawerSrc.includes('onUpdateSearch({ radius: Number(e.target.value) })'),
-    'AppearanceDrawer 搜索框面板须有圆角大小滑块与更新回调'
+    'AppearanceDrawer 搜索框面板须保留圆角大小滑块与更新回调'
   );
-  assert.ok(
-    drawerSrc.includes('search.radius ?? 24'),
-    '圆角滑块须以 24px 作为默认降级展示'
-  );
+  assert.ok(drawerSrc.includes('search.radius ?? 24'), '圆角滑块须以 24px 作为默认降级展示');
 });
 
+test('T20: 无组件时搜索框默认在视口垂直居中，有组件时回到顶部布局', () => {
+  const appSrc = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'App.tsx'),
+    'utf8'
+  );
+  const searchBarSrc = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'components', 'search', 'SearchBar.tsx'),
+    'utf8'
+  );
+  assert.ok(appSrc.includes('hasVisibleWidgets'), 'App 须根据是否存在可见组件切换布局');
+  assert.ok(appSrc.includes('fixed inset-x-0 top-[calc(50%-15px)] -translate-y-1/2'), '无组件时搜索区须固定于视口垂直中心');
+  assert.ok(appSrc.includes("hasVisibleWidgets ? 'pt-16 sm:pt-20' : ''"), '有组件时搜索区须回到顶部布局');
+  assert.ok(!searchBarSrc.includes('marginTop: `${appearance.gap}px`'), '搜索框不得再以历史 gap 字段偏移垂直位置');
+});

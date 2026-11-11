@@ -15,12 +15,10 @@ export interface UseKeyboardShortcutsOptions {
   onToggleFeedSidebar?: () => void;
   /** 打开/关闭添加组件弹窗回调 */
   onToggleAddModal?: () => void;
-  /** 切换折叠极简模式回调 */
-  onToggleCollapse?: () => void;
+  /** 打开/关闭启动台回调 (T20) */
+  onToggleLaunchpad?: () => void;
   /** 搜索输入框 DOM 引用 */
   searchInputRef?: React.RefObject<HTMLInputElement>;
-  /** 闲置聚焦态：除 ` 聚焦搜索外，其余单键快捷键全部休眠 (T19) */
-  suspended?: boolean;
 }
 
 /**
@@ -44,7 +42,7 @@ export function isEditableElement(target: EventTarget | null): boolean {
  * - ?: 唤起快捷键全景指南
  * - e / s: 打开/关闭外观设置
  * - a: 打开/关闭添加组件弹窗
- * - c: 切换极简折叠模式
+ * - l: 打开/关闭启动台
  */
 export function useKeyboardShortcuts({
   onFocusSearch,
@@ -54,17 +52,11 @@ export function useKeyboardShortcuts({
   onToggleDrawer,
   onToggleFeedSidebar,
   onToggleAddModal,
-  onToggleCollapse,
+  onToggleLaunchpad,
   searchInputRef,
-  suspended = false,
 }: UseKeyboardShortcutsOptions) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      // 闲置聚焦态：界面只剩淡化的搜索框，此时除 ` 与 Escape 之外的快捷键一律
-      // 休眠，否则 a / e / b 会在看不见的界面上直接开弹窗抽屉。` 唤醒并聚焦搜索，
-      // Escape 只退出闲置态（唤醒由 useIdleDetection 的活动判定负责）。
-      if (suspended && e.key !== '`' && e.key !== '~' && e.key !== 'Escape') return;
-
       const activeEl = document.activeElement;
       const isSearchFocused = !!(
         searchInputRef?.current && activeEl === searchInputRef.current
@@ -151,10 +143,10 @@ export function useKeyboardShortcuts({
         return;
       }
 
-      // 9. 切换极简折叠模式：c
-      if (e.key === 'c' && onToggleCollapse) {
+      // 9. 打开/关闭启动台：l (T20)
+      if (e.key.toLowerCase() === 'l' && onToggleLaunchpad) {
         e.preventDefault();
-        onToggleCollapse();
+        onToggleLaunchpad();
         return;
       }
     },
@@ -166,9 +158,8 @@ export function useKeyboardShortcuts({
       onToggleDrawer,
       onToggleFeedSidebar,
       onToggleAddModal,
-      onToggleCollapse,
+      onToggleLaunchpad,
       searchInputRef,
-      suspended,
     ]
   );
 

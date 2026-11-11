@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useImperativeHandle } from 'react';
 import { createPortal } from 'react-dom';
 import { Shortcut, ShortcutGroup, BackgroundConfig } from '../../services/storage/types';
 import {
@@ -14,30 +14,15 @@ import {
   FolderMinus,
   X,
   ExternalLink,
+  Search,
 } from 'lucide-react';
 import {
   exportShortcutsToJSON,
   parseShortcutsFromJSON,
   mergeShortcuts,
 } from '../../services/shortcuts/transfer';
-import { isEditableElement } from '../../hooks/useKeyboardShortcuts';
 
 export { exportShortcutsToJSON as exportShortcuts };
-
-export interface ShortcutsProps {
-  shortcuts?: Shortcut[];
-  groups?: ShortcutGroup[];
-  activeGroupId?: string;
-  onGroupsChange?: (groups: ShortcutGroup[]) => void;
-  onActiveGroupIdChange?: (groupId: string) => void;
-  textColor?: string;
-  shadowProtection?: string;
-  background?: BackgroundConfig;
-  onChange?: (shortcuts: Shortcut[]) => void;
-  shortcutKeysEnabled?: boolean;
-  /** 闲置态挂起图标栏键盘操作，不改变持久化快捷键配置。 */
-  suspended?: boolean;
-}
 
 export function getInitial(name: string): string {
   const text = typeof name === 'string' ? name.trim() : '';
@@ -58,7 +43,27 @@ export function isValidUrl(url: string): boolean {
   }
 }
 
-export const Shortcuts: React.FC<ShortcutsProps> = ({
+export interface LaunchpadProps {
+  isOpen: boolean;
+  onClose: () => void;
+  shortcuts?: Shortcut[];
+  groups?: ShortcutGroup[];
+  activeGroupId?: string;
+  onGroupsChange?: (groups: ShortcutGroup[]) => void;
+  onActiveGroupIdChange?: (groupId: string) => void;
+  textColor?: string;
+  shadowProtection?: string;
+  background?: BackgroundConfig;
+  onChange?: (shortcuts: Shortcut[]) => void;
+}
+
+export interface LaunchpadHandle {
+  handleCloseTopLayer: () => boolean;
+}
+
+export const Launchpad = React.forwardRef<LaunchpadHandle, LaunchpadProps>(({
+  isOpen,
+  onClose,
   shortcuts: propShortcuts,
   groups: propGroups,
   activeGroupId: propActiveGroupId,
@@ -68,9 +73,7 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
   shadowProtection = 'none',
   background,
   onChange,
-  shortcutKeysEnabled = true,
-  suspended = false,
-}) => {
+}, ref) => {
   // 综合背景色与文本色计算明暗基准 (C020: 毛玻璃抽屉背景自适应)
   const isDark =
     textColor.toUpperCase() === '#FFFFFF' ||
@@ -84,11 +87,14 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
       ? propGroups[0].shortcuts
       : [];
 
-  // 网页图标快捷键与按键提示状态 (T16)
-  const [isCmdPressed, setIsCmdPressed] = useState(false);
-  const [activeKeySiteId, setActiveKeySiteId] = useState<string | null>(null);
+  // 启动台名称过滤 (T20)
+  const [query, setQuery] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+  const filteredShortcuts = query.trim()
+    ? shortcuts.filter((s) => s.name.toLowerCase().includes(query.trim().toLowerCase()))
+    : shortcuts;
 
-  // 图标文件夹横向展开状态 (T15)
+  // 图标文件夹面板状态 (T15)
   const [expandedFolderId, setExpandedFolderId] = useState<string | null>(null);
 
   // 快捷方式与文件夹增删改状态
@@ -119,10 +125,6 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
   } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // 单排 6 图标分页与翻页状态 (T14)
-  const PAGE_SIZE = 6;
-  const [pageIndex, setPageIndex] = useState(0);
-  const wheelThrottleRef = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 拖拽排序与移入文件夹状态
@@ -132,129 +134,30 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const isDragging = useRef(false);
 
-  // 总槽位计算：常用网站与文件夹总数 + 1 个添加按钮 (T14)
-  const totalSlots = shortcuts.length + 1;
-  const totalPages = Math.max(1, Math.ceil(totalSlots / PAGE_SIZE));
-  const safePageIndex = Math.max(0, Math.min(pageIndex, totalPages - 1));
-
-  // 单排 6 图标自动切片 (T14 & C021)
-  const start = safePageIndex * PAGE_SIZE;
-  const end = start + PAGE_SIZE;
-  const pageShortcuts = shortcuts.slice(start, end);
-  const showAddInThisPage = shortcuts.length >= start && shortcuts.length < end;
-
   // 当前展开的文件夹对象
   const expandedFolder = expandedFolderId
     ? shortcuts.find((s) => s.id === expandedFolderId && s.isFolder)
     : null;
 
-  // 页面改变或条目缩减时校准当前页
+  // 关闭启动台时收起所有浮层，避免残留状态在下次打开时出现
   useEffect(() => {
-    if (pageIndex >= totalPages) {
-      setPageIndex(Math.max(0, totalPages - 1));
-    }
-  }, [totalPages, pageIndex]);
+    if (isOpen) return;
+    setQuery('');
+    setExpandedFolderId(null);
+    setContextMenu(null);
+    setEditingShortcut(null);
+    setIsAdding(false);
+    setTargetFolderId(null);
+    setRenameFolder(null);
+    setToastMessage(null);
+  }, [isOpen]);
 
-  // 全局键盘左右方向键 ⬅️ / ➡️ 翻页调度 (T14 & C018 & C030)
+  // 打开后把焦点交给过滤框
   useEffect(() => {
-    if (suspended) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // 避免在用户编辑表单或下拉选择时触发翻页 (C030: 复用统一编辑元素判定，额外覆盖 select)
-      if (isEditableElement(e.target)) {
-        return;
-      }
-
-      if (e.key === 'Escape') {
-        if (expandedFolderId) {
-          setExpandedFolderId(null);
-        }
-        return;
-      }
-
-      // 修饰键组合（Command/Ctrl/Alt/Shift + 方向键）交还浏览器原生行为：
-      // 页面前进/后退与文本选择，既不翻页也不 preventDefault (C030)
-      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) {
-        return;
-      }
-
-      if (e.key === 'ArrowRight') {
-        if (totalPages > 1) {
-          e.preventDefault();
-          setPageIndex((prev) => Math.min(totalPages - 1, prev + 1));
-        }
-      } else if (e.key === 'ArrowLeft') {
-        if (totalPages > 1) {
-          e.preventDefault();
-          setPageIndex((prev) => Math.max(0, prev - 1));
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [suspended, totalPages, expandedFolderId]);
-
-  // 网页图标 ⌘ + 数字键 1~6 快捷直达与按住 Command 提示徽标 (T16 & C021: 按当前活动页局部映射)
-  useEffect(() => {
-    if (suspended || shortcutKeysEnabled === false) {
-      setIsCmdPressed(false);
-      setActiveKeySiteId(null);
-      return;
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isCmd = e.key === 'Meta' || e.metaKey || (e.ctrlKey && !e.altKey);
-      if (isCmd && !isEditableElement(document.activeElement)) {
-        setIsCmdPressed(true);
-      }
-
-      const isInput = isEditableElement(document.activeElement);
-      if (
-        !isInput &&
-        (e.metaKey || (e.ctrlKey && !e.altKey)) &&
-        !expandedFolderId &&
-        !editingShortcut &&
-        !isAdding &&
-        !renameFolder
-      ) {
-        if (/^[1-6]$/.test(e.key)) {
-          const num = parseInt(e.key, 10) - 1;
-          const targetSite = pageShortcuts[num];
-          if (targetSite) {
-            e.preventDefault();
-            setActiveKeySiteId(targetSite.id);
-            setTimeout(() => setActiveKeySiteId(null), 350);
-            if (targetSite.isFolder) {
-              setExpandedFolderId(targetSite.id);
-            } else {
-              window.location.href = targetSite.url;
-            }
-            setToastMessage(`已通过快捷键 ⌘${e.key} 打开 ${targetSite.name}`);
-          }
-        }
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Meta' || !e.metaKey) {
-        setIsCmdPressed(false);
-      }
-    };
-
-    const handleBlur = () => {
-      setIsCmdPressed(false);
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('blur', handleBlur);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('blur', handleBlur);
-    };
-  }, [suspended, shortcutKeysEnabled, pageShortcuts, expandedFolderId, editingShortcut, isAdding, renameFolder]);
+    if (!isOpen) return;
+    const timer = window.setTimeout(() => searchRef.current?.focus(), 80);
+    return () => window.clearTimeout(timer);
+  }, [isOpen]);
 
   // 全局点击关闭右键菜单
   useEffect(() => {
@@ -644,21 +547,6 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
     isDragging.current = false;
   };
 
-  // 滚轮滑动翻页 (T14)
-  const handleWheel = (e: React.WheelEvent) => {
-    if (totalPages <= 1) return;
-    const now = Date.now();
-    if (now - wheelThrottleRef.current < 260) return;
-
-    if (e.deltaY > 20 || e.deltaX > 20) {
-      wheelThrottleRef.current = now;
-      setPageIndex((prev) => Math.min(totalPages - 1, prev + 1));
-    } else if (e.deltaY < -20 || e.deltaX < -20) {
-      wheelThrottleRef.current = now;
-      setPageIndex((prev) => Math.max(0, prev - 1));
-    }
-  };
-
   // 导出与导入 (T14, T15 & C025)
   const handleExport = () => {
     if (propGroups && propGroups.length > 0) {
@@ -705,18 +593,90 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
     e.target.value = '';
   };
 
+  // 供 App 的 Escape 级联关闭：优先关闭启动台内部的弹窗/菜单/文件夹，再关闭启动台本身
+  const handleLaunchpadTopLayer = () => {
+    if (contextMenu) {
+      setContextMenu(null);
+      return true;
+    }
+    if (editingShortcut || isAdding) {
+      handleCloseModal();
+      return true;
+    }
+    if (renameFolder) {
+      setRenameFolder(null);
+      setRenameFolderName('');
+      return true;
+    }
+    if (expandedFolderId) {
+      setExpandedFolderId(null);
+      return true;
+    }
+    return false;
+  };
+
+  useImperativeHandle(ref, () => ({ handleCloseTopLayer: handleLaunchpadTopLayer }));
+
   // 所有既有文件夹列表（用于右键快速归类移入）
   const existingFolders = shortcuts.filter((s) => s.isFolder);
 
   return (
-    <div className="w-full flex flex-col items-center">
-      {/* Shortcuts Row: 单排至多 6 个图标，超出通过滑动或方向键 ⬅️ / ➡️ 翻页 (T14 & C018) */}
+    <div
+      data-open={isOpen ? 'true' : 'false'}
+      aria-hidden={!isOpen}
+      className="launchpad-overlay fixed inset-0 z-40 flex flex-col select-none"
+    >
       <div
-        onWheel={handleWheel}
-        className="flex flex-nowrap items-center justify-center gap-4 max-w-4xl py-3 w-full min-h-[96px] overflow-hidden"
-      >
-        {pageShortcuts.map((shortcut, localIndex) => {
-          const globalIndex = start + localIndex;
+        className="launchpad-backdrop absolute inset-0"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div className="launchpad-shell relative z-10 flex h-full w-full flex-col px-5 py-4 sm:px-8 sm:py-5">
+        <div className="flex items-center justify-between gap-4">
+          <span
+            className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-60"
+            style={{ color: textColor }}
+          >
+            启动台
+          </span>
+          <label
+            className="flex h-10 w-full max-w-[360px] items-center gap-2 rounded-full border px-4 backdrop-blur-xl"
+            style={{
+              backgroundColor: isDark ? 'rgba(20, 20, 24, 0.55)' : 'rgba(255, 255, 255, 0.82)',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.07)',
+              color: textColor,
+            }}
+          >
+            <Search className="h-4 w-4 flex-shrink-0 opacity-50" />
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="搜索网站…"
+              className="min-w-0 flex-1 bg-transparent text-[12.5px] outline-none placeholder:opacity-50"
+              style={{ color: textColor }}
+              aria-label="搜索网站"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+            style={{
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(255, 255, 255, 0.82)',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.07)',
+              color: textColor,
+            }}
+            aria-label="关闭启动台"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto grid w-full max-w-6xl grid-cols-3 gap-x-3 gap-y-7 py-10 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+        {filteredShortcuts.map((shortcut, localIndex) => {
+          const globalIndex = shortcuts.findIndex((s) => s.id === shortcut.id);
           const isFolder = !!shortcut.isFolder;
           const isExpanded = isFolder && expandedFolderId === shortcut.id;
           const isDragTarget = isFolder && dragOverFolderId === shortcut.id;
@@ -751,15 +711,15 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
                   }
                   setExpandedFolderId((prev) => (prev === shortcut.id ? null : shortcut.id));
                 }}
-                className={`t-stagger-item flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-16 flex-shrink-0 relative ${
+                className={`t-stagger-item flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-full relative ${
                   isExpanded ? 'scale-105' : ''
-                } ${activeKeySiteId === shortcut.id ? 'site-key-active' : ''}`}
+                }`}
                 style={{ animationDelay: `${localIndex * 35}ms` }}
                 title={`文件夹「${shortcut.name}」(${children.length} 个网站)\n点击横向展开 / 右键管理`}
               >
                 {/* 文件夹连续圆角容器 (2x2 四宫格微缩预览，自适应明暗背景) */}
                 <div
-                  className={`shortcut-icon-container liquid-glass-surface relative w-12 h-12 rounded-2xl backdrop-blur-md shadow-sm border flex items-center justify-center overflow-hidden transition-all duration-200 group-hover:shadow-md group-hover:scale-105 ${
+                  className={`shortcut-icon-container liquid-glass-surface relative w-[68px] h-[68px] rounded-[20px] backdrop-blur-md shadow-sm border flex items-center justify-center overflow-hidden transition-all duration-200 group-hover:shadow-md group-hover:scale-105 ${
                     isDragTarget
                       ? 'ring-2 ring-blue-500 scale-110 border-blue-500'
                       : isExpanded
@@ -835,17 +795,6 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
                   )}
                 </div>
 
-                {/* 按住 Command 浮现的按键提示徽标 (T16 & C021: 按当前页 localIndex 局部映射 ⌘1~⌘6) */}
-                {shortcutKeysEnabled !== false && localIndex < PAGE_SIZE && (
-                  <span
-                    className={`site-key-hint ${isCmdPressed ? 'is-visible' : ''} ${
-                      activeKeySiteId === shortcut.id ? 'is-active' : ''
-                    }`}
-                    aria-hidden="true"
-                  >
-                    ⌘{localIndex + 1}
-                  </span>
-                )}
 
                 {/* 文件夹名称 */}
                 <span
@@ -879,14 +828,12 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
               onPointerCancel={handlePointerUp}
               onContextMenu={(e) => handleContextMenu(e, shortcut)}
               onClick={(e) => handleItemClick(e, shortcut.url)}
-              className={`t-stagger-item flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-16 flex-shrink-0 relative ${
-                activeKeySiteId === shortcut.id ? 'site-key-active' : ''
-              }`}
+              className="t-stagger-item flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-full relative"
               style={{ animationDelay: `${localIndex * 35}ms` }}
               title={`${shortcut.name}\n右键查看菜单 / 长按可排序`}
             >
               {/* Icon Container with Squircle Continuous Curve */}
-              <div className="shortcut-icon-container liquid-glass-surface relative w-12 h-12 rounded-2xl bg-white/80 dark:bg-stone-800/80 backdrop-blur-md shadow-sm border border-black/5 dark:border-white/10 flex items-center justify-center overflow-hidden transition-all duration-200 group-hover:shadow-md group-hover:scale-105">
+              <div className="shortcut-icon-container liquid-glass-surface relative w-[68px] h-[68px] rounded-[20px] bg-white/80 dark:bg-stone-800/80 backdrop-blur-md shadow-sm border border-black/5 dark:border-white/10 flex items-center justify-center overflow-hidden transition-all duration-200 group-hover:shadow-md group-hover:scale-105">
                 {/* 首字母是图标缺失时的独占兜底层（C005）：垫在容器底部，
                     图标 img 加载成功后覆盖其上；onError 隐藏 img 才露出字母 */}
                 <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-stone-700 dark:text-stone-200 uppercase select-none">
@@ -908,21 +855,10 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
                     const letter = (e.target as HTMLElement).previousElementSibling as HTMLElement | null;
                     if (letter) letter.style.visibility = 'hidden';
                   }}
-                  className="w-7 h-7 object-contain z-10 transition-transform duration-200 group-hover:scale-110"
+                  className="w-9 h-9 object-contain z-10 transition-transform duration-200 group-hover:scale-110"
                 />
               </div>
 
-              {/* 按住 Command 浮现的按键提示徽标 (T16 & C021: 按当前页 localIndex 局部映射 ⌘1~⌘6) */}
-              {shortcutKeysEnabled !== false && localIndex < PAGE_SIZE && (
-                <span
-                  className={`site-key-hint ${isCmdPressed ? 'is-visible' : ''} ${
-                    activeKeySiteId === shortcut.id ? 'is-active' : ''
-                  }`}
-                  aria-hidden="true"
-                >
-                  ⌘{localIndex + 1}
-                </span>
-              )}
 
               {/* Title */}
               <span
@@ -939,14 +875,13 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
         })}
 
         {/* Add Shortcut Button (C008: 接入 t-stagger-item 与尾随延迟) */}
-        {showAddInThisPage && (
-          <button
+        <button
             onClick={() => handleOpenAdd()}
-            className="t-stagger-item flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-16 flex-shrink-0"
+            className="t-stagger-item flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-full"
             style={{ animationDelay: `${shortcuts.length * 35}ms` }}
             title="添加常用网站或文件夹"
           >
-            <div className="w-12 h-12 rounded-2xl bg-black/5 dark:bg-white/5 backdrop-blur-md border border-dashed border-black/20 dark:border-white/20 flex items-center justify-center transition-colors duration-200 group-hover:bg-black/10 dark:group-hover:bg-white/10 group-hover:scale-105">
+            <div className="w-[68px] h-[68px] rounded-[20px] bg-black/5 dark:bg-white/5 backdrop-blur-md border border-dashed border-black/20 dark:border-white/20 flex items-center justify-center transition-colors duration-200 group-hover:bg-black/10 dark:group-hover:bg-white/10 group-hover:scale-105">
               <Plus className="w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity" style={{ color: textColor }} />
             </div>
             <span
@@ -955,11 +890,19 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
             >
               添加
             </span>
-          </button>
-        )}
-      </div>
+        </button>
+          </div>
 
-      {/* 图标文件夹横向展开抽屉托盘 (T15 & C020: Horizontal Expansion Tray 背景自适应) */}
+          {filteredShortcuts.length === 0 && query.trim() && (
+            <div
+              className="mx-auto max-w-6xl py-6 text-center text-xs"
+              style={{ color: textColor, opacity: 0.55 }}
+            >
+              没有找到匹配的网站
+            </div>
+          )}
+
+          {/* 图标文件夹横向展开抽屉托盘 (T15 & C020: Horizontal Expansion Tray 背景自适应) */}
       {expandedFolder && (
         <div
           className="w-full max-w-2xl mx-auto my-2 px-4 py-3 rounded-2xl shadow-xl animate-fade-in select-none"
@@ -1158,106 +1101,15 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
         </div>
       )}
 
-      {/* 分页指示器 Dots (T14, C017, C019) */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center pt-1 pb-2 select-none">
-          <div
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full backdrop-blur-md shadow-xs transition-colors group/dock"
-            style={{
-              backgroundColor: textColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)',
-              border: `1px solid ${textColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.08)'}`,
-            }}
-            title="翻页 (支持按左右方向键 ← / → 或鼠标滚轮)"
-          >
-            {/* 快捷键（左右） + 提示（翻页） */}
-            <div className="flex items-center gap-1.5">
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
-                  disabled={safePageIndex === 0}
-                  className={`px-1.5 py-0.5 text-[10px] font-mono font-medium rounded shadow-2xs border transition-all ${
-                    safePageIndex === 0
-                      ? 'opacity-30 cursor-not-allowed'
-                      : 'opacity-75 hover:opacity-100 cursor-pointer active:scale-95'
-                  }`}
-                  style={{
-                    backgroundColor: textColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
-                    borderColor: textColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.12)',
-                    color: textColor,
-                  }}
-                  title="上一页 (按键盘 ← 键)"
-                  aria-label="上一页"
-                >
-                  ←
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPageIndex((p) => Math.min(totalPages - 1, p + 1))}
-                  disabled={safePageIndex === totalPages - 1}
-                  className={`px-1.5 py-0.5 text-[10px] font-mono font-medium rounded shadow-2xs border transition-all ${
-                    safePageIndex === totalPages - 1
-                      ? 'opacity-30 cursor-not-allowed'
-                      : 'opacity-75 hover:opacity-100 cursor-pointer active:scale-95'
-                  }`}
-                  style={{
-                    backgroundColor: textColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
-                    borderColor: textColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.12)',
-                    color: textColor,
-                  }}
-                  title="下一页 (按键盘 → 键)"
-                  aria-label="下一页"
-                >
-                  →
-                </button>
-              </div>
-              <span
-                className="text-[11px] font-medium tracking-tight opacity-75 group-hover/dock:opacity-100 transition-opacity select-none cursor-default"
-                style={{ color: textColor }}
-              >
-                翻页
-              </span>
-            </div>
-
-            <div
-              className="w-[1px] h-2.5 opacity-20"
-              style={{ backgroundColor: textColor }}
-            />
-
-            {/* 槽位圆点 */}
-            <div className="flex items-center gap-1.5">
-              {Array.from({ length: totalPages }).map((_, idx) => {
-                const isActive = idx === safePageIndex;
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setPageIndex(idx)}
-                    className="group/btn relative py-1 focus:outline-none cursor-pointer"
-                    aria-label={`切换到第 ${idx + 1} 页`}
-                    title={`第 ${idx + 1} 页 (可按方向键 ⬅️/➡️ 或滚轮翻页)`}
-                  >
-                    <span
-                      className={`block h-2 rounded-full transition-all duration-200 ${
-                        isActive
-                          ? 'w-5 shadow-xs'
-                          : 'w-2 opacity-40 group-hover/btn:opacity-75 hover:scale-125'
-                      }`}
-                      style={{
-                        backgroundColor: textColor,
-                        boxShadow:
-                          isActive && (shadowProtection !== 'none' || textColor === '#FFFFFF')
-                            ? `0 1px 3px rgba(0,0,0,0.3)`
-                            : undefined,
-                      }}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
-      )}
+        <div
+          className="relative z-10 flex items-center justify-between gap-3 px-2 pt-2 text-[10.5px]"
+          style={{ color: textColor }}
+        >
+          <span className="opacity-50">右键管理 · 拖拽排序 · 支持文件夹</span>
+          <span className="opacity-50">点击空白处或按 Esc 退出</span>
+        </div>
+      </div>
 
       {/* 撤销删除 Toast */}
       {lastRemoved && (
@@ -1616,4 +1468,4 @@ export const Shortcuts: React.FC<ShortcutsProps> = ({
         )}
     </div>
   );
-};
+});
