@@ -1,0 +1,143 @@
+{
+  "$schema": "https://ad-flow.org/schemas/change-card.v1.json",
+  "id": "C040",
+  "title": "交互动效打磨、搜索联想可读性修复、搜索框边框高亮选中态与启动台去底色遮罩（背景模糊可调）",
+  "version": "v0.3.0",
+  "type": "Enhancement",
+  "status": "closed",
+  "branch": "fix/C040-interaction-polish",
+  "is_hotfix": false,
+  "target": {
+    "module": "动效系统、搜索联想与启动台外观",
+    "component": "motion.css / SearchBar.tsx / Shortcuts.tsx (Launchpad) / AppearanceDrawer.tsx / App.tsx",
+    "design_doc": "docs/devel/design/07-动效系统.md",
+    "design_topic": "MotionSystem"
+  },
+  "why": "2026-11-10 用户提出三项诉求：打磨全部交互动效（点名启动台切换）、搜索联想看不清、去掉启动台的遮罩底色并提供背景模糊程度设置。排查到的根因：1) 启动台整体靠根容器 opacity 淡入，祖先 opacity<1 成为 backdrop root，背景模糊在淡入期间失效、结束时才突然出现；图标级联动画只在组件懒加载（关闭态）时空放一次，之后每次打开都不再播放。2) 引擎菜单、联想面板没有入场/退场动画（origin-menu 未接 data-open，联想面板直接挂载/卸载），启动台对话框、文件夹托盘、右键菜单、抽屉分段切换只有淡入或没有过渡。3) 用户系统开启了「减少动态效果」（实测 macOS reduceMotion=1），原守卫把 t-* 动效时长一律归零，除启动台外的所有开合都退化为瞬跳。4) 联想面板与引擎菜单底色直接沿用搜索框「背景透明度」（透明度越高面板越透明），文字写死深灰 12px，且 `dark:` 变体因从未挂载 `.dark` 类而不生效；压在深色或花哨壁纸上无法辨认。5) 启动台背景层叠加半透明底色（浅色 0.5 / 深色 0.62）并写死 30px 模糊，用户无法调整。 6) 2026-11-10 用户追加反馈：搜索框选中态需要调整——背景不透明度较高时顶部高光不对、液态玻璃质感平淡，要求向 macOS 27 的 Liquid Glass 对齐。根因：本卡首版新增的 form.liquid-glass-surface:focus-within 只在顶边画一条 1px 白色内描边并加深投影；且搜索框上的 Tailwind shadow-sm 工具类一直覆盖 .liquid-glass-surface 的静止态阴影，玻璃高光只在选中时以一条直线出现，底色偏实（偏白）时完全不可见。 7) 2026-11-10 用户查看液态玻璃方案后决定：移除搜索框的液态玻璃效果，也不恢复原先的高光，选中态只用简单的边框高亮。",
+  "precheck": {
+    "description": "用新增回归测试在修复前代码上确认上述缺陷现象均存在",
+    "command": "node --test tests/c040-interaction-polish.test.cjs",
+    "expected": "修复前启动台分层过渡、去底色、级联重放、新增片段、可读性样式与守卫相关断言失败；修复后全部通过",
+    "is_completed": false,
+    "evidence": "2026-11-10 在修复前代码（git stash 暂存已跟踪改动并移开新增的 searchPanel.ts）上执行首版 14 项测试：1 pass / 13 fail，Exit 1；唯一通过项为背景配置持久化（setBackground 本就按字段合并）。日志：local/reports/c040-interaction-polish-20261110/precheck-before.log。修复后同文件 15 项（增补 reduced-motion 守卫 1 项）全部通过。"
+  },
+  "callback": {
+    "before": [
+      "git status --short --branch",
+      "git checkout -b fix/C040-interaction-polish"
+    ],
+    "after": [
+      "node --test tests/c040-interaction-polish.test.cjs",
+      "npm test",
+      "npm run build",
+      "scripts/adflow-verify --card C040 --receipt"
+    ]
+  },
+  "changes": [
+    {
+      "scope": "启动台切换动效 (MOT-15)",
+      "before": "根容器 opacity 280ms 淡入淡出 + 内容 1.012→1 缩放；背景模糊在淡入结束时才出现；图标级联只在懒加载时播放一次且延迟按 35ms 线性无封顶；打开期间首页内容留在背景中",
+      "after": "根容器只控制 visibility/pointer-events；背景层与内容层各自 opacity 过渡（开 280ms / 关 200ms），内容 1.04→1 收束；首页层（顶栏、小钟、搜索框、组件区、页脚）同步淡出形成交叉切换，且只动 opacity；图标级联每次打开重放，18ms 步进、216ms 封顶",
+      "impact": "启动台开合观感；首页层在启动台打开期间不可见"
+    },
+    {
+      "scope": "启动台背景与外观设置 (LAY-14)",
+      "before": "背景层叠加半透明底色（浅 rgba(238,245,250,0.5) / 深 rgba(18,18,22,0.62)）+ 写死 blur(30px) saturate(1.12)",
+      "after": "背景层不带任何底色，只做 blur(var(--launchpad-blur))；半径取 BackgroundConfig.launchpadBlur（0~40px，默认 30，旧数据缺省回落默认、越界钳制），外观设置「壁纸」分段新增「启动台背景模糊」滑块，随「恢复材质默认」复位",
+      "impact": "背景配置新增可选字段，向后兼容；外观设置仍为搜索/壁纸两段"
+    },
+    {
+      "scope": "搜索联想与引擎菜单可读性 (NAV-08)",
+      "before": "面板底色 rgba(255,255,255,1-透明度) 且模糊沿用搜索框设置；文字写死 text-stone-700、12px；dark: 变体不生效",
+      "after": "resolveSearchPanelStyle：底色随搜索区自适应字色取同向色（浅字→深色面板+近白字，深字→浅色面板+墨黑字），不透明度下限 0.9、模糊下限 16px；候选 13.5px，已输入部分常规、补全部分加粗；选中行同向半透明底色；补充 listbox/option 语义。搜索框本体外观不变",
+      "impact": "仅联想面板与引擎菜单外观"
+    },
+    {
+      "scope": "其余交互动效片段 (MOT-16 / MOT-17)",
+      "before": "联想面板、引擎菜单无入场/退场；右键菜单、文件夹托盘、对话框只有 animate-fade-in；撤销通知用 animate-fade-in；抽屉分段切换、引擎图标切换无过渡",
+      "after": "新增 t-popover（联想面板开 180ms / 关 120ms，退出播完再卸载）、引擎菜单接入 origin-menu data-open 开合、t-pop-in（右键菜单/文件夹托盘源点弹入）、t-dialog-in（对话框卡片）、t-tab-in（外观抽屉与订阅栏分段内容）、t-icon-swap（引擎图标）；撤销通知改用 t-toast",
+      "impact": "搜索区、启动台内部浮层、外观抽屉与订阅栏的切换观感"
+    },
+    {
+      "scope": "搜索框选中态 (MOT-18)",
+      "before": "搜索框挂 liquid-glass-surface + Tailwind shadow-sm/hover:shadow-md/focus-within:shadow-md 与按字色切换的 1px 实色边框；静止态玻璃高光被 shadow-sm 覆盖，选中态只有顶边 1px 白线 + 加深投影",
+      "after": "搜索框改用 search-field：只有 1px 边框与固定的 shadow-sm 轻投影，不挂任何 liquid-glass 类，无内描边高光、镜面描边、光泽层或选中抬升投影，背景只按用户透明度与模糊渲染；选中态仅边框色加深/提亮（深字环境黑 0.1 → 0.55，浅字环境白 0.22 → 0.9），悬停为中间值。本卡中途实现过的液态玻璃体 liquid-glass-field 已按用户决定整体移除",
+      "impact": "仅搜索框本体外观；顶栏按钮与启动台图标仍用 liquid-glass-surface，未改动"
+    },
+    {
+      "scope": "reduced-motion 降级守卫 (MOT-08)",
+      "before": "t-* 动效的 animation/transition 时长与延迟一律置 0.01ms，仅启动台透明度为例外",
+      "after": "入场关键帧替换为纯淡入并保留时长与延迟；开合过渡两端取消 transform/filter 只留 opacity；仅 t-tabs-sliding 与 t-check 仍即时完成；liquid-glass-surface 不再归零",
+      "impact": "系统开启「减少动态效果」的用户：所有开合由瞬跳变为原位淡入淡出，不再有位移/缩放/模糊"
+    }
+  ],
+  "design": {
+    "doc": "docs/devel/design/07-动效系统.md",
+    "topic": "MotionSystem",
+    "modified": true,
+    "rule_diff": {
+      "before": "MOT-08：reduced-motion 下全部动效即时完成，启动台透明度为唯一例外；MOT-15：启动台全屏浮层整体 280ms 淡入淡出 + 内部 1.012→1 缩放。01 EntryNavigation：启动台背景为壁纸模糊 + 半透明遮罩，打开期间首页内容冻结在背景中；联想面板与搜索框同质化毛玻璃。02 WorkspaceAppearance：无启动台外观设置",
+      "after": "MOT-08 改写为取消运动、保留淡入淡出；MOT-15 改为首页层与启动台背景层/内容层分层交叉切换、图标级联每次重放；新增 MOT-16 浮层开合、MOT-17 对话框/分段/图标切换、MOT-18 搜索框边框高亮选中态（不使用液态玻璃高光）。01：启动台背景只做可调模糊、不叠加底色，首页层淡出；NAV-08 增加下拉面板可读性下限。02：新增 LAY-14 启动台背景模糊设置（launchpadBlur，0~40px，默认 30px）"
+    }
+  },
+  "verification": {
+    "result": true,
+    "run_id": "local-20261110-21",
+    "user_quote": "确认验收，合入 main",
+    "signoff": "sivan (AI代签)",
+    "checks": [
+      {
+        "item": "自动化测试",
+        "true_if": "新增 C040 回归全部通过，npm test 全量全绿、退出码 0",
+        "false_if": "存在任何测试失败、报错或缺少针对性回归",
+        "evidence": "`node --test tests/c040-interaction-polish.test.cjs` 16/16；`npm test` 228 tests / 228 pass / 0 fail / 0 skipped，Exit 0（含新增 16 项；按新规则更新 motion-system.test.cjs 中 2 条旧断言：级联延迟与 reduced-motion 守卫）。日志：local/reports/c040-interaction-polish-20261110/npm-test.log。",
+        "result": true
+      },
+      {
+        "item": "类型与构建检查",
+        "true_if": "tsc 与 Vite 构建 Exit 0，产物位于 local/dist",
+        "false_if": "存在类型或构建错误，或产物散落在 local/ 之外",
+        "evidence": "`npm run build`（tsc + vite build）Exit 0，无警告，输出 local/dist（newtab css 52.08 kB / js 239.79 kB）。日志：local/reports/c040-interaction-polish-20261110/build.log。",
+        "result": true
+      },
+      {
+        "item": "Dev 页面运行态实测（headless Chrome + CDP）",
+        "true_if": "启动台背景层无底色且模糊半径随滑块变化；开合期间背景层/内容层/首页层透明度处于中间值（确有过渡）；每次打开图标级联重放；联想面板与引擎菜单在浅色与深色背景下取同向底色与高对比文字并播放退出过渡；reduced-motion 开启时无 transform/filter 但仍有透明度过渡",
+        "false_if": "背景层仍有底色、模糊不随设置变化、过渡瞬跳、级联不重放，或深色背景下面板文字仍为深灰",
+        "evidence": "Chrome 157 headless 访问 Vite dev 页面，分别模拟 prefers-reduced-motion 为 no-preference 与 reduce 各跑一轮，读取真实计算样式：背景层 background-color 恒为 rgba(0,0,0,0)、backdrop-filter blur(30px)，在外观抽屉把滑块由 30 调到 6 后存储 launchpadBlur=6、再开启动台为 blur(6px)；打开 90ms 时背景层/内容层 opacity 0.83、内容 scale≈1.012、顶栏 0.07，稳定后 1/1/0，关闭 70ms 时 0.13 且顶栏回到 0.75，结束后 visibility hidden；首次与再次打开图标动画均为 t-stagger-rise（reduce 下为 t-fade-in，内容 transform none）。联想：默认浅色背景面板 rgba(255,255,255,0.9) + 文字 rgb(28,25,23)；深色纯色背景且搜索框透明度 100% 时面板 rgba(24,26,30,0.9) + 文字 rgb(245,245,244)，13.5px，blur(16px)；关闭 60ms 仍挂载且 opacity 0.02、随后卸载；引擎菜单关闭 60ms opacity 0.23 后卸载。数据与截图：local/reports/c040-interaction-polish-20261110/cdp-check-{no-preference,reduce}.json 及同目录 jpg。",
+        "result": true
+      },
+      {
+        "item": "搜索框选中态运行态取证（headless Chrome + CDP）",
+        "true_if": "搜索框无任何高光/光泽伪元素与投影变化，背景只按用户模糊值处理；选中时仅边框色加深或提亮，浅色与深色环境下均清晰可辨",
+        "false_if": "仍残留液态玻璃高光、旧顶边白线或选中抬升投影，或选中态边框与静止态难以区分",
+        "evidence": "Chrome 157 headless（2x 像素比）对浅色/深色/花哨 3 种背景 × 透明度 15%/100% × 静止/选中共 12 组截图并读取计算样式：backdrop-filter 恒为 blur(12px)，::before/::after 无内容；深字环境边框 rgba(0,0,0,0.1) → 选中 rgba(0,0,0,0.55)，浅字环境 rgba(255,255,255,0.22) → 选中 rgba(255,255,255,0.9)，静止与选中的 box-shadow 一致。数据与截图：local/reports/c040-interaction-polish-20261110/border/（border-check.json 与 12 张 png）。同目录 glass/ 为已撤销的液态玻璃方案留存取证，不代表现行实现。",
+        "result": true
+      },
+      {
+        "item": "真实 Chrome 扩展人工核验",
+        "true_if": "用户在已加载扩展的 Chrome 中确认：启动台开合顺滑、背景无遮罩且模糊可调，联想清晰可读，搜索框选中态的边框高亮符合预期，其余开合动效符合预期，并明确同意验收",
+        "false_if": "实测观感不符合预期、出现回归，或尚未取得人工确认",
+        "evidence": "2026-11-11 用户在会话中确认验收并授权合入 main，原话「确认验收，合入 main」。本项结论来自人工确认，AI 未在本轮独立执行真实 Chrome 扩展观感核验。",
+        "result": true
+      }
+    ]
+  },
+  "rejections": [],
+  "sync": {
+    "design_pinned": true,
+    "changelog": true,
+    "commit": "6ad10c2",
+    "tag": ""
+  },
+  "gate": {
+    "tool": "adflow-verify",
+    "version": "1.6.0",
+    "ran_at": "2026-11-11",
+    "exit_code": 0,
+    "from_status": "in_progress",
+    "target_status": "closed",
+    "signed_quote": "确认验收，合入 main",
+    "signed_rejection_count": 0
+  }
+}

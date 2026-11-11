@@ -89,7 +89,7 @@
           "description": "动效令牌梯度、t-* 片段命名空间、React 集成与 reduced-motion 降级",
           "last_change": "2026-11-10",
           "confirmed_on": "2026-11-10",
-          "confirmed_scope": "纯 CSS 动效路线（参考 transitions.dev）、首版 7 类片段范围、系统级 reduced-motion 守卫、不引入 JS 动效库；2026-11-10 移除 MOT-09 折叠与 MOT-14 闲置，新增 MOT-15 启动台淡入淡出"
+          "confirmed_scope": "纯 CSS 动效路线（参考 transitions.dev）、首版 7 类片段范围、系统级 reduced-motion 守卫、不引入 JS 动效库；2026-11-10 移除 MOT-09 折叠与 MOT-14 闲置，新增 MOT-15 启动台淡入淡出；C040 将 MOT-15 改为首页与启动台分层交叉切换、新增 MOT-16/MOT-17，并把 MOT-08 降级守卫改写为取消运动、保留淡入淡出"
         }
       ]
     },

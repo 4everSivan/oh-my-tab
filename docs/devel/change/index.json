@@ -1,7 +1,7 @@
 {
   "$schema": "https://ad-flow.org/schemas/change-index.v1.json",
   "version": "1.0",
-  "updated_at": "2026-11-06",
+  "updated_at": "2026-11-11",
   "topics": {
     "SystemOverview": {
       "design_doc": "docs/devel/design/00-系统总体设计.md",
@@ -77,7 +77,8 @@
         "C036",
         "C037",
         "C038",
-        "C039"
+        "C039",
+        "C040"
       ]
     }
   },
@@ -469,6 +470,15 @@
       "topic": "MotionSystem",
       "created": "2026-11-05",
       "file": "docs/devel/change/C039.json"
+    },
+    "C040": {
+      "title": "交互动效打磨、搜索联想可读性修复、搜索框边框高亮选中态与启动台去底色遮罩（背景模糊可调）",
+      "type": "Enhancement",
+      "status": "closed",
+      "branch": "fix/C040-interaction-polish",
+      "topic": "MotionSystem",
+      "created": "2026-11-10",
+      "file": "docs/devel/change/C040.json"
     }
   }
 }
