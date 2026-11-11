@@ -1,4 +1,20 @@
-import { BackgroundConfig } from '../services/storage/types';
+import {
+  BackgroundConfig,
+  DEFAULT_LAUNCHPAD_BLUR,
+  LAUNCHPAD_BLUR_MAX,
+} from '../services/storage/types';
+
+/**
+ * 启动台背景模糊半径（C040，@topic: WorkspaceAppearance）。
+ * 旧版存储没有该字段，缺省或非法值回落默认；越界值钳制到 0 ~ LAUNCHPAD_BLUR_MAX。
+ */
+export function resolveLaunchpadBlur(
+  background?: Pick<BackgroundConfig, 'launchpadBlur'> | null
+): number {
+  const value = background?.launchpadBlur;
+  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_LAUNCHPAD_BLUR;
+  return Math.min(Math.max(value, 0), LAUNCHPAD_BLUR_MAX);
+}
 
 /**
  * 壁纸恢复裁决（C001，@topic: DataPersistenceSync）。

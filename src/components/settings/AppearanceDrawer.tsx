@@ -4,10 +4,11 @@ import {
   BackgroundConfig,
   AlignStyle,
   BackgroundType,
+  LAUNCHPAD_BLUR_MAX,
 } from '../../services/storage/types';
 import { X, RotateCcw, Search, Image as ImageIcon, Upload, SlidersHorizontal } from 'lucide-react';
 import { wallpaperStorage } from '../../services/storage/wallpaper';
-import { generateWallpaperThumbnail } from '../../utils/background';
+import { generateWallpaperThumbnail, resolveLaunchpadBlur } from '../../utils/background';
 import { useDelayedUnmount } from '../../hooks/useDelayedUnmount';
 
 interface AppearanceDrawerProps {
@@ -190,7 +191,7 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
         {/* Tab Contents */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {activeTab === 'search' && (
-            <div className="space-y-5">
+            <div className="t-tab-in space-y-5">
               {/* Reset Search */}
               <div className="flex justify-between items-center">
                 <span className="text-xs text-stone-500 font-medium">搜索框外观</span>
@@ -294,7 +295,7 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
           )}
 
           {activeTab === 'background' && (
-            <div className="space-y-5">
+            <div className="t-tab-in space-y-5">
               {/* Reset Background */}
               <div className="flex justify-between items-center">
                 <span className="text-xs text-stone-500 font-medium">背景与风格</span>
@@ -444,6 +445,26 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
                 </div>
               )}
 
+              {/* 启动台背景模糊 (C040)：启动台不再叠加底色，只按此半径模糊当前背景 */}
+              <div className="space-y-1 pt-4 border-t border-black/5 dark:border-white/5">
+                <div className="flex justify-between text-xs text-stone-600 dark:text-stone-400">
+                  <span>启动台背景模糊</span>
+                  <span>{resolveLaunchpadBlur(background)} px</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max={LAUNCHPAD_BLUR_MAX}
+                  step="2"
+                  value={resolveLaunchpadBlur(background)}
+                  onChange={(e) => onUpdateBackground({ launchpadBlur: Number(e.target.value) })}
+                  aria-label="启动台背景模糊"
+                  className="w-full accent-stone-800 dark:accent-white"
+                />
+                <p className="text-[11px] text-stone-400 dark:text-stone-500">
+                  打开启动台（L）时背景的模糊程度，0 为完全清晰；随「恢复材质默认」一并复位。
+                </p>
+              </div>
             </div>
           )}
 

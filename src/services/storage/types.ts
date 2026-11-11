@@ -21,7 +21,12 @@ export interface BackgroundConfig {
   shade: number; // 0 - 85
   blur: number; // 0 - 20
   position: BackgroundPosition;
+  /** 启动台背景模糊半径 px (C040)：0 ~ LAUNCHPAD_BLUR_MAX；旧数据缺省按 DEFAULT_LAUNCHPAD_BLUR */
+  launchpadBlur?: number;
 }
+
+export const LAUNCHPAD_BLUR_MAX = 40;
+export const DEFAULT_LAUNCHPAD_BLUR = 30;
 
 export interface Shortcut {
   id: string;
@@ -73,6 +78,7 @@ export const DEFAULT_BACKGROUND_CONFIG: BackgroundConfig = {
   shade: 35,
   blur: 0,
   position: 'center',
+  launchpadBlur: DEFAULT_LAUNCHPAD_BLUR,
 };
 
 export const DEFAULT_SHORTCUTS: Shortcut[] = [

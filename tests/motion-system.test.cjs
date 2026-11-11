@@ -75,13 +75,15 @@ test('index.css 在 Tailwind 指令之前引入 motion.css', () => {
   assert.ok(tailwindIdx !== -1 && importIdx < tailwindIdx, '@import 必须先于 @tailwind 指令');
 });
 
-// 2. reduced-motion 全局降级守卫
+// 2. reduced-motion 全局降级守卫（C040：由「时长归零」改为「取消运动、保留淡入淡出」）
 test('prefers-reduced-motion 守卫同时覆盖 animation 与 transition 片段', () => {
   const guardIdx = motionCss.indexOf('@media (prefers-reduced-motion: reduce)');
   assert.ok(guardIdx !== -1, '缺少全局降级守卫');
   const guard = motionCss.slice(guardIdx);
-  assert.ok(guard.includes('animation-duration: 0.01ms'), '守卫未归零 animation 时长');
-  assert.ok(guard.includes('transition-duration: 0.01ms'), '守卫未归零 transition 时长');
+  assert.ok(guard.includes('animation-name: t-fade-in'), '守卫须把入场关键帧替换为纯淡入');
+  assert.ok(!guard.includes('animation-duration: 0.01ms'), '守卫不得再把入场动画时长归零（会退化为瞬跳）');
+  assert.ok(/transform:\s*none;\s*filter:\s*none;/.test(guard), '守卫须取消开合过渡的位移/缩放/模糊');
+  assert.ok(guard.includes('transition-duration: 0.01ms'), '位置滑动与描画类过渡仍须即时完成');
   for (const cls of ['.t-digit', '.t-card-enter', '.t-list-enter', '.t-modal', '.t-panel-slide', '.t-check', '.animate-fade-in']) {
     assert.ok(guard.includes(cls), `守卫未覆盖 ${cls}`);
   }
@@ -201,7 +203,8 @@ test('启动台添加按钮接入级联延迟且不引入 filter 过渡 (C008/T2
     'Shortcuts.tsx 添加按钮应声明 C008 标记'
   );
   assert.ok(
-    shortcutsSrc.includes('animationDelay: `${shortcuts.length * 35}ms`'),
+    // C040: 级联延迟改为 18ms 步进、216ms 封顶，添加按钮尾随当前可见图标之后
+    shortcutsSrc.includes('animationDelay: `${computeCardStagger(filteredShortcuts.length, 18, 216)}ms`'),
     '添加按钮必须计算尾随 animationDelay 保证顺滑级联'
   );
   assert.ok(

@@ -638,7 +638,10 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-stone-300 selection:text-stone-900">
+    <div
+      data-launchpad-open={isLaunchpadOpen ? 'true' : 'false'}
+      className="relative min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-stone-300 selection:text-stone-900"
+    >
       {/* Background layer */}
       <div
         className="fixed inset-0 -z-20 transition-all duration-300"
@@ -654,7 +657,8 @@ export const App: React.FC = () => {
       )}
 
       {/* Header controls */}
-      <header className="w-full flex items-center justify-between p-6 z-10 select-none">
+      {/* home-layer (C040)：启动台打开时首页各层淡出，与启动台交叉切换 */}
+      <header className="home-layer w-full flex items-center justify-between p-6 z-10 select-none">
         <button
           ref={launchpadButtonRef}
           onClick={() => {
@@ -788,7 +792,7 @@ export const App: React.FC = () => {
               textColor={searchTextColor}
               tone={searchTone}
               topSlot={
-                <div ref={clockContainerRef}>
+                <div ref={clockContainerRef} className="home-layer">
                   <ClockLine
                     textColor={clockContrast.textColor}
                     shadowProtection={clockContrast.shadowProtection}
@@ -801,7 +805,7 @@ export const App: React.FC = () => {
 
         {/* 12-Column Responsive Widgets Area（用户自行添加；默认不出现） */}
         {hasVisibleWidgets && (
-          <div className="w-full mt-14">
+          <div className="home-layer w-full mt-14">
             <GridContainer
               layout={layout}
               onRemoveWidget={handleRemoveWidget}
@@ -811,7 +815,7 @@ export const App: React.FC = () => {
       </main>
 
       {/* Footer / Hint */}
-      <footer className="w-full py-4 text-center select-none text-[11px] opacity-40 hover:opacity-70 transition-opacity" style={{ color: textColor }}>
+      <footer className="home-layer w-full py-4 text-center select-none text-[11px] opacity-40 hover:opacity-70 transition-opacity" style={{ color: textColor }}>
         按 <button type="button" onClick={() => {
           setIsHelpOpen(true);
           setIsDrawerOpen(false);

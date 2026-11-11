@@ -5,6 +5,8 @@ import {
   fetchSuggestions,
   SuggestionItem,
 } from '../../services/search/suggestionService';
+import { useDelayedUnmount } from '../../hooks/useDelayedUnmount';
+import { resolveSearchPanelStyle, splitSuggestionText } from '../../utils/searchPanel';
 
 export interface SearchEngine {
   id: string;
@@ -305,6 +307,28 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const opacity = 1 - appearance.transparency / 100;
   const blurPx = appearance.blur;
 
+  // 下拉面板可读性 (C040)：联想面板与引擎菜单不再直接沿用搜索框的透明度，
+  // 而是按当前字色取同向底色并设不透明度/模糊下限，文字用高对比墨色
+  const panel = resolveSearchPanelStyle(tone, opacity, blurPx);
+  const panelStyle: React.CSSProperties = {
+    backgroundColor: panel.backgroundColor,
+    backdropFilter: panel.backdropFilter,
+    WebkitBackdropFilter: panel.backdropFilter,
+    borderColor: panel.borderColor,
+    color: panel.textColor,
+    borderRadius: `${Math.min(appearance.radius ?? 24, 18)}px`,
+  };
+  const rowHoverClass = tone === 'light' ? 'hover:bg-white/10' : 'hover:bg-black/5';
+
+  // 联想面板开合 (C040)：关闭时保留最后一批联想项播放退出过渡后再卸载
+  const suggestionsVisible = showSuggestions && query.trim().length > 0 && suggestions.length > 0;
+  const lastSuggestionsRef = useRef<SuggestionItem[]>([]);
+  if (suggestionsVisible) lastSuggestionsRef.current = suggestions;
+  const renderedSuggestions = suggestionsVisible ? suggestions : lastSuggestionsRef.current;
+  // 120ms / 200ms 分别与 motion.css 的 --pop-close-dur、origin-menu 过渡时长一致
+  const suggestionPanel = useDelayedUnmount(suggestionsVisible, 120);
+  const engineMenu = useDelayedUnmount(showEngineMenu, 200);
+
   return (
     <div className={`relative z-20 w-full flex ${alignClass}`}>
       <div
@@ -317,11 +341,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         {topSlot}
         <form
           onSubmit={handleSubmit}
-          className={`liquid-glass-surface relative flex items-center transition-all duration-200 border shadow-sm hover:shadow-md focus-within:shadow-md ${
-            tone === 'light'
-              ? 'border-white/20'
-              : 'border-black/10 dark:border-white/15'
-          }`}
+          data-tone={tone}
+          className="home-layer search-field relative flex items-center transition-all duration-200 border shadow-sm"
           style={{
             width: '100%',
             backgroundColor: `rgba(255, 255, 255, ${opacity})`,
@@ -343,21 +364,20 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               title={`当前搜索引擎：${currentEngine.name}（点击切换）`}
             >
               <div className="w-[18px] h-[18px] flex items-center justify-center flex-shrink-0">
-                <EngineIcon engineId={currentEngine.id} />
+                {/* key 随引擎变化重挂载，重放 t-icon-swap 入场 */}
+                <span key={currentEngine.id} className="t-icon-swap">
+                  <EngineIcon engineId={currentEngine.id} />
+                </span>
               </div>
             </button>
 
             {/* Engine dropdown menu (T11 & C009 & C011: 同质化毛玻璃外观 + 置顶 z-50 防遮挡 + 全域点击关闭) */}
-            {showEngineMenu && (
+            {engineMenu.mounted && (
               <div
                 ref={menuRef}
-                className="origin-menu absolute left-0 top-full mt-2 w-36 py-1.5 border border-black/10 dark:border-white/15 shadow-xl z-50 overflow-hidden"
-                style={{
-                  backgroundColor: `rgba(255, 255, 255, ${opacity})`,
-                  backdropFilter: `blur(${blurPx}px)`,
-                  WebkitBackdropFilter: `blur(${blurPx}px)`,
-                  borderRadius: `${Math.min(appearance.radius ?? 24, 18)}px`,
-                }}
+                data-open={engineMenu.open ? 'true' : 'false'}
+                className="origin-menu absolute left-0 top-full mt-2 w-36 py-1.5 border shadow-xl z-50 overflow-hidden"
+                style={panelStyle}
               >
                 {SEARCH_ENGINES.map((engine) => (
                   <button
@@ -367,11 +387,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                       onEngineChange(engine.id);
                       setShowEngineMenu(false);
                     }}
-                    className={`w-full px-3 py-2 text-left text-xs transition-colors flex items-center space-x-2.5 cursor-pointer ${
-                      engine.id === currentEngine.id
-                        ? 'bg-black/10 dark:bg-white/15 text-stone-900 dark:text-white font-medium'
-                        : 'text-stone-700 dark:text-stone-200 hover:bg-black/5 dark:hover:bg-white/10'
+                    className={`w-full px-3 py-2 text-left text-[13px] transition-colors flex items-center space-x-2.5 cursor-pointer ${
+                      engine.id === currentEngine.id ? 'font-semibold' : rowHoverClass
                     }`}
+                    style={
+                      engine.id === currentEngine.id
+                        ? { backgroundColor: panel.activeRowColor }
+                        : undefined
+                    }
                   >
                     <div className="w-[18px] h-[18px] flex items-center justify-center flex-shrink-0">
                       <EngineIcon engineId={engine.id} />
@@ -439,36 +462,47 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           </button>
         </form>
 
-        {/* Search suggestions dropdown (T13 & C012: 毛玻璃同质化 + 实时联想 + 键盘导航，不记录历史) */}
-        {showSuggestions && query.trim().length > 0 && suggestions.length > 0 && (
+        {/* Search suggestions dropdown (T13 & C012: 实时联想 + 键盘导航，不记录历史；
+            C040: 面板底色/字色按可读性下限取值，t-popover 开合过渡) */}
+        {suggestionPanel.mounted && (
           <div
-            className="origin-top absolute left-0 right-0 top-full mt-2 py-1.5 border border-black/10 dark:border-white/15 shadow-xl z-50 overflow-hidden"
-            style={{
-              backgroundColor: `rgba(255, 255, 255, ${opacity})`,
-              backdropFilter: `blur(${blurPx}px)`,
-              WebkitBackdropFilter: `blur(${blurPx}px)`,
-              borderRadius: `${Math.min(appearance.radius ?? 24, 18)}px`,
-            }}
+            data-open={suggestionPanel.open ? 'true' : 'false'}
+            role="listbox"
+            aria-label="搜索联想"
+            className="t-popover absolute left-0 right-0 top-full mt-2 py-1.5 border shadow-xl z-50 overflow-hidden"
+            style={panelStyle}
           >
-            {suggestions.map((item, index) => (
-              <div
-                key={`${item.text}-${index}`}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                }}
-                onClick={() => handleSelectSuggestion(item.text)}
-                className={`w-full px-3.5 py-2 text-left text-xs transition-colors flex items-center justify-between cursor-pointer group ${
-                  index === selectedIndex
-                    ? 'bg-black/10 dark:bg-white/15 text-stone-900 dark:text-white font-medium'
-                    : 'text-stone-700 dark:text-stone-300 hover:bg-black/5 dark:hover:bg-white/10'
-                }`}
-              >
-                <div className="flex items-center space-x-2.5 min-w-0 flex-1">
-                  <SearchIcon className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
-                  <span className="truncate">{item.text}</span>
+            {renderedSuggestions.map((item, index) => {
+              const isSelected = index === selectedIndex;
+              const { typed, completion } = splitSuggestionText(item.text, rawQueryRef.current);
+              return (
+                <div
+                  key={`${item.text}-${index}`}
+                  role="option"
+                  aria-selected={isSelected}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                  }}
+                  onClick={() => handleSelectSuggestion(item.text)}
+                  className={`w-full px-3.5 py-2.5 text-left text-[13.5px] leading-5 transition-colors flex items-center cursor-pointer ${
+                    isSelected ? '' : rowHoverClass
+                  }`}
+                  style={isSelected ? { backgroundColor: panel.activeRowColor } : undefined}
+                >
+                  <div className="flex items-center space-x-2.5 min-w-0 flex-1">
+                    <SearchIcon
+                      className="w-3.5 h-3.5 flex-shrink-0"
+                      style={{ color: panel.mutedColor }}
+                    />
+                    {/* 已输入部分常规字重、补全部分加粗，一眼区分各候选的差异 */}
+                    <span className="truncate">
+                      {typed}
+                      <span className="font-semibold">{completion}</span>
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

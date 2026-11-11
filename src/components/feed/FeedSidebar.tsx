@@ -346,7 +346,7 @@ export const FeedSidebar: React.FC<FeedSidebarProps> = ({
             </div>
 
             {/* Feeds List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div className="t-tab-in flex-1 overflow-y-auto p-4 space-y-3">
               {isRefreshing && filteredFeeds.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center text-stone-400">
                   <RefreshCw className="w-8 h-8 mb-3 animate-spin text-stone-400 stroke-[1.5]" />
@@ -417,7 +417,7 @@ export const FeedSidebar: React.FC<FeedSidebarProps> = ({
 
         {/* 视图二：源管理 (Source Manager) */}
         {currentView === 'sources' && (
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="t-tab-in flex-1 overflow-y-auto p-4 space-y-4">
             {/* OPML 导入隐藏 Input */}
             <input
               type="file"

@@ -16,6 +16,8 @@ import {
   ExternalLink,
   Search,
 } from 'lucide-react';
+import { resolveLaunchpadBlur } from '../../utils/background';
+import { computeCardStagger } from '../../utils/motion';
 import {
   exportShortcutsToJSON,
   parseShortcutsFromJSON,
@@ -625,7 +627,9 @@ export const Launchpad = React.forwardRef<LaunchpadHandle, LaunchpadProps>(({
       data-open={isOpen ? 'true' : 'false'}
       aria-hidden={!isOpen}
       className="launchpad-overlay fixed inset-0 z-40 flex flex-col select-none"
+      style={{ '--launchpad-blur': `${resolveLaunchpadBlur(background)}px` } as React.CSSProperties}
     >
+      {/* 背景层只做模糊、不叠加任何底色 (C040)；模糊半径取自外观设置 */}
       <div
         className="launchpad-backdrop absolute inset-0"
         onClick={onClose}
@@ -714,7 +718,7 @@ export const Launchpad = React.forwardRef<LaunchpadHandle, LaunchpadProps>(({
                 className={`t-stagger-item flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-full relative ${
                   isExpanded ? 'scale-105' : ''
                 }`}
-                style={{ animationDelay: `${localIndex * 35}ms` }}
+                style={{ animationDelay: `${computeCardStagger(localIndex, 18, 216)}ms` }}
                 title={`文件夹「${shortcut.name}」(${children.length} 个网站)\n点击横向展开 / 右键管理`}
               >
                 {/* 文件夹连续圆角容器 (2x2 四宫格微缩预览，自适应明暗背景) */}
@@ -829,7 +833,7 @@ export const Launchpad = React.forwardRef<LaunchpadHandle, LaunchpadProps>(({
               onContextMenu={(e) => handleContextMenu(e, shortcut)}
               onClick={(e) => handleItemClick(e, shortcut.url)}
               className="t-stagger-item flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-full relative"
-              style={{ animationDelay: `${localIndex * 35}ms` }}
+              style={{ animationDelay: `${computeCardStagger(localIndex, 18, 216)}ms` }}
               title={`${shortcut.name}\n右键查看菜单 / 长按可排序`}
             >
               {/* Icon Container with Squircle Continuous Curve */}
@@ -878,7 +882,7 @@ export const Launchpad = React.forwardRef<LaunchpadHandle, LaunchpadProps>(({
         <button
             onClick={() => handleOpenAdd()}
             className="t-stagger-item flex flex-col items-center group cursor-pointer select-none transition-transform duration-150 active:scale-95 w-full"
-            style={{ animationDelay: `${shortcuts.length * 35}ms` }}
+            style={{ animationDelay: `${computeCardStagger(filteredShortcuts.length, 18, 216)}ms` }}
             title="添加常用网站或文件夹"
           >
             <div className="w-[68px] h-[68px] rounded-[20px] bg-black/5 dark:bg-white/5 backdrop-blur-md border border-dashed border-black/20 dark:border-white/20 flex items-center justify-center transition-colors duration-200 group-hover:bg-black/10 dark:group-hover:bg-white/10 group-hover:scale-105">
@@ -895,7 +899,7 @@ export const Launchpad = React.forwardRef<LaunchpadHandle, LaunchpadProps>(({
 
           {filteredShortcuts.length === 0 && query.trim() && (
             <div
-              className="mx-auto max-w-6xl py-6 text-center text-xs"
+              className="animate-fade-in mx-auto max-w-6xl py-6 text-center text-xs"
               style={{ color: textColor, opacity: 0.55 }}
             >
               没有找到匹配的网站
@@ -905,7 +909,8 @@ export const Launchpad = React.forwardRef<LaunchpadHandle, LaunchpadProps>(({
           {/* 图标文件夹横向展开抽屉托盘 (T15 & C020: Horizontal Expansion Tray 背景自适应) */}
       {expandedFolder && (
         <div
-          className="w-full max-w-2xl mx-auto my-2 px-4 py-3 rounded-2xl shadow-xl animate-fade-in select-none"
+          key={expandedFolder.id}
+          className="t-pop-in w-full max-w-2xl mx-auto my-2 px-4 py-3 rounded-2xl shadow-xl select-none"
           style={{
             backgroundColor: isDark
               ? 'rgba(18, 18, 22, 0.72)'
@@ -1113,7 +1118,7 @@ export const Launchpad = React.forwardRef<LaunchpadHandle, LaunchpadProps>(({
 
       {/* 撤销删除 Toast */}
       {lastRemoved && (
-        <div className="fixed bottom-6 right-6 z-40 flex items-center space-x-3 px-4 py-2.5 bg-stone-900/95 dark:bg-stone-100/95 text-white dark:text-stone-900 text-xs rounded-2xl shadow-xl backdrop-blur-md animate-fade-in select-none">
+        <div className="fixed bottom-6 right-6 z-40 flex items-center space-x-3 px-4 py-2.5 bg-stone-900/95 dark:bg-stone-100/95 text-white dark:text-stone-900 text-xs rounded-2xl shadow-xl backdrop-blur-md t-toast select-none">
           <span>已移除「{lastRemoved.shortcut.name}」</span>
           <button
             onClick={handleUndo}
@@ -1130,8 +1135,15 @@ export const Launchpad = React.forwardRef<LaunchpadHandle, LaunchpadProps>(({
         typeof document !== 'undefined' &&
         createPortal(
           <div
-            style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
-            className="origin-menu fixed z-50 min-w-[150px] p-1 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md rounded-xl border border-black/10 dark:border-white/10 shadow-xl text-stone-800 dark:text-stone-200 select-none animate-fade-in"
+            key={`${contextMenu.shortcut.id}-${contextMenu.x}-${contextMenu.y}`}
+            style={
+              {
+                left: `${contextMenu.x}px`,
+                top: `${contextMenu.y}px`,
+                '--pop-origin': 'top left',
+              } as React.CSSProperties
+            }
+            className="origin-menu t-pop-in fixed z-50 min-w-[150px] p-1 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md rounded-xl border border-black/10 dark:border-white/10 shadow-xl text-stone-800 dark:text-stone-200 select-none"
           >
             {contextMenu.shortcut.isFolder ? (
               // 针对文件夹的右键操作 (T15)
@@ -1283,7 +1295,7 @@ export const Launchpad = React.forwardRef<LaunchpadHandle, LaunchpadProps>(({
           >
             <form
               onSubmit={handleRenameFolderSubmit}
-              className="w-full max-w-xs p-5 bg-white dark:bg-stone-900 rounded-2xl border border-black/10 dark:border-white/10 shadow-2xl space-y-4"
+              className="t-dialog-in w-full max-w-xs p-5 bg-white dark:bg-stone-900 rounded-2xl border border-black/10 dark:border-white/10 shadow-2xl space-y-4"
             >
               <h3 className="text-sm font-semibold text-stone-800 dark:text-white flex items-center gap-1.5">
                 <Folder className="w-4 h-4 opacity-70" />
@@ -1351,7 +1363,7 @@ export const Launchpad = React.forwardRef<LaunchpadHandle, LaunchpadProps>(({
           >
             <form
               onSubmit={handleSaveModal}
-              className="w-full max-w-sm p-6 bg-white dark:bg-stone-900 rounded-2xl border border-black/10 dark:border-white/10 shadow-2xl space-y-4"
+              className="t-dialog-in w-full max-w-sm p-6 bg-white dark:bg-stone-900 rounded-2xl border border-black/10 dark:border-white/10 shadow-2xl space-y-4"
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-stone-800 dark:text-white">
