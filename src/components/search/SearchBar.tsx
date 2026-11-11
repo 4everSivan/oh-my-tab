@@ -338,7 +338,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           maxWidth: `${appearance.width}px`,
         }}
       >
-        {topSlot}
+        {/* 小钟等上方插槽绝对定位在搜索框上方 (C041)：不参与垂直定位计算，
+            无组件时搜索框自身才作为垂直位置的锚点 */}
+        {topSlot && (
+          <div className="absolute bottom-full left-0 right-0">{topSlot}</div>
+        )}
         <form
           onSubmit={handleSubmit}
           data-tone={tone}

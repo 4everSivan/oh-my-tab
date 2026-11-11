@@ -5,10 +5,13 @@ import {
   AlignStyle,
   BackgroundType,
   LAUNCHPAD_BLUR_MAX,
+  SEARCH_POSITION_MIN,
+  SEARCH_POSITION_MAX,
 } from '../../services/storage/types';
 import { X, RotateCcw, Search, Image as ImageIcon, Upload, SlidersHorizontal } from 'lucide-react';
 import { wallpaperStorage } from '../../services/storage/wallpaper';
 import { generateWallpaperThumbnail, resolveLaunchpadBlur } from '../../utils/background';
+import { resolveSearchPosition, clampSearchPosition } from '../../utils/searchAppearance';
 import { useDelayedUnmount } from '../../hooks/useDelayedUnmount';
 
 interface AppearanceDrawerProps {
@@ -16,6 +19,8 @@ interface AppearanceDrawerProps {
   onClose: () => void;
   search: SearchAppearance;
   background: BackgroundConfig;
+  /** 搜索框实测距顶/距底像素 (C041)；有组件时为 null，表示垂直位置不生效 */
+  searchGaps?: { top: number; bottom: number } | null;
   onUpdateSearch: (search: Partial<SearchAppearance>) => void;
   onResetSearch: () => void;
   onUpdateBackground: (bg: Partial<BackgroundConfig>) => void;
@@ -27,6 +32,7 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
   onClose,
   search,
   background,
+  searchGaps,
   onUpdateSearch,
   onResetSearch,
   onUpdateBackground,
@@ -219,6 +225,30 @@ export const AppearanceDrawer: React.FC<AppearanceDrawerProps> = ({
                   onChange={(e) => onUpdateSearch({ width: Number(e.target.value) })}
                   className="w-full accent-stone-800 dark:accent-white"
                 />
+              </div>
+
+              {/* Vertical Position (C041: 距页面顶部/底部的垂直留白) */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-stone-600 dark:text-stone-400">
+                  <span>垂直位置</span>
+                  <span>{resolveSearchPosition(search)} %</span>
+                </div>
+                <input
+                  type="range"
+                  min={SEARCH_POSITION_MIN}
+                  max={SEARCH_POSITION_MAX}
+                  step="1"
+                  value={resolveSearchPosition(search)}
+                  onChange={(e) => onUpdateSearch({ verticalPosition: clampSearchPosition(Number(e.target.value)) })}
+                  aria-label="搜索框垂直位置"
+                  className="w-full accent-stone-800 dark:accent-white"
+                />
+                <p className="text-[11px] text-stone-400 dark:text-stone-500">
+                  0% 贴顶 · 50% 居中 · 100% 贴底；
+                  {searchGaps
+                    ? `当前距顶部 ${searchGaps.top} px、距底部 ${searchGaps.bottom} px。`
+                    : '添加组件后回到顶部布局，垂直位置不生效。'}
+                </p>
               </div>
 
               {/* Transparency */}

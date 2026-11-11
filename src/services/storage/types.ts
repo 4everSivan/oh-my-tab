@@ -9,6 +9,8 @@ export interface SearchAppearance {
   transparency: number; // 0 - 100
   blur: number; // 0 - 24
   radius?: number; // 0 - 28, 默认 24
+  /** 垂直位置百分比 (C041)：0 贴顶 / 100 贴底 / 50 居中；默认 50，仅无组件时生效 */
+  verticalPosition?: number;
 }
 
 export interface BackgroundConfig {
@@ -27,6 +29,10 @@ export interface BackgroundConfig {
 
 export const LAUNCHPAD_BLUR_MAX = 40;
 export const DEFAULT_LAUNCHPAD_BLUR = 30;
+
+export const DEFAULT_SEARCH_POSITION = 50;
+export const SEARCH_POSITION_MIN = 0;
+export const SEARCH_POSITION_MAX = 100;
 
 export interface Shortcut {
   id: string;
@@ -68,6 +74,7 @@ export const DEFAULT_SEARCH_APPEARANCE: SearchAppearance = {
   transparency: 15,
   blur: 12,
   radius: 24,
+  verticalPosition: DEFAULT_SEARCH_POSITION,
 };
 
 export const DEFAULT_BACKGROUND_CONFIG: BackgroundConfig = {

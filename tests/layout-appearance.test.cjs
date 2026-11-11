@@ -188,7 +188,14 @@ test('T20: 无组件时搜索框默认在视口垂直居中，有组件时回到
     'utf8'
   );
   assert.ok(appSrc.includes('hasVisibleWidgets'), 'App 须根据是否存在可见组件切换布局');
-  assert.ok(appSrc.includes('fixed inset-x-0 top-[calc(50%-15px)] -translate-y-1/2'), '无组件时搜索区须固定于视口垂直中心');
+  // C041：旧固定居中偏移由按 verticalPosition 比例伸缩的上下占位层取代，默认 50% 仍居中
+  assert.ok(!appSrc.includes('top-[calc(50%-15px)]'), 'C041 后旧的固定居中偏移须移除');
+  assert.ok(appSrc.includes('fixed inset-0 flex flex-col'), '无组件时搜索区须在视口内按垂直位置定位 (C041)');
+  assert.ok(
+    appSrc.includes('flexGrow: searchVerticalPosition') &&
+      appSrc.includes('flexGrow: 100 - searchVerticalPosition'),
+    '上下占位层须按垂直位置比例伸缩，默认 50% 即居中 (C041)'
+  );
   assert.ok(appSrc.includes("hasVisibleWidgets ? 'pt-16 sm:pt-20' : ''"), '有组件时搜索区须回到顶部布局');
   assert.ok(!searchBarSrc.includes('marginTop: `${appearance.gap}px`'), '搜索框不得再以历史 gap 字段偏移垂直位置');
 });

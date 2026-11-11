@@ -21,6 +21,7 @@ import { feedService, FeedItem, FeedSource } from './services/feed';
 import { WidgetManifest } from './contract/types';
 import { createWidgetInstance } from './contract/widget';
 import { planBackgroundRestore, generateWallpaperThumbnail } from './utils/background';
+import { resolveSearchPosition } from './utils/searchAppearance';
 // useAdaptiveContrast (C015): 统合原 useWallpaperContrast 与 useSearchContrast 为单管线并清空画布释放 GPU 缓冲
 import { useAdaptiveContrast } from './hooks/useAdaptiveContrast';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -83,6 +84,9 @@ export const App: React.FC = () => {
   const [isFeedRefreshing, setIsFeedRefreshing] = useState(false);
   const unreadCount = feeds.filter((f) => !f.read).length;
   const hasVisibleWidgets = layout.some((item) => item.visible);
+  // 垂直位置 (C041)：无组件时搜索框距页面顶部/底部的比例位置，50% 为居中
+  const searchVerticalPosition = resolveSearchPosition(search);
+  const [searchVerticalGaps, setSearchVerticalGaps] = useState<{ top: number; bottom: number } | null>(null);
 
   const clockContainerRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -132,6 +136,27 @@ export const App: React.FC = () => {
       isMounted = false;
     };
   }, []);
+
+  // 垂直位置实测 (C041)：把搜索框真实的距顶部/距底部像素传给外观设置面板。
+  // 有组件时回到顶部布局，该设置不生效，清空实测值让面板显示对应提示。
+  useLayoutEffect(() => {
+    if (hasVisibleWidgets) {
+      setSearchVerticalGaps(null);
+      return;
+    }
+    const update = () => {
+      const element = searchContainerRef.current;
+      if (!element) return;
+      const rect = element.getBoundingClientRect();
+      setSearchVerticalGaps({
+        top: Math.round(rect.top),
+        bottom: Math.round(window.innerHeight - rect.bottom),
+      });
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [hasVisibleWidgets, searchVerticalPosition]);
 
   // 并行批处理加载配置并建立 Blob URL 生命周期回收机制 (C015)
   useEffect(() => {
@@ -780,9 +805,12 @@ export const App: React.FC = () => {
 
       {/* Main Workbench Area */}
       <main className={`flex-1 flex flex-col items-center w-full px-4 z-0 ${hasVisibleWidgets ? 'pt-16 sm:pt-20' : ''}`}>
-        {/* Search Bar + 左上方小钟 (T20)：无组件时作为整体垂直居中 */}
-        <div className={`flex w-full flex-col ${hasVisibleWidgets ? '' : 'fixed inset-x-0 top-[calc(50%-15px)] -translate-y-1/2 px-4'}`}>
-          <div ref={searchContainerRef} className="w-full">
+        {/* Search Bar + 左上方小钟 (T20)：无组件时搜索框按垂直位置在视口内定位 (C041) */}
+        <div className={`w-full ${hasVisibleWidgets ? 'flex flex-col' : 'fixed inset-0 flex flex-col px-4 pointer-events-none'}`}>
+          {!hasVisibleWidgets && (
+            <div aria-hidden="true" style={{ flexGrow: searchVerticalPosition, flexBasis: 0 }} />
+          )}
+          <div ref={searchContainerRef} className="w-full pointer-events-auto">
             <SearchBar
               appearance={search}
               engineId={engine}
@@ -801,6 +829,9 @@ export const App: React.FC = () => {
               }
             />
           </div>
+          {!hasVisibleWidgets && (
+            <div aria-hidden="true" style={{ flexGrow: 100 - searchVerticalPosition, flexBasis: 0 }} />
+          )}
         </div>
 
         {/* 12-Column Responsive Widgets Area（用户自行添加；默认不出现） */}
@@ -850,6 +881,7 @@ export const App: React.FC = () => {
           onClose={() => setIsDrawerOpen(false)}
           search={search}
           background={background}
+          searchGaps={searchVerticalGaps}
           onUpdateSearch={handleUpdateSearch}
           onResetSearch={handleResetSearch}
           onUpdateBackground={handleUpdateBackground}
