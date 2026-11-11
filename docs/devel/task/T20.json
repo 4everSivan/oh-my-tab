@@ -4,7 +4,7 @@
   "title": "首页极简化与启动台改版（小钟、移除闲置与大时钟、网站图标迁移）",
   "version": "v0.3.0",
   "milestone": "M3-v0.3.0-视觉质感突破与智能交互",
-  "status": "in_progress",
+  "status": "completed",
   "branch": "feat/T20-home-launchpad-redesign",
   "depends_on": [
     "T05",
@@ -112,12 +112,14 @@
     ]
   },
   "sync": {
-    "commit": ""
+    "commit": "9da8867"
   },
   "gate": {
     "tool": "adflow-verify",
     "version": "1.6.0",
-    "ran_at": "",
-    "exit_code": null
+    "ran_at": "2026-11-11",
+    "exit_code": 0,
+    "from_status": "in_progress",
+    "target_status": "completed"
   }
 }

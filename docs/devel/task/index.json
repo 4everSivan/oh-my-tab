@@ -44,7 +44,7 @@
         "T19",
         "T20"
       ],
-      "status": "active"
+      "status": "completed"
     }
   },
   "topics": {
@@ -343,7 +343,7 @@
     },
     "T20": {
       "title": "首页极简化与启动台改版（小钟、移除闲置与大时钟、网站图标迁移）",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "feat/T20-home-launchpad-redesign",
       "milestone": "M3-v0.3.0-视觉质感突破与智能交互",
       "depends_on": [
