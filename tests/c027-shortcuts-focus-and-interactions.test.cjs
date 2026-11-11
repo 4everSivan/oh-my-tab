@@ -138,18 +138,21 @@ test('C027: SearchBar 方向键导航不触发二次联想且接入 IME 保护 (
   );
 });
 
-test('C027: useAdaptiveContrast 接收 clockConfig 并在几何属性改变时重采 (N11)', () => {
+test('C027/T20: useAdaptiveContrast 统一采样小钟与搜索区域并移除时钟几何参数 (N11)', () => {
   assert.ok(
-    contrastSrc.includes('clockConfig?: ClockAppearance'),
-    'useAdaptiveContrast 签名必须接收 clockConfig 可选参数'
+    contrastSrc.includes('clockRef?: React.RefObject<HTMLElement | null>') &&
+      contrastSrc.includes('searchRef?: React.RefObject<HTMLElement | null>'),
+    'useAdaptiveContrast 必须接收小钟与搜索框两个采样引用'
   );
   assert.ok(
-    contrastSrc.includes('clockConfig?.top') && contrastSrc.includes('clockConfig?.size'),
-    'useAdaptiveContrast 依赖数组必须包含 clockConfig.top 与 clockConfig.size'
+    !contrastSrc.includes('clockConfig'),
+    'T20 后 useAdaptiveContrast 不应再依赖可调时钟外观参数'
   );
   assert.ok(
-    appSrc.includes('useAdaptiveContrast(') && appSrc.includes('clock\n  )'),
-    'App.tsx 必须将 clock 传给 useAdaptiveContrast 形成闭环'
+    appSrc.includes('useAdaptiveContrast(') &&
+      appSrc.includes('clockContainerRef') &&
+      appSrc.includes('searchContainerRef'),
+    'App.tsx 必须将小钟与搜索框引用传入统一采样管线'
   );
 });
 

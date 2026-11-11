@@ -25,12 +25,12 @@ test('C015: loadAllSettings 采用 Promise.all 并发读取，消除串行 IPC �
   assert.ok(match, 'loadAllSettings 必须使用 Promise.all 并行加载 6 大核心配置');
   
   const promisesContent = match[1];
-  assert.ok(promisesContent.includes('this.getClock()'), '必须并发读取 clock');
   assert.ok(promisesContent.includes('this.getSearch()'), '必须并发读取 search');
   assert.ok(promisesContent.includes('this.getEngine()'), '必须并发读取 engine');
   assert.ok(promisesContent.includes('this.getBackground()'), '必须并发读取 background');
   assert.ok(promisesContent.includes('this.getShortcuts()'), '必须并发读取 shortcuts');
   assert.ok(promisesContent.includes('this.getLayout()'), '必须并发读取 layout');
+  assert.ok(!promisesContent.includes('this.getClock()'), 'T20 后大时钟配置不再参与启动加载');
 });
 
 test('C015: useAdaptiveContrast 统合为单画布采样管线，并在采样后释放 GPU 内存与节流 resize', () => {
@@ -55,9 +55,9 @@ test('C015: App.tsx 首帧使用惰性初始化直出用户配置，且管理 Bl
 
   // 惰性状态初始化
   assert.ok(appSrc.includes('const boot = getBootCache()'), 'App 必须同步获取启动快照');
-  assert.ok(appSrc.includes('useState<ClockAppearance>(() => boot?.clock ?? DEFAULT_CLOCK_APPEARANCE)'), 'clock state 必须使用惰性初始化');
   assert.ok(appSrc.includes('useState<SearchAppearance>(() => boot?.search ?? DEFAULT_SEARCH_APPEARANCE)'), 'search state 必须使用惰性初始化');
   assert.ok(appSrc.includes('useState<BackgroundConfig>(() => boot?.background ?? DEFAULT_BACKGROUND_CONFIG)'), 'background state 必须使用惰性初始化');
+  assert.ok(!appSrc.includes('ClockAppearance'), 'T20 后 App 不再持有大时钟外观状态');
 
   // 并发加载
   assert.ok(appSrc.includes('storageService.loadAllSettings()'), 'App 必须调用并发批处理 loadAllSettings');

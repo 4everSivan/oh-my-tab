@@ -1,6 +1,6 @@
 # 系统设计中心 (design/)
 
-> **created**: 2026-10-07 ｜ **last-change**: 2026-10-14 ｜ **status**: active
+> **created**: 2026-10-07 ｜ **last-change**: 2026-11-10 ｜ **status**: active
 
 ## 1. 简介
 
@@ -24,14 +24,14 @@
 
 | 文档名称 | 对应 Topic | 文档 ID | 核心职责概述 | 状态 | 最后更新 |
 |---|---|---|---|---|---|
-| [00-系统总体设计.md](00-系统总体设计.md) | `SystemOverview` | `DESIGN-SYS` | 首页确认来源、产品边界、模块职责与证据状态 | draft | 2026-10-08 |
-| [01-页面入口与导航.md](01-页面入口与导航.md) | `EntryNavigation` | `DESIGN-NAV` | 网页搜索、网站图标/右键/排序；入口及分组方案 | draft | 2026-10-08 |
-| [02-工作台布局与外观.md](02-工作台布局与外观.md) | `WorkspaceAppearance` | `DESIGN-LAYOUT` | 首页、时间/搜索参数、背景与恢复；布局/CSS 方案 | draft | 2026-10-08 |
+| [00-系统总体设计.md](00-系统总体设计.md) | `SystemOverview` | `DESIGN-SYS` | 首页确认来源、产品边界、模块职责与证据状态 | draft | 2026-11-10 |
+| [01-页面入口与导航.md](01-页面入口与导航.md) | `EntryNavigation` | `DESIGN-NAV` | 网页搜索、启动台页面、网站图标/右键/排序；入口及分组方案 | draft | 2026-11-10 |
+| [02-工作台布局与外观.md](02-工作台布局与外观.md) | `WorkspaceAppearance` | `DESIGN-LAYOUT` | 首页、小钟/搜索参数、背景与恢复；布局/CSS 方案 | 现行基线 | 2026-11-10 |
 | [03-效率组件.md](03-效率组件.md) | `ProductivityWidgets` | `DESIGN-WIDGETS` | 按需添加、移除保留内容；组件完整范围 | draft | 2026-10-08 |
 | [04-数据保存与同步.md](04-数据保存与同步.md) | `DataPersistenceSync` | `DESIGN-DATA` | 首页保存/恢复边界与原型迁移；正式存储/同步方案 | draft | 2026-10-08 |
 | [05-深度扩展与外部数据.md](05-深度扩展与外部数据.md) | `ExtensionDataSources` | `DESIGN-EXT` | 外部数据源接入、权限与请求降级；组件契约见 06 | draft | 2026-10-08 |
 | [06-组件契约与注册.md](06-组件契约与注册.md) | `WidgetContract` | `DESIGN-WIDGET-CONTRACT` | 组件契约、注册表、实例模型、宿主服务与状态分类 | draft | 2026-10-08 |
-| [07-动效系统.md](07-动效系统.md) | `MotionSystem` | `DESIGN-MOTION` | 动效令牌梯度、t-* 片段命名空间、React 集成与 reduced-motion 降级 | 现行基线 | 2026-10-09 |
+| [07-动效系统.md](07-动效系统.md) | `MotionSystem` | `DESIGN-MOTION` | 动效令牌梯度、t-* 片段命名空间、React 集成与 reduced-motion 降级 | 现行基线 | 2026-11-10 |
 
 只登记已生成且有真实来源的设计，同时在 [研发索引](../index.json) 登记其路由；空项目保持清单为空。状态如实区分草稿与已批准基线，不把示例登记成项目能力。
 

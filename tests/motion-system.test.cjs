@@ -178,35 +178,23 @@ test('动效参数单一来源：组件源码不散落硬编码动效时长', ()
   }
 });
 
-// 7. C007 极简折叠模式下时间与搜索框零位移契约
-test('极简折叠模式切换时 header 保持占位高度稳定，时钟与搜索框零位移 (C007)', () => {
+// 7. T20 启动台淡入淡出契约
+test('启动台以 data-open 承载淡入淡出，且极简折叠模式已移除 (T20)', () => {
   const appSrc = fs.readFileSync(path.resolve(__dirname, '../src/App.tsx'), 'utf-8');
-  // header 必须常驻渲染，禁止使用 !isCollapsed && <header> 条件卸载
-  assert.ok(!appSrc.includes('!isCollapsed && ('), 'header 不得使用 !isCollapsed 条件卸载以防高度坍塌');
-  // header 必须通过 opacity-0 pointer-events-none 响应 isCollapsed
-  assert.ok(
-    appSrc.includes("isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'"),
-    'header 须通过 opacity 与 pointer-events 平滑显隐'
-  );
-  // workspace-container 承载折叠动画
-  assert.ok(
-    appSrc.includes("data-collapsed={isCollapsed ? 'true' : 'false'}"),
-    '工作台容器须经 data-collapsed 承载折叠'
-  );
+  const launchpadSrc = fs.readFileSync(path.resolve(__dirname, '../src/components/shortcuts/Shortcuts.tsx'), 'utf-8');
+  assert.ok(appSrc.includes('isLaunchpadOpen'), 'App 须管理启动台开关状态');
+  assert.ok(appSrc.includes('<Launchpad'), 'App 须挂载 Launchpad 组件');
+  assert.ok(launchpadSrc.includes("data-open={isOpen ? 'true' : 'false'}"), '启动台须以 data-open 控制开合');
+  assert.ok(launchpadSrc.includes('launchpad-overlay'), '启动台须使用 launchpad-overlay 过渡容器');
+  assert.ok(launchpadSrc.includes('launchpad-shell'), '启动台内容须使用 launchpad-shell 收束过渡');
+  assert.ok(motionCss.includes('.launchpad-overlay[data-open=\'true\']'), 'motion.css 须定义打开态样式');
+  assert.ok(!appSrc.includes('isCollapsed'), 'T20 后不得残留极简折叠状态');
+  assert.ok(!appSrc.includes('workspace-container'), 'T20 后不得残留折叠容器');
 });
 
 // 8. C008 添加图标级联入场与工作台折叠容器滤镜解耦契约
-test('工作台折叠容器禁止 filter:blur 且常用网站添加按钮接入级联延迟 (C008)', () => {
+test('启动台添加按钮接入级联延迟且不引入 filter 过渡 (C008/T20)', () => {
   const shortcutsSrc = fs.readFileSync(path.resolve(__dirname, '../src/components/shortcuts/Shortcuts.tsx'), 'utf-8');
-  // 1. workspace-container 折叠态严禁应用 filter: blur 以防破坏后代 backdrop-filter 合成层
-  assert.ok(
-    !/\.workspace-container\[data-collapsed=['"]true['"]\]\s*\{[^}]*filter:\s*blur/m.test(motionCss),
-    'workspace-container 折叠态不得包含 filter: blur'
-  );
-  assert.ok(
-    !/\.workspace-container\s*\{[^}]*transition:[^}]*filter/m.test(motionCss),
-    'workspace-container 基础样式不得为 filter 声明过渡'
-  );
   // 2. Shortcuts.tsx 的添加按钮必须接入 t-stagger-item 与尾随延迟
   assert.ok(
     shortcutsSrc.includes('Add Shortcut Button (C008: 接入 t-stagger-item 与尾随延迟'),

@@ -98,12 +98,12 @@ test('C029: App.tsx 对四大抽屉与模态实施 React.lazy 异步分包与空
 test('C029: 消除启动首帧全树二次 Re-render 与非关键网络争抢', () => {
   // loadAllSettings 深度比对防二次渲染
   assert.ok(
-    appSrc.includes('JSON.stringify(c) !== JSON.stringify(boot?.clock)'),
-    'loadAll 必须比对 clock 配置一致性以跳过冗余 setState'
-  );
-  assert.ok(
     appSrc.includes('JSON.stringify(s) !== JSON.stringify(boot?.search)'),
     'loadAll 必须比对 search 配置一致性以跳过冗余 setState'
+  );
+  assert.ok(
+    appSrc.includes('if (e !== boot?.engine) setEngine(e)'),
+    'loadAll 必须比对引擎配置一致性以跳过冗余 setState'
   );
   assert.ok(
     appSrc.includes('JSON.stringify(finalBackground) !== JSON.stringify(boot?.background)'),

@@ -116,16 +116,6 @@ test('常用网站弹窗与浮层必须经 createPortal 挂载至 document.body�
   assert.ok(/createPortal\([\s\S]*?className="[^"]*origin-menu[\s\S]*?document\.body\s*\)/.test(shortcutsSrc));
   // 撤销 Toast 也必须挂载到 document.body
   assert.ok(/createPortal\([\s\S]*?className="[^"]*t-toast[\s\S]*?document\.body\s*\)/.test(shortcutsSrc));
-
-  // motion.css 中的 .workspace-container 展开态不得常驻 transform/filter
-  const motionSrc = fs.readFileSync(
-    path.join(__dirname, '..', 'src', 'styles', 'motion.css'),
-    'utf8'
-  );
-  const containerMatch = motionSrc.match(/\.workspace-container\s*\{([\s\S]*?)\}/);
-  assert.ok(containerMatch, 'motion.css 必须包含 .workspace-container 规则');
-  assert.ok(containerMatch[1].includes('transform: none'), '展开态必须为 transform: none');
-  assert.ok(containerMatch[1].includes('filter: none'), '展开态必须为 filter: none');
 });
 
 // ── C009 搜索引擎菜单防遮挡层叠契约 ────────────────────────────

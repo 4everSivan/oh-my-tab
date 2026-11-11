@@ -2,7 +2,7 @@
  "$schema": "adflow-devel-index-v1",
  "project": "oh-my-tab",
  "created": "2026-10-07",
- "last_change": "2026-10-09",
+ "last_change": "2026-11-11",
   "status": "active",
   "description": "研发内场核心工作区总账路由，聚合现行设计基线与执行卡池",
   "subsystems": [
@@ -19,19 +19,19 @@
           "doc": "docs/devel/design/00-系统总体设计.md",
           "status": "draft",
           "description": "首页设计确认来源、产品边界、模块职责与证据状态",
-          "last_change": "2026-10-08",
-          "confirmed_on": "2026-10-08",
-          "confirmed_scope": "当前首页交互外观、技术栈选型(React 18+TS+Vite+Tailwind)、构建隔离(local/dist)、首版组件范围(Todo/Notes/Timer)与原生存储方案"
+          "last_change": "2026-11-10",
+          "confirmed_on": "2026-11-10",
+          "confirmed_scope": "2026-11-10 首页极简化：小钟+搜索、启动台独立页面、移除大时钟/时间收起/闲置模式；技术栈选型(React 18+TS+Vite+Tailwind)、构建隔离(local/dist)、首版组件范围(Todo/Notes/Timer)与原生存储方案"
         },
         {
           "id": "DESIGN-NAV",
           "topic": "EntryNavigation",
           "doc": "docs/devel/design/01-页面入口与导航.md",
           "status": "draft",
-          "description": "网页搜索、网站图标与右键/排序；页面入口及分组方案",
-          "last_change": "2026-10-08",
-          "confirmed_on": "2026-10-08",
-          "confirmed_scope": "Google 默认与引擎切换、网站配置/图标回退/右键管理/长按排序"
+          "description": "网页搜索、启动台页面、网站图标与右键/排序；页面入口及分组方案",
+          "last_change": "2026-11-10",
+          "confirmed_on": "2026-11-10",
+          "confirmed_scope": "Google 默认与引擎切换、网站配置/图标回退/右键管理/长按排序；2026-11-10 启动台独立页面（左上角无文字图标+L、过滤、响应式网格、文件夹、淡入淡出），移除单排分页与 ⌘+1~6"
         },
         {
           "id": "DESIGN-LAYOUT",
@@ -87,9 +87,9 @@
           "doc": "docs/devel/design/07-动效系统.md",
           "status": "baseline",
           "description": "动效令牌梯度、t-* 片段命名空间、React 集成与 reduced-motion 降级",
-          "last_change": "2026-10-09",
-          "confirmed_on": "2026-10-09",
-          "confirmed_scope": "纯 CSS 动效路线（参考 transitions.dev）、首版 7 类片段范围、系统级 reduced-motion 守卫、不引入 JS 动效库"
+          "last_change": "2026-11-10",
+          "confirmed_on": "2026-11-10",
+          "confirmed_scope": "纯 CSS 动效路线（参考 transitions.dev）、首版 7 类片段范围、系统级 reduced-motion 守卫、不引入 JS 动效库；2026-11-10 移除 MOT-09 折叠与 MOT-14 闲置，新增 MOT-15 启动台淡入淡出"
         }
       ]
     },

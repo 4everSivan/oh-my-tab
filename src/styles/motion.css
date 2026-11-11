@@ -63,12 +63,6 @@
   --list-enter-blur: 2px;
   --list-enter-ease: cubic-bezier(0.34, 1.36, 0.64, 1);
 
-  /* ── t-idle-glass 闲置聚焦淡化系统 (MOT-14 & LAY-13) ── */
-  --idle-fade-dur: 1000ms;  /* 淡出/淡化的统一时长 */
-  --idle-wake-dur: 200ms;   /* 任意交互唤醒整页的时长 */
-  --idle-opacity: 0.38;     /* 搜索框在闲置态保留的透明度（其余区块隐去） */
-  --ease-idle-fade: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-idle-wake: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-apple: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -258,32 +252,6 @@
   animation: t-fade-in var(--motion-duration-fast) ease-out both;
 }
 
-/* ══ workspace-container 工作台极简模式平滑折叠 ═══════════════
- * 点击时间收起/展开：高度平滑收缩，伴随微缩放 scale(0.97) 与 translateY(-16px)。
- * 注意：展开态保持 transform: none 与 filter: none (C006)；
- * 严禁在折叠态应用 filter: blur 以免与子组件 backdrop-blur 产生 GPU 合成层闪烁 (C008) */
-.workspace-container {
-  max-height: 1600px;
-  opacity: 1;
-  transform: none;
-  filter: none;
-  transition:
-    max-height 320ms var(--motion-ease-smooth-out),
-    opacity 250ms var(--motion-ease-smooth-out),
-    transform 320ms var(--motion-ease-smooth-out);
-  transform-origin: top center;
-  overflow: visible;
-}
-.workspace-container[data-collapsed='true'] {
-  max-height: 0 !important;
-  opacity: 0;
-  transform: translateY(-16px) scale(0.97);
-  pointer-events: none;
-  overflow: hidden;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-}
-
 /* ══ t-stagger-item 常用网站级联入场与微交互 ═════════════════
  * 首次呈现时每个图标级联升起；带有实体按键弹性按压。
  * C029: 消除 filter: blur，锁定 GPU 合成器硬件加速，提速至 240ms 呈现轻快敏捷手感。 */
@@ -350,61 +318,59 @@
   will-change: transform, opacity, filter;
 }
 
-/* ══ t-idle-glass 闲置聚焦淡化系统 (MOT-14 & LAY-13) ══════════
- * 闲置达到阈值后，时钟、顶栏按钮群、网站图标栏与页脚在 --idle-fade-dur
- * 内淡出隐去，只保留搜索框作为唯一常亮入口；任意全域活动以
- * --idle-wake-dur 唤醒整页。隐去后同时让出指针事件，杜绝不可见点击目标。 */
-.t-idle-target,
-.t-idle-topbar,
-.t-idle-shortcuts,
-.t-idle-clock,
-.t-idle-search {
-  transition: opacity var(--idle-wake-dur) var(--ease-idle-wake);
-  will-change: opacity;
-}
-
-[data-idle="true"] .t-idle-target,
-[data-idle="true"] .t-idle-topbar,
-[data-idle="true"] .t-idle-shortcuts,
-[data-idle="true"] .t-idle-clock {
-  opacity: 0;
-  pointer-events: none;
-  transition-property: opacity !important;
-  transition-duration: var(--idle-fade-dur) !important;
-  transition-timing-function: var(--ease-idle-fade) !important;
-  transition-delay: 0ms !important;
-}
-
-/* 搜索框是闲置态唯一保留的元素：同样淡出到 --idle-opacity，但不隐去、不让出指针事件 */
-[data-idle="true"] .t-idle-search {
-  opacity: var(--idle-opacity);
-  transition-property: opacity !important;
-  transition-duration: var(--idle-fade-dur) !important;
-  transition-timing-function: var(--ease-idle-fade) !important;
-  transition-delay: 0ms !important;
-}
-
-/* 闲置态指针扫过：只点亮搜索框这一块，时钟与图标栏保持隐去（移动鼠标不唤醒整页） */
-[data-idle="true"] .t-idle-search:hover {
-  opacity: 1;
-  transition-duration: var(--idle-wake-dur) !important;
-  transition-timing-function: var(--ease-idle-wake) !important;
-  transition-delay: 0ms !important;
-}
-
 /* 液态玻璃核心表面与阴影（搜索框在闲置态仍是唯一保留的交互面，故不设闲置态变体） */
 .liquid-glass-surface {
   box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.08),
               inset 0 1px 1px 0 rgba(255, 255, 255, 0.35);
-  transition: box-shadow var(--idle-wake-dur) var(--ease-idle-wake),
-              border-color var(--idle-wake-dur) var(--ease-idle-wake);
+  transition: box-shadow 200ms var(--motion-ease-smooth-out),
+              border-color 200ms var(--motion-ease-smooth-out);
 }
 
 .liquid-glass-surface:hover {
   box-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.18),
               inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.65);
-  transition-duration: var(--idle-wake-dur) !important;
-  transition-timing-function: var(--ease-idle-wake) !important;
+  transition-duration: 200ms !important;
+  transition-timing-function: var(--motion-ease-smooth-out) !important;
+}
+
+/* ══ launchpad-overlay 启动台淡入淡出 (MOT-15 & T20) ═════════
+ * 启动台始终挂载，靠 data-open 控制透明度与可交互性；关闭时先淡出再隐藏，
+ * 保证再次打开/关闭都能完整播放过渡。 */
+.launchpad-overlay {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 280ms var(--motion-ease-smooth-out),
+    visibility 0s linear 280ms;
+}
+
+.launchpad-overlay[data-open='true'] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity 280ms var(--motion-ease-smooth-out),
+    visibility 0s;
+}
+
+.launchpad-backdrop {
+  background: rgba(238, 245, 250, 0.5);
+  backdrop-filter: blur(30px) saturate(1.12);
+  -webkit-backdrop-filter: blur(30px) saturate(1.12);
+}
+
+.dark .launchpad-backdrop {
+  background: rgba(18, 18, 22, 0.62);
+}
+
+.launchpad-shell {
+  transform: scale(1.012);
+  transition: transform 400ms var(--motion-ease-smooth-out);
+}
+
+.launchpad-overlay[data-open='true'] .launchpad-shell {
+  transform: scale(1);
 }
 
 /* ══ 全局降级守卫 ════════════════════════════════════════════
@@ -426,7 +392,6 @@
   .t-modal-overlay,
   .t-panel-slide,
   .t-panel-overlay,
-  .workspace-container,
   .origin-menu,
   .t-tabs-sliding,
   .t-check,
@@ -435,34 +400,12 @@
     transition-duration: 0.01ms !important;
     transition-delay: 0ms !important;
   }
-  /* 闲置淡化例外：它只有透明度通道，无位移/缩放/模糊，属低频状态反馈而非
-   * 运动刺激。归零会让"淡出至只留搜索框"退化为瞬跳、整套系统等于不可见，
-   * 故保留 opacity 过渡与 fade 时长，其余通道一律不走过渡。 */
-  .t-idle-target,
-  .t-idle-topbar,
-  .t-idle-shortcuts,
-  .t-idle-clock,
-  .t-idle-search {
-    transition-property: opacity !important;
-    transition-duration: var(--idle-wake-dur) !important;
-    transition-delay: 0ms !important;
-  }
-  [data-idle="true"] .t-idle-target,
-  [data-idle="true"] .t-idle-topbar,
-  [data-idle="true"] .t-idle-shortcuts,
-  [data-idle="true"] .t-idle-clock,
-  [data-idle="true"] .t-idle-search {
-    transition-property: opacity !important;
-    transition-duration: var(--idle-fade-dur) !important;
-    transition-delay: 0ms !important;
-  }
   .t-digit,
   .t-card-enter,
   .t-list-enter,
   .t-stagger-item,
   .t-toast,
   .t-panel-slide,
-  .workspace-container,
   .origin-menu {
     filter: none;
   }

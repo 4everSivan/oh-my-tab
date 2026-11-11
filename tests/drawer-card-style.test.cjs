@@ -22,11 +22,11 @@ const motionCss = fs.readFileSync(
   'utf8'
 );
 
-test('C023: AppearanceDrawer Tab 导航采用 Segmented Control 且防折行', () => {
+test('C023/T20: AppearanceDrawer Tab 收口为搜索/壁纸两段且防折行', () => {
   // 1. 分段控制容器
   assert.ok(
-    drawerSrc.includes('grid grid-cols-4') && drawerSrc.includes('rounded-xl'),
-    'AppearanceDrawer 必须使用 grid-cols-4 分段控件样式'
+    drawerSrc.includes('grid grid-cols-2') && drawerSrc.includes('rounded-xl'),
+    'AppearanceDrawer 必须使用 grid-cols-2 分段控件样式'
   );
 
   // 2. 精简标题与 whitespace-nowrap
@@ -34,10 +34,10 @@ test('C023: AppearanceDrawer Tab 导航采用 Segmented Control 且防折行', (
     drawerSrc.includes('whitespace-nowrap'),
     'Tab 按钮必须声明 whitespace-nowrap 防止多行断字'
   );
-  assert.ok(drawerSrc.includes('<span>时钟</span>'), 'Tab 必须采用精简标题「时钟」');
   assert.ok(drawerSrc.includes('<span>搜索</span>'), 'Tab 必须采用精简标题「搜索」');
   assert.ok(drawerSrc.includes('<span>壁纸</span>'), 'Tab 必须采用精简标题「壁纸」');
-  assert.ok(drawerSrc.includes('<span>快捷键</span>'), 'Tab 必须采用精简标题「快捷键」');
+  assert.ok(!drawerSrc.includes('<span>时钟</span>'), 'T20 后必须移除时钟 Tab');
+  assert.ok(!drawerSrc.includes('<span>快捷键</span>'), 'T20 后必须移除网站快捷键 Tab');
 
   // 3. 彻底移除旧易折行标题
   assert.ok(!drawerSrc.includes('<span>时间与日期</span>'), '必须移除易折行的长标题「时间与日期」');

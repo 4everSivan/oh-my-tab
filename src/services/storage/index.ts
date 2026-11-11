@@ -1,24 +1,19 @@
 import {
-  ClockAppearance,
   SearchAppearance,
   BackgroundConfig,
   Shortcut,
   ShortcutGroup,
   LayoutItem,
-  DEFAULT_CLOCK_APPEARANCE,
   DEFAULT_SEARCH_APPEARANCE,
   DEFAULT_BACKGROUND_CONFIG,
   DEFAULT_SHORTCUTS,
   DEFAULT_SHORTCUT_GROUPS,
   DEFAULT_LAYOUT,
-  DEFAULT_IDLE_APPEARANCE,
-  IdleAppearance,
 } from './types';
 import { chromeStorageAdapter, IStorageAdapter } from './chromeStorage';
 import { wallpaperStorage, WallpaperStorage } from './wallpaper';
 
 const STORAGE_KEYS = {
-  CLOCK: 'settings.clock',
   SEARCH: 'settings.search',
   ENGINE: 'settings.engine',
   BACKGROUND: 'settings.background',
@@ -26,15 +21,12 @@ const STORAGE_KEYS = {
   SHORTCUT_GROUPS: 'settings.shortcutGroups',
   ACTIVE_SHORTCUT_GROUP_ID: 'settings.activeShortcutGroupId',
   LAYOUT: 'settings.layout',
-  SHORTCUT_KEYS_ENABLED: 'settings.shortcutKeysEnabled',
-  IDLE: 'settings.idle',
   WIDGET_CONTENT_PREFIX: 'widgets/',
 };
 
 export const BOOT_CACHE_KEY = 'oh_my_tab_boot_cache';
 
 export interface BootCache {
-  clock?: ClockAppearance;
   search?: SearchAppearance;
   engine?: string;
   background?: BackgroundConfig;
@@ -42,8 +34,6 @@ export interface BootCache {
   shortcutGroups?: ShortcutGroup[];
   activeShortcutGroupId?: string;
   layout?: LayoutItem[];
-  shortcutKeysEnabled?: boolean;
-  idle?: IdleAppearance;
   savedAt?: number;
 }
 
@@ -103,7 +93,6 @@ export class StorageService {
    * 并行批量拉取所有核心配置，大幅降低扩展 IPC 往返延迟并同步刷新启动快照 (C015)
    */
   async loadAllSettings(): Promise<{
-    clock: ClockAppearance;
     search: SearchAppearance;
     engine: string;
     background: BackgroundConfig;
@@ -111,11 +100,8 @@ export class StorageService {
     shortcutGroups: ShortcutGroup[];
     activeShortcutGroupId: string;
     layout: LayoutItem[];
-    shortcutKeysEnabled: boolean;
-    idle: IdleAppearance;
   }> {
-    const [clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout, shortcutKeysEnabled, idle] = await Promise.all([
-      this.getClock(),
+    const [search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout] = await Promise.all([
       this.getSearch(),
       this.getEngine(),
       this.getBackground(),
@@ -123,12 +109,10 @@ export class StorageService {
       this.getShortcutGroups(),
       this.getActiveShortcutGroupId(),
       this.getLayout(),
-      this.getShortcutKeysEnabled(),
-      this.getIdle(),
     ]);
 
-    updateBootCache({ clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout, shortcutKeysEnabled, idle });
-    return { clock, search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout, shortcutKeysEnabled, idle };
+    updateBootCache({ search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout });
+    return { search, engine, background, shortcuts, shortcutGroups, activeShortcutGroupId, layout };
   }
 
   /**
@@ -138,8 +122,7 @@ export class StorageService {
     if (!this.adapter.onChanged) return () => {};
     return this.adapter.onChanged((changes) => {
       for (const [key, change] of Object.entries(changes)) {
-        if (key === STORAGE_KEYS.CLOCK) updateBootCache({ clock: change.newValue as ClockAppearance });
-        else if (key === STORAGE_KEYS.SEARCH) updateBootCache({ search: change.newValue as SearchAppearance });
+        if (key === STORAGE_KEYS.SEARCH) updateBootCache({ search: change.newValue as SearchAppearance });
         else if (key === STORAGE_KEYS.ENGINE) updateBootCache({ engine: change.newValue as string });
         else if (key === STORAGE_KEYS.BACKGROUND) {
           const background = toPersistedBackground(change.newValue as BackgroundConfig);
@@ -151,34 +134,9 @@ export class StorageService {
         else if (key === STORAGE_KEYS.SHORTCUT_GROUPS) updateBootCache({ shortcutGroups: change.newValue as ShortcutGroup[] });
         else if (key === STORAGE_KEYS.ACTIVE_SHORTCUT_GROUP_ID) updateBootCache({ activeShortcutGroupId: change.newValue as string });
         else if (key === STORAGE_KEYS.LAYOUT) updateBootCache({ layout: change.newValue as LayoutItem[] });
-        else if (key === STORAGE_KEYS.SHORTCUT_KEYS_ENABLED) updateBootCache({ shortcutKeysEnabled: change.newValue as boolean });
-        else if (key === STORAGE_KEYS.IDLE) updateBootCache({ idle: change.newValue as IdleAppearance });
 
         callback(key, change.newValue);
       }
-    });
-  }
-
-  // Clock
-  async getClock(): Promise<ClockAppearance> {
-    return this.adapter.get<ClockAppearance>(STORAGE_KEYS.CLOCK, DEFAULT_CLOCK_APPEARANCE);
-  }
-
-  async setClock(clock: Partial<ClockAppearance>): Promise<ClockAppearance> {
-    return this.mutex.run(async () => {
-      const current = await this.getClock();
-      const updated: ClockAppearance = { ...current, ...clock };
-      await this.adapter.set(STORAGE_KEYS.CLOCK, updated);
-      updateBootCache({ clock: updated });
-      return updated;
-    });
-  }
-
-  async resetClock(): Promise<ClockAppearance> {
-    return this.mutex.run(async () => {
-      await this.adapter.set(STORAGE_KEYS.CLOCK, DEFAULT_CLOCK_APPEARANCE);
-      updateBootCache({ clock: DEFAULT_CLOCK_APPEARANCE });
-      return DEFAULT_CLOCK_APPEARANCE;
     });
   }
 
@@ -327,38 +285,6 @@ export class StorageService {
   async removeWidgetContent(instanceId: string): Promise<void> {
     const key = `${STORAGE_KEYS.WIDGET_CONTENT_PREFIX}${instanceId}/content`;
     await this.adapter.remove(key);
-  }
-
-  // Shortcut Keys Enabled (T16)
-  async getShortcutKeysEnabled(): Promise<boolean> {
-    return this.adapter.get<boolean>(STORAGE_KEYS.SHORTCUT_KEYS_ENABLED, true);
-  }
-
-  async setShortcutKeysEnabled(enabled: boolean): Promise<boolean> {
-    return this.mutex.run(async () => {
-      await this.adapter.set(STORAGE_KEYS.SHORTCUT_KEYS_ENABLED, enabled);
-      updateBootCache({ shortcutKeysEnabled: enabled });
-      return enabled;
-    });
-  }
-
-  // Idle Fading & Liquid Glass (T19)
-  async getIdle(): Promise<IdleAppearance> {
-    return this.adapter.get<IdleAppearance>(STORAGE_KEYS.IDLE, DEFAULT_IDLE_APPEARANCE);
-  }
-
-  async setIdle(idle: Partial<IdleAppearance>): Promise<IdleAppearance> {
-    return this.mutex.run(async () => {
-      const current = await this.getIdle();
-      const updated: IdleAppearance = { ...current, ...idle };
-      await this.adapter.set(STORAGE_KEYS.IDLE, updated);
-      updateBootCache({ idle: updated });
-      return updated;
-    });
-  }
-
-  async resetIdle(): Promise<IdleAppearance> {
-    return this.setIdle(DEFAULT_IDLE_APPEARANCE);
   }
 }
 

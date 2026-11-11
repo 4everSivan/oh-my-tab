@@ -132,25 +132,7 @@ test('T14: mergeShortcuts 支持合并去重与覆盖模式', () => {
   assert.equal(replaced[0].name, 'GitHub Duplicate');
 });
 
-test('T14: 单排 6 图标自动切片与分页计算逻辑契约', () => {
-  const PAGE_SIZE = 6;
-  function computePages(shortcutsCount) {
-    const totalSlots = shortcutsCount + 1; // 加上 1 个添加按钮
-    const totalPages = Math.max(1, Math.ceil(totalSlots / PAGE_SIZE));
-    return { totalSlots, totalPages };
-  }
-
-  // 5 个网站：刚好 6 个槽位（1 页满排）
-  assert.equal(computePages(5).totalPages, 1);
-  // 6 个网站：7 个槽位，分 2 页（第 1 页 6 个图标，第 2 页 1 个添加按钮）
-  assert.equal(computePages(6).totalPages, 2);
-  // 11 个网站：12 个槽位，分 2 页
-  assert.equal(computePages(11).totalPages, 2);
-  // 12 个网站：13 个槽位，分 3 页
-  assert.equal(computePages(12).totalPages, 3);
-});
-
-test('T14: Shortcuts.tsx 与 transfer.ts 具备完整的组件集成与导出契约', () => {
+test('T20: 启动台以响应式网格替代单排分页与滚动翻页', () => {
   const shortcutsSrc = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'components', 'shortcuts', 'Shortcuts.tsx'),
     'utf8'
@@ -160,102 +142,23 @@ test('T14: Shortcuts.tsx 与 transfer.ts 具备完整的组件集成与导出契
     'utf8'
   );
 
-  // 1. 导出契约（通过 precheck）
-  assert.ok(shortcutsSrc.includes('export { exportShortcutsToJSON as exportShortcuts }'), 'Shortcuts 必须导出 exportShortcuts');
+  // 导出契约保持不变
+  assert.ok(shortcutsSrc.includes('export { exportShortcutsToJSON as exportShortcuts }'), '启动台必须导出 exportShortcuts');
   assert.ok(transferSrc.includes('export function exportShortcutsToJSON'), 'transfer 必须导出 exportShortcutsToJSON');
   assert.ok(transferSrc.includes('export function parseShortcutsFromJSON'), 'transfer 必须导出 parseShortcutsFromJSON');
   assert.ok(transferSrc.includes('export function mergeShortcuts'), 'transfer 必须导出 mergeShortcuts');
 
-  // 2. 单排 6 图标约束
-  assert.ok(shortcutsSrc.includes('const PAGE_SIZE = 6'), 'Shortcuts 必须限制单页 PAGE_SIZE = 6');
-  assert.ok(shortcutsSrc.includes('flex flex-nowrap'), 'Shortcuts 容器必须使用 flex-nowrap 锁定单排');
-  assert.ok(shortcutsSrc.includes('totalPages > 1'), '超出 1 页时必须渲染指示器');
+  // 启动台网格与过滤
+  assert.ok(shortcutsSrc.includes('lg:grid-cols-8'), '桌面须使用 8 列启动台网格');
+  assert.ok(shortcutsSrc.includes('filteredShortcuts'), '须按名称过滤网站');
+  assert.ok(shortcutsSrc.includes('搜索网站'), '须提供启动台搜索框');
+  assert.ok(shortcutsSrc.includes('没有找到匹配的网站'), '无匹配时须展示空状态');
 
-  // 3. 滑动翻页与左右方向键 ⬅️ / ➡️ 翻页
-  assert.ok(shortcutsSrc.includes('onWheel={handleWheel}'), 'Shortcuts 必须支持滚轮滑动翻页');
-  assert.ok(shortcutsSrc.includes("e.key === 'ArrowRight'"), '必须支持按键 ArrowRight 切换下一页');
-  assert.ok(shortcutsSrc.includes("e.key === 'ArrowLeft'"), '必须支持按键 ArrowLeft 切换上一页');
-
-  // 4. 导入导出 UI
-  assert.ok(shortcutsSrc.includes('handleExport'), '必须具备导出触发函数');
-  assert.ok(shortcutsSrc.includes('handleImportClick'), '必须具备导入触发函数');
-  assert.ok(shortcutsSrc.includes('type="file"'), '必须具备隐藏的 JSON 文件选择器');
+  // 旧分页与翻页彻底移除
+  assert.ok(!shortcutsSrc.includes('PAGE_SIZE'), '不得再限制单页 6 图标');
+  assert.ok(!shortcutsSrc.includes('flex flex-nowrap'), '不得再使用单排 flex-nowrap');
+  assert.ok(!shortcutsSrc.includes('totalPages > 1'), '不得再渲染分页指示器');
+  assert.ok(!shortcutsSrc.includes('onWheel={handleWheel}'), '不得再支持滚轮翻页');
+  assert.ok(!shortcutsSrc.includes("e.key === 'ArrowRight'"), '不得再支持方向键翻页');
+  assert.ok(!shortcutsSrc.includes("e.key === 'ArrowLeft'"), '不得再支持方向键翻页');
 });
-
-test('C017: Shortcuts 分页指示器消除硬编码灰阶并自适应继承 textColor 与 shadowProtection', () => {
-  const shortcutsSrc = fs.readFileSync(
-    path.join(__dirname, '..', 'src', 'components', 'shortcuts', 'Shortcuts.tsx'),
-    'utf8'
-  );
-  const appSrc = fs.readFileSync(
-    path.join(__dirname, '..', 'src', 'App.tsx'),
-    'utf8'
-  );
-
-  // 1. 彻底消除硬编码 stone 灰度颜色
-  assert.ok(!shortcutsSrc.includes('bg-stone-700/80'), '严禁使用静态硬编码 bg-stone-700/80');
-  assert.ok(!shortcutsSrc.includes('bg-stone-400/40'), '严禁使用静态硬编码 bg-stone-400/40');
-
-  // 2. 契约中包含 shadowProtection 属性并动态绑定 textColor
-  assert.ok(shortcutsSrc.includes('shadowProtection?: string'), 'ShortcutsProps 必须声明 shadowProtection 属性');
-  assert.ok(shortcutsSrc.includes('backgroundColor: textColor'), '圆点背景色必须动态继承 textColor');
-  assert.ok(shortcutsSrc.includes("shadowProtection !== 'none' || textColor === '#FFFFFF'"), '必须根据投影保护与文字明暗配置自适应 boxShadow');
-
-  // 3. 视觉显著度与底托升级：h-2 (8px), w-5 (20px), 毛玻璃浮动底托
-  assert.ok(shortcutsSrc.includes('h-2'), '圆点高度必须升级为 h-2 (8px)');
-  assert.ok(shortcutsSrc.includes('w-5'), '当前页活动指示器必须扩展为 w-5 (20px) 显著胶囊');
-  assert.ok(shortcutsSrc.includes('backdrop-blur-md'), '指示器底托必须具备毛玻璃质感');
-
-  // 4. App.tsx 透传 shadowProtection
-  assert.ok(
-    appSrc.includes('shadowProtection={shadowProtection}'),
-    'App.tsx 必须将采样自适应得出的 shadowProtection 传递给 Shortcuts'
-  );
-});
-
-test('C018: 常用网站键盘翻页调整为 ArrowRight (下一页) 与 ArrowLeft (上一页)', () => {
-  const shortcutsSrc = fs.readFileSync(
-    path.join(__dirname, '..', 'src', 'components', 'shortcuts', 'Shortcuts.tsx'),
-    'utf8'
-  );
-  const helpSrc = fs.readFileSync(
-    path.join(__dirname, '..', 'src', 'components', 'shortcuts', 'ShortcutsHelpModal.tsx'),
-    'utf8'
-  );
-
-  // 1. 废除 ArrowDown / ArrowUp 作为翻页键
-  assert.ok(!shortcutsSrc.includes("e.key === 'ArrowDown'"), 'Shortcuts 不得再使用 ArrowDown 翻页');
-  assert.ok(!shortcutsSrc.includes("e.key === 'ArrowUp'"), 'Shortcuts 不得再使用 ArrowUp 翻页');
-
-  // 2. 启用 ArrowRight / ArrowLeft 水平切页
-  assert.ok(shortcutsSrc.includes("e.key === 'ArrowRight'"), 'Shortcuts 必须使用 ArrowRight 切换下一页');
-  assert.ok(shortcutsSrc.includes("e.key === 'ArrowLeft'"), 'Shortcuts 必须使用 ArrowLeft 切换上一页');
-
-  // 3. 快捷键指南浮层包含左右箭头说明
-  assert.ok(helpSrc.includes("keyDesc: '← / →'"), '快捷键指南浮层必须声明 ← / → 翻页键');
-});
-
-test('C019: Shortcuts 翻页圆点指示器胶囊整合左右快捷键键帽 [←] [→] 与“翻页”提示文字', () => {
-  const shortcutsSrc = fs.readFileSync(
-    path.join(__dirname, '..', 'src', 'components', 'shortcuts', 'Shortcuts.tsx'),
-    'utf8'
-  );
-
-  // 1. 包含 [←] [→] 左右快捷键按钮与点击切换调度
-  assert.ok(shortcutsSrc.includes('aria-label="上一页"'), '指示器必须包含上一页 [←] 按钮');
-  assert.ok(shortcutsSrc.includes('aria-label="下一页"'), '指示器必须包含下一页 [→] 按钮');
-  assert.ok(shortcutsSrc.includes('disabled={safePageIndex === 0}'), '上一页按钮在第 1 页必须处于禁用态');
-  assert.ok(shortcutsSrc.includes('disabled={safePageIndex === totalPages - 1}'), '下一页按钮在末页必须处于禁用态');
-
-  // 2. 包含“翻页”可见提示文字与自适应样式
-  assert.ok(shortcutsSrc.includes('翻页'), '指示器胶囊必须包含“翻页”提示文本');
-  assert.ok(/翻页\s*<\/span>/.test(shortcutsSrc), '指示器胶囊必须包含“翻页”提示文本标签');
-  assert.ok(shortcutsSrc.includes('style={{ color: textColor }}'), '“翻页”提示文本必须自适应 textColor');
-
-  // 3. 包含操作说明气泡与按键提示
-  assert.ok(shortcutsSrc.includes('title="翻页 (支持按左右方向键 ← / → 或鼠标滚轮)"'), '外层胶囊必须具备完整交互气泡');
-  assert.ok(shortcutsSrc.includes('title={`第 ${idx + 1} 页 (可按方向键 ⬅️/➡️ 或滚轮翻页)`}'), '各圆点按钮必须包含翻页页码气泡');
-});
-
-
-

@@ -1,7 +1,7 @@
 {
   "$schema": "https://ad-flow.org/schemas/task-index.v1.json",
   "phase": "Phase 3 - 扩展生态与深度集成 (v0.3.0)",
-  "updated_at": "2026-10-27",
+  "updated_at": "2026-11-11",
   "milestones": {
     "M1": {
       "title": "M1-v0.1.0-首发里程碑 (已发版归档)",
@@ -39,11 +39,12 @@
     },
     "M3": {
       "title": "M3-v0.3.0-视觉质感突破与智能交互",
-      "description": "交付时间和搜索框、web图标栏与配置按钮的液态玻璃闲置呼吸淡化系统 (T19)",
+      "description": "交付时间和搜索框、web图标栏与配置按钮的液态玻璃闲置呼吸淡化系统 (T19)，以及首页极简化与独立启动台改版 (T20)",
       "tasks": [
-        "T19"
+        "T19",
+        "T20"
       ],
-      "status": "completed"
+      "status": "active"
     }
   },
   "topics": {
@@ -63,7 +64,8 @@
         "T13",
         "T14",
         "T15",
-        "T16"
+        "T16",
+        "T20"
       ]
     },
     "WorkspaceAppearance": {
@@ -73,7 +75,8 @@
         "T09",
         "T10",
         "T17",
-        "T19"
+        "T19",
+        "T20"
       ]
     },
     "ProductivityWidgets": {
@@ -104,7 +107,8 @@
       "design_doc": "docs/devel/design/07-动效系统.md",
       "tasks": [
         "T08",
-        "T09"
+        "T09",
+        "T20"
       ]
     }
   },
@@ -336,6 +340,21 @@
         "T10"
       ],
       "file": "docs/devel/task/T19.json"
+    },
+    "T20": {
+      "title": "首页极简化与启动台改版（小钟、移除闲置与大时钟、网站图标迁移）",
+      "status": "in_progress",
+      "branch": "feat/T20-home-launchpad-redesign",
+      "milestone": "M3-v0.3.0-视觉质感突破与智能交互",
+      "depends_on": [
+        "T05",
+        "T12",
+        "T14",
+        "T15",
+        "T16",
+        "T19"
+      ],
+      "file": "docs/devel/task/T20.json"
     }
   }
 }

@@ -1,20 +1,6 @@
-export type FontStyle = 'modern' | 'mono' | 'serif';
 export type AlignStyle = 'left' | 'center' | 'right';
-export type ShadowStyle = 'none' | 'soft';
 export type BackgroundType = 'material' | 'color' | 'image';
 export type BackgroundPosition = 'center' | 'top' | 'bottom';
-
-export interface ClockAppearance {
-  font: FontStyle;
-  size: number;
-  weight: number;
-  align: AlignStyle;
-  top: number;
-  shadow: ShadowStyle;
-  showDate: boolean;
-  showSeconds: boolean;
-  timezone?: string; // 'auto' (跟随系统) 或 IANA 时区标识如 'Asia/Shanghai'
-}
 
 export interface SearchAppearance {
   align: AlignStyle;
@@ -24,16 +10,6 @@ export interface SearchAppearance {
   blur: number; // 0 - 24
   radius?: number; // 0 - 28, 默认 24
 }
-
-export interface IdleAppearance {
-  enabled: boolean;
-  timeoutSeconds: number; // 3, 5, 10 等
-}
-
-export const DEFAULT_IDLE_APPEARANCE: IdleAppearance = {
-  enabled: true,
-  timeoutSeconds: 3,
-};
 
 export interface BackgroundConfig {
   type: BackgroundType;
@@ -71,7 +47,6 @@ export interface LayoutItem {
 }
 
 export interface AppSettings {
-  clock: ClockAppearance;
   search: SearchAppearance;
   engine: string;
   background: BackgroundConfig;
@@ -79,21 +54,7 @@ export interface AppSettings {
   shortcutGroups?: ShortcutGroup[];
   activeShortcutGroupId?: string;
   layout: LayoutItem[];
-  shortcutKeysEnabled?: boolean;
-  idle?: IdleAppearance;
 }
-
-export const DEFAULT_CLOCK_APPEARANCE: ClockAppearance = {
-  font: 'modern',
-  size: 96,
-  weight: 400,
-  align: 'center',
-  top: 56,
-  shadow: 'none',
-  showDate: true,
-  showSeconds: false,
-  timezone: 'auto',
-};
 
 export const DEFAULT_SEARCH_APPEARANCE: SearchAppearance = {
   align: 'center',

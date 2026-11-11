@@ -94,7 +94,8 @@ interface SearchBarProps {
   onCycleEngine?: (direction: 'next' | 'prev') => void;
   textColor?: string;
   tone?: 'light' | 'dark';
-  onFocusChange?: (focused: boolean) => void;
+  /** 搜索框上方的附加内容（T20：左上方小钟）；与搜索框共用同一宽度与对齐容器 */
+  topSlot?: React.ReactNode;
 }
 
 export const SearchBar: React.FC<SearchBarProps> = ({
@@ -105,7 +106,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   onCycleEngine,
   textColor = '#141c20',
   tone = 'dark',
-  onFocusChange,
+  topSlot,
 }) => {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -305,12 +306,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const blurPx = appearance.blur;
 
   return (
-    <div
-      className={`relative z-20 w-full flex ${alignClass}`}
-      style={{
-        marginTop: `${appearance.gap}px`,
-      }}
-    >
+    <div className={`relative z-20 w-full flex ${alignClass}`}>
       <div
         ref={containerRef}
         className="relative w-full"
@@ -318,6 +314,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           maxWidth: `${appearance.width}px`,
         }}
       >
+        {topSlot}
         <form
           onSubmit={handleSubmit}
           className={`liquid-glass-surface relative flex items-center transition-all duration-200 border shadow-sm hover:shadow-md focus-within:shadow-md ${
@@ -394,7 +391,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             onChange={handleInputChange}
             onFocus={() => {
               setIsFocused(true);
-              onFocusChange?.(true);
               if (query.trim()) {
                 setShowSuggestions(true);
               }
@@ -402,7 +398,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             }}
             onBlur={() => {
               setIsFocused(false);
-              onFocusChange?.(false);
             }}
             onKeyDown={handleInputKeyDown}
             placeholder={isFocused ? '' : `在 ${currentEngine.name} 中搜索...`}

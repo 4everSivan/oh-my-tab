@@ -138,12 +138,12 @@ test('Low contrast or complex texture samples automatically trigger adaptive sha
 });
 
 // 2. CSS Motion Tokens & Classes for Advanced Transitions
-test('motion.css defines workspace-container accordion collapse rules', () => {
+test('motion.css defines launchpad fade rules and no collapse container (T20)', () => {
   const motionCss = fs.readFileSync(path.resolve(__dirname, '../src/styles/motion.css'), 'utf-8');
-  assert.ok(motionCss.includes('.workspace-container'));
-  assert.ok(motionCss.includes('.workspace-container[data-collapsed=\'true\']'));
-  assert.ok(motionCss.includes('max-height'));
-  assert.ok(motionCss.includes('overflow: hidden'));
+  assert.ok(motionCss.includes('.launchpad-overlay'));
+  assert.ok(motionCss.includes('.launchpad-overlay[data-open=\'true\']'));
+  assert.ok(motionCss.includes('.launchpad-backdrop'));
+  assert.ok(!motionCss.includes('.workspace-container'));
 });
 
 test('motion.css defines t-stagger-item, origin-menu, t-tabs-sliding, and t-toast', () => {
@@ -162,7 +162,7 @@ test('prefers-reduced-motion guard covers new transitions', () => {
   assert.ok(reducedIndex > -1);
   const guardBlock = motionCss.slice(reducedIndex);
 
-  assert.ok(guardBlock.includes('.workspace-container'));
+  assert.ok(!guardBlock.includes('.workspace-container'));
   assert.ok(guardBlock.includes('.t-stagger-item'));
   assert.ok(guardBlock.includes('.origin-menu'));
   assert.ok(guardBlock.includes('.t-tabs-sliding'));
